@@ -6,7 +6,7 @@ authors = ["UPX3 <127630341+AFg6K7h4fhy2@users.noreply.github.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 package-mode = false
-repository = "https://github.com/CDCgov/hubverse_annotator/"
+repository = "https://github.com/CDCgov/hubverse-annotator/"
 keywords = ["hubverse", "application", "infectious-disease-modeling", "data-science"]
 
 [tool.poetry.dependencies]
@@ -17,7 +17,7 @@ polars = "^1.27.0"
 forecasttools = {git = "https://github.com/CDCgov/forecasttools-py", rev = "main"}
 
 [tool.poetry.urls]
-"Repository Issues" = "https://github.com/CDCgov/hubverse_annotator/issues"
+"Repository Issues" = "https://github.com/CDCgov/hubverse-annotator/issues"
 "CFA Homepage" = "https://www.cdc.gov/forecast-outbreak-analytics/index.html"
 
 [build-system]
