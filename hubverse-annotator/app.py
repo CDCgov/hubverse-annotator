@@ -1,7 +1,7 @@
 """
 A streamlit application for that loads hubverse formatted
-tables and plots model forecasts for the end user to
-compare and annotate models.
+tables and plots model forecasts for the user to compare
+and annotate models.
 
 To run: poetry run streamlit run app.py
 """
@@ -120,15 +120,6 @@ def main() -> None:
         st.altair_chart(chart)
     st.markdown(f"## Forecasts For: {location}")
     st.markdown(f"## Reference Date: {reference_date}")
-
-    # st.area_chart(
-    #     {
-    #         "Forecast A": [3, 6, 9, 2, 5],
-    #         "Forecast B": [2, 4, 8, 3, 7],
-    #         "Forecast C": [1, 7, 5, 6, 2],
-    #         "Forecast D": [5, 4, 3, 2, 6],
-    #     }
-    # )
 
     # forecasts annotation section
     st.markdown("#### Forecast A")
