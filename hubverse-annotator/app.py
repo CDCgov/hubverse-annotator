@@ -20,9 +20,47 @@ PYRENEW_MODELS = {
 }
 
 
-def create_quantile_bands():
-    """ """
-    pass
+def create_quantile_bands(data, quantiles):
+    """
+    Given the data (e.g. smhub_table) and a sorted list of
+    quantiles, create and return a list of Altair chart
+    layers representing a band for each symmetric pair of
+    quantiles.
+    """
+    layers = []
+    n = len(quantiles)
+    n_pairs = n // 2
+
+    for i in range(n_pairs):
+        lower = quantiles[i]
+        upper = quantiles[-(i + 1)]
+        opacity = 0.2 + 0.1 * (n_pairs - i - 1)
+
+        band = (
+            alt.Chart(data)
+            .transform_filter(
+                (alt.datum.output_type == "quantile")
+                & (
+                    (alt.datum.output_type_id == lower)
+                    | (alt.datum.output_type_id == upper)
+                )
+            )
+            .transform_aggregate(
+                lower="min(value)",
+                upper="max(value)",
+                groupby=["model", "target_end_date"],
+            )
+            .mark_area(color="blue", opacity=opacity)
+            .encode(
+                x=alt.X("target_end_date:T", title="Target End Date"),
+                y=alt.Y("lower:Q", title="Forecast Value"),
+                y2="upper:Q",
+                detail="model:N",
+            )
+        )
+
+        layers.append(band)
+    return layers
 
 
 def main() -> None:
