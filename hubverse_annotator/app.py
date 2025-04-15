@@ -10,7 +10,6 @@ import datetime
 import logging
 import time
 
-import altair as alt
 import forecasttools
 import polars as pl
 import streamlit as st
@@ -22,47 +21,48 @@ PYRENEW_MODELS = {
 }
 
 
-def create_quantile_bands(data, quantiles):
-    """
-    Given the data (e.g. smhub_table) and a sorted list of
-    quantiles, create and return a list of Altair chart
-    layers representing a band for each symmetric pair of
-    quantiles.
-    """
-    layers = []
-    n = len(quantiles)
-    n_pairs = n // 2
+# def model_forecast_chart(model_hubverse_table, quantiles):
+#     """
+#     Given the forecast data in a hubverse table with
+#     mul and a sorted list of
+#     quantiles, create and return a list of Altair chart
+#     layers representing a band for each symmetric pair of
+#     quantiles.
+#     """
+#     layers = []
+#     n = len(quantiles)
+#     n_pairs = n // 2
 
-    for i in range(n_pairs):
-        lower = quantiles[i]
-        upper = quantiles[-(i + 1)]
-        opacity = 0.2 + 0.1 * (n_pairs - i - 1)
+#     for i in range(n_pairs):
+#         lower = quantiles[i]
+#         upper = quantiles[-(i + 1)]
+#         opacity = 0.2 + 0.1 * (n_pairs - i - 1)
 
-        band = (
-            alt.Chart(data)
-            .transform_filter(
-                (alt.datum.output_type == "quantile")
-                & (
-                    (alt.datum.output_type_id == lower)
-                    | (alt.datum.output_type_id == upper)
-                )
-            )
-            .transform_aggregate(
-                lower="min(value)",
-                upper="max(value)",
-                groupby=["model", "target_end_date"],
-            )
-            .mark_area(color="blue", opacity=opacity)
-            .encode(
-                x=alt.X("target_end_date:T", title="Target End Date"),
-                y=alt.Y("lower:Q", title="Forecast Value"),
-                y2="upper:Q",
-                detail="model:N",
-            )
-        )
+#         band = (
+#             alt.Chart(model_hubverse_table)
+#             .transform_filter(
+#                 (alt.datum.output_type == "quantile")
+#                 & (
+#                     (alt.datum.output_type_id == lower)
+#                     | (alt.datum.output_type_id == upper)
+#                 )
+#             )
+#             .transform_aggregate(
+#                 lower="min(value)",
+#                 upper="max(value)",
+#                 groupby=["model", "target_end_date"],
+#             )
+#             .mark_area(color="blue", opacity=opacity)
+#             .encode(
+#                 x=alt.X("target_end_date:T", title="Target End Date"),
+#                 y=alt.Y("lower:Q", title="Forecast Value"),
+#                 y2="upper:Q",
+#                 detail="model:N",
+#             )
+#         )
 
-        layers.append(band)
-    return layers
+#         layers.append(band)
+#     return layers
 
 
 def main() -> None:
@@ -96,31 +96,44 @@ def main() -> None:
             smhub_table = pl.read_parquet(uploaded_file)
         else:
             smhub_table = pl.read_csv(uploaded_file)
-        logger.info(f"Uploaded file: {uploaded_file.name}")
+        logger.info(f"Uploaded file:\n{uploaded_file.name}")
         logger.info(f"Contents\n:{smhub_table}")
+        # get hubverse table by selected location
         smhub_table = smhub_table.filter(
             pl.col("location") == two_letter_loc_abbr
         )
-    st.markdown(f"## Forecasts For: {location}")
-    st.markdown(f"## Reference Date: {reference_date}")
-    # forecasts annotation section
-    st.markdown("#### Forecast A")
-    st.selectbox("Status", ["Preferred", "Omitted", "None"], key="status_a")
-    st.text_input("Comments", key="comments_a")
-    st.markdown("#### Forecast B")
-    st.selectbox("Status", ["Preferred", "Omitted", "None"], key="status_b")
-    st.text_input("Comments", key="comments_b")
-    st.markdown("#### Forecast C")
-    st.selectbox("Status", ["Preferred", "Omitted", "None"], key="status_c")
-    st.text_input("Comments", key="comments_c")
-    st.markdown("#### Forecast D")
-    st.selectbox("Status", ["Preferred", "Omitted", "None"], key="status_d")
-    st.text_input("Comments", key="comments_d")
-    # export button
-    if st.button("Export forecasts"):
-        col1, col2, col3 = st.columns([1, 3, 1])
-        with col2:
-            st.success("Need export")
+        models_available = smhub_table["model"].unique().to_list()
+        selected_models = st.multiselect(
+            "Select Models To Plot", options=models_available
+        )
+        st.markdown(f"## Forecasts For: {location}")
+        st.markdown(f"## Reference Date: {reference_date}")
+        # forecasts annotation section
+        st.markdown("#### Forecast A")
+        st.selectbox(
+            "Status", ["Preferred", "Omitted", "None"], key="status_a"
+        )
+        st.text_input("Comments", key="comments_a")
+        st.markdown("#### Forecast B")
+        st.selectbox(
+            "Status", ["Preferred", "Omitted", "None"], key="status_b"
+        )
+        st.text_input("Comments", key="comments_b")
+        st.markdown("#### Forecast C")
+        st.selectbox(
+            "Status", ["Preferred", "Omitted", "None"], key="status_c"
+        )
+        st.text_input("Comments", key="comments_c")
+        st.markdown("#### Forecast D")
+        st.selectbox(
+            "Status", ["Preferred", "Omitted", "None"], key="status_d"
+        )
+        st.text_input("Comments", key="comments_d")
+        # export button
+        if st.button("Export forecasts"):
+            col1, col2, col3 = st.columns([1, 3, 1])
+            with col2:
+                st.success("Need export")
     # record end time
     end_time = time.time()
     duration = end_time - start_time
