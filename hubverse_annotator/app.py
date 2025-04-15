@@ -10,6 +10,7 @@ import datetime
 import logging
 import time
 
+import altair as alt
 import forecasttools
 import polars as pl
 import streamlit as st
@@ -21,48 +22,77 @@ PYRENEW_MODELS = {
 }
 
 
-# def model_forecast_chart(model_hubverse_table, quantiles):
-#     """
-#     Given the forecast data in a hubverse table with
-#     mul and a sorted list of
-#     quantiles, create and return a list of Altair chart
-#     layers representing a band for each symmetric pair of
-#     quantiles.
-#     """
-#     layers = []
-#     n = len(quantiles)
-#     n_pairs = n // 2
+def create_quantile_bands(hubverse_pd_df, quantiles):
+    layers = []
+    n = len(quantiles)
+    n_pairs = n // 2
 
-#     for i in range(n_pairs):
-#         lower = quantiles[i]
-#         upper = quantiles[-(i + 1)]
-#         opacity = 0.2 + 0.1 * (n_pairs - i - 1)
+    for i in range(n_pairs):
+        lower = quantiles[i]
+        upper = quantiles[-(i + 1)]
+        opacity = 0.5
 
-#         band = (
-#             alt.Chart(model_hubverse_table)
-#             .transform_filter(
-#                 (alt.datum.output_type == "quantile")
-#                 & (
-#                     (alt.datum.output_type_id == lower)
-#                     | (alt.datum.output_type_id == upper)
-#                 )
-#             )
-#             .transform_aggregate(
-#                 lower="min(value)",
-#                 upper="max(value)",
-#                 groupby=["model", "target_end_date"],
-#             )
-#             .mark_area(color="blue", opacity=opacity)
-#             .encode(
-#                 x=alt.X("target_end_date:T", title="Target End Date"),
-#                 y=alt.Y("lower:Q", title="Forecast Value"),
-#                 y2="upper:Q",
-#                 detail="model:N",
-#             )
-#         )
+        band = (
+            alt.Chart(hubverse_pd_df)
+            .transform_filter(
+                (alt.datum.output_type == "quantile")
+                & (
+                    (alt.datum.output_type_id == lower)
+                    | (alt.datum.output_type_id == upper)
+                )
+            )
+            .transform_aggregate(
+                lower="min(value)",
+                upper="max(value)",
+                groupby=["model", "target_end_date"],
+            )
+            .mark_area(color="blue", opacity=opacity)
+            .encode(
+                x=alt.X("target_end_date:T", title="Target End Date"),
+                y=alt.Y("lower:Q", title="Forecast Value"),
+                y2="upper:Q",
+                detail="model:N",
+            )
+        )
 
-#         layers.append(band)
-#     return layers
+        layers.append(band)
+    return layers
+
+
+def create_forecast_chart(hubverse_table: pl.DataFrame, reference_date: str):
+    """
+    Ingests a hubverse table for a location, reference
+    date, and target, and produces quantile plots.
+    """
+    # altair chart seems to require a pandas dataframe
+    hubverse_dicts = hubverse_table.to_dicts()
+    hubverse_pd_df = hubverse_table.to_pandas()
+    historical_points = (
+        alt.Chart(hubverse_pd_df)
+        .transform_filter(
+            f".datum.target_end_date > '{reference_date.isoformat()}'"
+        )
+        .mark_circle(size=60, color="darkblue", opacity=0.5)
+        .encode(
+            x=alt.X("target_end_date:T", title="Target End Date"),
+            y=alt.Y("value:Q", title="Hospital Admission Q. Value"),
+            tooltip=["model", "target_end_date:T", "value:Q"],
+        )
+    )
+    # get quantiles from hubverse table
+    quantiles = sorted(
+        d["output_type_id"]
+        for d in hubverse_dicts
+        if d["output_type"] == "quantile"
+    )
+    # quantile bands
+    band_layers = create_quantile_bands(hubverse_pd_df, quantiles)
+    # assemble entire chart
+    chart = alt.layer(
+        historical_points,
+        *band_layers,
+    ).properties(title="Forecasts", width=700, height=400)
+    return chart
 
 
 def main() -> None:
@@ -111,7 +141,7 @@ def main() -> None:
         selected_target = st.selectbox(
             "Select Targets", options=targets_available
         )
-        # filter hubverse table by selected models
+        # filter hubverse table by selected models and target
         smhub_table = smhub_table.filter(
             pl.col("model").is_in(selected_models),
             pl.col("target") == selected_target,
@@ -121,6 +151,9 @@ def main() -> None:
         st.markdown(f"## Reference Date: {reference_date}")
 
         # plotting of the selected model, target, location, and reference date
+        forecast_chart = create_forecast_chart(smhub_table, reference_date)
+        print(forecast_chart)
+        st.altair_chart(forecast_chart, use_container_width=True)
 
         # forecasts annotation section
         st.markdown("#### Forecast A")
