@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "hubverse-annotator"
+name = "hubverse_annotator"
 version = "0.0.1"
 description = "Local web application that loads hubverse formatted tables and plots model forecasts, enabling the end user to compare and annotate models."
 authors = ["UPX3 <127630341+AFg6K7h4fhy2@users.noreply.github.com>"]
