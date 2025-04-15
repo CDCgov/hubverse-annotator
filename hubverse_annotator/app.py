@@ -70,7 +70,7 @@ def create_forecast_chart(hubverse_table: pl.DataFrame, reference_date: str):
     historical_points = (
         alt.Chart(hubverse_pd_df)
         .transform_filter(
-            f".datum.target_end_date > '{reference_date.isoformat()}'"
+            f"datum.target_end_date > '{reference_date.isoformat()}'"
         )
         .mark_circle(size=60, color="darkblue", opacity=0.5)
         .encode(
@@ -92,6 +92,7 @@ def create_forecast_chart(hubverse_table: pl.DataFrame, reference_date: str):
         historical_points,
         *band_layers,
     ).properties(title="Forecasts", width=700, height=400)
+    # chart.save("chart.html")
     return chart
 
 
