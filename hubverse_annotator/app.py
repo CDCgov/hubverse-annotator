@@ -12,6 +12,7 @@ import time
 
 import altair as alt
 import forecasttools
+import pandas as pd
 import polars as pl
 import streamlit as st
 
@@ -22,77 +23,58 @@ PYRENEW_MODELS = {
 }
 
 
-def create_quantile_bands(hubverse_pd_df, quantiles):
-    layers = []
-    n = len(quantiles)
-    n_pairs = n // 2
-
-    for i in range(n_pairs):
-        lower = quantiles[i]
-        upper = quantiles[-(i + 1)]
-        opacity = 0.5
-
-        band = (
-            alt.Chart(hubverse_pd_df)
-            .transform_filter(
-                (alt.datum.output_type == "quantile")
-                & (
-                    (alt.datum.output_type_id == lower)
-                    | (alt.datum.output_type_id == upper)
-                )
-            )
-            .transform_aggregate(
-                lower="min(value)",
-                upper="max(value)",
-                groupby=["model", "target_end_date"],
-            )
-            .mark_area(color="blue", opacity=opacity)
-            .encode(
-                x=alt.X("target_end_date:T", title="Target End Date"),
-                y=alt.Y("lower:Q", title="Forecast Value"),
-                y2="upper:Q",
-                detail="model:N",
-            )
-        )
-
-        layers.append(band)
-    return layers
-
-
-def create_forecast_chart(hubverse_table: pl.DataFrame, reference_date: str):
+def create_forecast_chart(
+    hubverse_table: pl.DataFrame, reference_date: str
+) -> alt.LayerChart:
     """
     Ingests a hubverse table for a location, reference
     date, and target, and produces quantile plots.
     """
     # altair chart seems to require a pandas dataframe
-    hubverse_dicts = hubverse_table.to_dicts()
     hubverse_pd_df = hubverse_table.to_pandas()
-    historical_points = (
-        alt.Chart(hubverse_pd_df)
-        .transform_filter(
-            f"datum.target_end_date > '{reference_date.isoformat()}'"
+    reference_date = pd.to_datetime(reference_date)
+    hubverse_pd_df["target_end_date"] = pd.to_datetime(
+        hubverse_pd_df["target_end_date"]
+    )
+    forecast_data = hubverse_pd_df[
+        hubverse_pd_df["target_end_date"] >= reference_date
+    ]
+    historical_data = hubverse_pd_df[
+        hubverse_pd_df["target_end_date"] < reference_date
+    ]
+    pivot = (
+        alt.Chart(forecast_data)
+        .transform_filter("datum.output_type == 'quantile'")
+        .transform_pivot(
+            pivot="output_type_id",
+            value="value",
+            groupby=["model", "target_end_date"],
         )
-        .mark_circle(size=60, color="darkblue", opacity=0.5)
+    )
+    errorband = pivot.mark_errorband(color="blue", opacity=0.5).encode(
+        x=alt.X("target_end_date:T", title="Target End Date"),
+        y=alt.Y("0.05:Q", title="Forecast Value"),
+        y2=alt.Y2("0.95:Q"),
+        color=alt.Color("model:N", title="Model"),
+    )
+    median_line = pivot.mark_line(point=True).encode(
+        x="target_end_date:T",
+        y=alt.Y("0.50:Q", title="Forecast Value"),
+        color="model:N",
+    )
+    historical_points = (
+        alt.Chart(historical_data)
+        .mark_circle(size=60, color="darkblue", opacity=0.6)
         .encode(
             x=alt.X("target_end_date:T", title="Target End Date"),
-            y=alt.Y("value:Q", title="Hospital Admission Q. Value"),
+            y=alt.Y("value:Q", title="Forecast Value"),
             tooltip=["model", "target_end_date:T", "value:Q"],
         )
     )
-    # get quantiles from hubverse table
-    quantiles = sorted(
-        d["output_type_id"]
-        for d in hubverse_dicts
-        if d["output_type"] == "quantile"
+    chart = alt.layer(historical_points, errorband, median_line).properties(
+        title="Forecasts with Quantile Bands", width=700, height=400
     )
-    # quantile bands
-    band_layers = create_quantile_bands(hubverse_pd_df, quantiles)
-    # assemble entire chart
-    chart = alt.layer(
-        historical_points,
-        *band_layers,
-    ).properties(title="Forecasts", width=700, height=400)
-    # chart.save("chart.html")
+
     return chart
 
 
@@ -191,3 +173,11 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# Notes
+# Default to latest reference
+# Default to US
+# Default to all models
+# Calendar picker (just show reference date)
+# Still needs w/ re-runs
+# Interactive plots (toggle)
