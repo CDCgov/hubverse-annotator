@@ -6,6 +6,7 @@ and annotate models.
 To run: poetry run streamlit run app.py
 """
 
+import datetime as dt
 import logging
 import time
 
@@ -102,8 +103,12 @@ def main() -> None:
             ref_dates_available = (
                 smhub_table["reference_date"].unique().to_list()
             )
+            ref_dates_as_str = [
+                dt.datetime.strftime(ref_d, "%Y-%m-%d")
+                for ref_d in ref_dates_available
+            ]
             selected_ref_date = st.selectbox(
-                "Reference Date", options=ref_dates_available
+                "Reference Date", options=ref_dates_as_str
             )
         with col2:
             # get locations from forecasttools, some might be excluded from the
@@ -114,7 +119,6 @@ def main() -> None:
             location = st.selectbox(
                 "Location",
                 options=locations_available,
-                default="United States",
             )
         # get location abbreviation
         two_letter_loc_abbr = forecasttools.location_lookup(
@@ -175,10 +179,6 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
-# Notes
-# Default to latest reference
 
-# Default to all models
-# Calendar picker (just show reference date)
 # Still needs w/ re-runs
 # Interactive plots (toggle)
