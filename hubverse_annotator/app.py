@@ -107,6 +107,7 @@ def main() -> None:
             # hubverse table, though
             locations = forecasttools.location_table["long_name"].to_list()
             location = st.selectbox("Location", locations)
+
         # get location abbreviation
         two_letter_loc_abbr = forecasttools.location_lookup(
             location_vector=[location], location_format="long_name"
@@ -123,6 +124,10 @@ def main() -> None:
         targets_available = smhub_table["target"].unique().to_list()
         selected_target = st.selectbox(
             "Select Targets", options=targets_available
+        )
+        ref_dates_available = smhub_table["reference_date"].unique().to_list()
+        selected_ref_dates = st.selectbox(
+            "Select Reference Date", options=ref_dates_available
         )
         # filter hubverse table by selected models and target
         smhub_table = smhub_table.filter(
