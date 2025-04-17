@@ -25,56 +25,64 @@ PYRENEW_MODELS = {
 
 def create_forecast_chart(
     hubverse_table: pl.DataFrame, reference_date: str
-) -> alt.LayerChart:
+) -> alt.Chart:
     """
-    Ingests a hubverse table for a location, reference
-    date, and target, and produces quantile plots.
+    Ingests a hubverse table (polars) and a reference_date string,
+    pivots quantiles wide, melts back long, then creates a
+    stacked‐area (streamgraph‐style) chart where X is the discrete
+    set of target_end_date weeks.
     """
-    # altair chart seems to require a pandas dataframe
-    hubverse_pd_df = hubverse_table.to_pandas()
-    reference_date = pd.to_datetime(reference_date)
-    hubverse_pd_df["target_end_date"] = pd.to_datetime(
-        hubverse_pd_df["target_end_date"]
-    )
-    forecast_data = hubverse_pd_df[
-        hubverse_pd_df["target_end_date"] >= reference_date
+    wide = hubverse_table.pivot(
+        values="value",
+        index=["model", "target_end_date", "reference_date"],
+        on="output_type_id",
+    ).sort(by=["model", "target_end_date", "reference_date"])
+    pdf = wide.to_pandas().reset_index()
+    pdf["target_end_date"] = pd.to_datetime(pdf["target_end_date"])
+    qcols = [
+        c
+        for c in pdf.columns
+        if isinstance(c, float)
+        or (isinstance(c, str) and c.replace(".", "", 1).isdigit())
     ]
-    historical_data = hubverse_pd_df[
-        hubverse_pd_df["target_end_date"] < reference_date
-    ]
-    pivot = (
-        alt.Chart(forecast_data)
-        .transform_filter("datum.output_type == 'quantile'")
-        .transform_pivot(
-            pivot="output_type_id",
-            value="value",
-            groupby=["model", "target_end_date"],
-        )
-    )
-    errorband = pivot.mark_errorband(color="blue", opacity=0.5).encode(
-        x=alt.X("target_end_date:T", title="Target End Date"),
-        y=alt.Y("0.05:Q", title="Forecast Value"),
-        y2=alt.Y2("0.95:Q"),
-        color=alt.Color("model:N", title="Model"),
-    )
-    median_line = pivot.mark_line(point=True).encode(
-        x="target_end_date:T",
-        y=alt.Y("0.50:Q", title="Forecast Value"),
-        color="model:N",
-    )
-    historical_points = (
-        alt.Chart(historical_data)
-        .mark_circle(size=60, color="darkblue", opacity=0.6)
-        .encode(
-            x=alt.X("target_end_date:T", title="Target End Date"),
-            y=alt.Y("value:Q", title="Forecast Value"),
-            tooltip=["model", "target_end_date:T", "value:Q"],
-        )
-    )
-    chart = alt.layer(historical_points, errorband, median_line).properties(
-        title="Forecasts with Quantile Bands", width=700, height=400
-    )
 
+    long_df = pdf.melt(
+        id_vars=["model", "target_end_date", "reference_date"],
+        value_vars=qcols,
+        var_name="quantile",
+        value_name="value",
+    )
+    long_df["date_str"] = long_df["target_end_date"].dt.strftime("%Y-%m-%d")
+    long_df["quantile_num"] = long_df["quantile"].astype(float)
+    long_df["opacity"] = 1 - (long_df["quantile_num"] - 0.5).abs() * 2
+    unique_dates = list(long_df["date_str"].unique())
+    sel = alt.selection_multi(fields=["model"], bind="legend")
+    chart = (
+        alt.Chart(long_df)
+        .mark_area(interpolate="linear")
+        .encode(
+            x=alt.X(
+                "date_str:O",
+                title="Target End Date (weekly)",
+                sort=unique_dates,
+                axis=alt.Axis(labelAngle=-45),
+            ),
+            y=alt.Y("value:Q", stack="center", title="Forecast Value"),
+            color=alt.Color(
+                "quantile:O", title="Quantile", scale=alt.Scale(scheme="blues")
+            ),
+            facet=alt.Facet("model:N", columns=1, title=None),
+            opacity=alt.Opacity("opacity:Q", legend=None),
+            # opacity=alt.condition(sel, alt.value(1), alt.value(0.2)),
+        )
+        .add_selection(sel)
+        .properties(
+            title="Streamgraph of Quantile Bands by Model",
+            width=600,
+            height=100 * long_df["model"].nunique(),
+        )
+        .interactive()
+    )
     return chart
 
 
@@ -108,7 +116,9 @@ def main() -> None:
                 for ref_d in ref_dates_available
             ]
             selected_ref_date = st.selectbox(
-                "Reference Date", options=ref_dates_as_str
+                "Reference Date",
+                options=ref_dates_as_str,
+                key="ref_date_selection",
             )
         with col2:
             # get locations from forecasttools, some might be excluded from the
@@ -127,10 +137,15 @@ def main() -> None:
         # models and targets available
         models_available = smhub_table["model"].unique().to_list()
         selected_models = st.multiselect(
-            "Model(s)", options=models_available, default=models_available
+            "Model(s)",
+            options=models_available,
+            key="model_selection",
+            default=models_available,
         )
         targets_available = smhub_table["target"].unique().to_list()
-        selected_target = st.selectbox("Target(s)", options=targets_available)
+        selected_target = st.selectbox(
+            "Target(s)", options=targets_available, key="target_selection"
+        )
         # filter hubverse table by selected models and target
         smhub_table = smhub_table.filter(
             pl.col("location") == two_letter_loc_abbr,
