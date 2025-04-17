@@ -111,7 +111,11 @@ def main() -> None:
             locations_available = forecasttools.location_table[
                 "long_name"
             ].to_list()
-            location = st.selectbox("Location", options=locations_available)
+            location = st.selectbox(
+                "Location",
+                options=locations_available,
+                default="United States",
+            )
         # get location abbreviation
         two_letter_loc_abbr = forecasttools.location_lookup(
             location_vector=[location], location_format="long_name"
@@ -173,7 +177,7 @@ if __name__ == "__main__":
 
 # Notes
 # Default to latest reference
-# Default to US
+
 # Default to all models
 # Calendar picker (just show reference date)
 # Still needs w/ re-runs
