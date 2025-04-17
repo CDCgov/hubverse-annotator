@@ -195,5 +195,9 @@ if __name__ == "__main__":
     main()
 
 
+# Opacities correct on plot
+# Wait till the end to use pandas
+# Title of plot
+#
 # Still needs w/ re-runs
 # Interactive plots (toggle)
