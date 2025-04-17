@@ -111,42 +111,30 @@ def main() -> None:
             locations_available = forecasttools.location_table[
                 "long_name"
             ].to_list()
-            location = st.multiselect("Location", options=locations_available)
-
+            location = st.selectbox("Location", options=locations_available)
         # get location abbreviation
-        two_letter_loc_abbrs = [
-            forecasttools.location_lookup(
-                location_vector=[loc], location_format="long_name"
-            )["location_code"].item()
-            for loc in locations_available
-        ]
-        # get hubverse table by selected location
-        smhub_table = smhub_table.filter(
-            pl.col("location").is_in(two_letter_loc_abbrs)
-        )
+        two_letter_loc_abbr = forecasttools.location_lookup(
+            location_vector=[location], location_format="long_name"
+        )["location_code"].item()
         # models and targets available
         models_available = smhub_table["model"].unique().to_list()
         selected_models = st.multiselect(
-            "Select Models To Plot", options=models_available
+            "Model(s)", options=models_available, default=models_available
         )
         targets_available = smhub_table["target"].unique().to_list()
-        selected_target = st.selectbox(
-            "Select Targets", options=targets_available
-        )
+        selected_target = st.selectbox("Target(s)", options=targets_available)
         # filter hubverse table by selected models and target
         smhub_table = smhub_table.filter(
+            pl.col("location") == two_letter_loc_abbr,
             pl.col("model").is_in(selected_models),
             pl.col("target") == selected_target,
         )
 
-        st.markdown(f"## Forecasts For: {*locations_available}")
+        st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
-
         # plotting of the selected model, target, location, and reference date
         forecast_chart = create_forecast_chart(smhub_table, selected_ref_date)
-        print(forecast_chart)
         st.altair_chart(forecast_chart, use_container_width=True)
-
         # forecasts annotation section
         st.markdown("#### Forecast A")
         st.selectbox(
