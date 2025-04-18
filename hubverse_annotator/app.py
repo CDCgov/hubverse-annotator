@@ -7,7 +7,9 @@ To run: poetry run streamlit run app.py
 """
 
 import datetime as dt
+import json
 import logging
+import os
 import time
 
 import altair as alt
@@ -56,7 +58,7 @@ def create_forecast_chart(
     long_df["quantile_num"] = long_df["quantile"].astype(float)
     long_df["opacity"] = 1 - (long_df["quantile_num"] - 0.5).abs() * 2
     unique_dates = list(long_df["date_str"].unique())
-    sel = alt.selection_multi(fields=["model"], bind="legend")
+    sel = alt.selection_point(fields=["model"], bind="legend")
     chart = (
         alt.Chart(long_df)
         .mark_area(interpolate="linear")
@@ -75,7 +77,7 @@ def create_forecast_chart(
             opacity=alt.Opacity("opacity:Q", legend=None),
             # opacity=alt.condition(sel, alt.value(1), alt.value(0.2)),
         )
-        .add_selection(sel)
+        .add_params(sel)
         .properties(
             title="Streamgraph of Quantile Bands by Model",
             width=600,
@@ -131,17 +133,15 @@ def main() -> None:
                 options=locations_available,
             )
         # get location abbreviation
-        two_letter_loc_abbr = forecasttools.location_lookup(
+        two_num_loc_abbr = forecasttools.location_lookup(
             location_vector=[location], location_format="long_name"
         )["location_code"].item()
-        print(
-            forecasttools.location_lookup(
-                location_vector=[location], location_format="long_name"
-            )
-        )
+        two_letter_loc_abbr = forecasttools.location_lookup(
+            location_vector=[location], location_format="long_name"
+        )["short_name"].item()
         # filter to location before filtering to model
         smhub_table = smhub_table.filter(
-            pl.col("location") == two_letter_loc_abbr,
+            pl.col("location") == two_num_loc_abbr,
         )
         # models and targets available
         models_available = smhub_table["model"].unique().to_list()
@@ -161,38 +161,51 @@ def main() -> None:
             pl.col("target") == selected_target,
         )
 
-        st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
+        st.markdown(f"## Forecasts For: {two_num_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
         forecast_chart = create_forecast_chart(smhub_table, selected_ref_date)
         st.altair_chart(forecast_chart, use_container_width=True)
-        # forecasts annotation section
-        st.markdown("#### Forecast A")
-        st.selectbox(
-            "Status", ["Preferred", "Omitted", "None"], key="status_a"
-        )
-        st.text_input("Comments", key="comments_a")
-        st.markdown("#### Forecast B")
-        st.selectbox(
-            "Status", ["Preferred", "Omitted", "None"], key="status_b"
-        )
-        st.text_input("Comments", key="comments_b")
-        st.markdown("#### Forecast C")
-        st.selectbox(
-            "Status", ["Preferred", "Omitted", "None"], key="status_c"
-        )
-        st.text_input("Comments", key="comments_c")
-        st.markdown("#### Forecast D")
-        st.selectbox(
-            "Status", ["Preferred", "Omitted", "None"], key="status_d"
-        )
-        st.text_input("Comments", key="comments_d")
+
+        # preference and comments saving
+        annotations_file = f"anno_{selected_ref_date}.json"
+        if os.path.exists(annotations_file):
+            with open(annotations_file) as f:
+                annotations = json.load(f)
+            logger.info(f"Annotations file created:\n{annotations_file}")
+        else:
+            annotations = {}
+        # save by location, with empty dict by default
+        by_loc_dict = annotations.setdefault(two_num_loc_abbr, {})
+        for model in selected_models:
+            st.markdown(f"### {model}")
+            # set status and comments keys, and get previous in json
+            status_key = f"status_{two_letter_loc_abbr}_{model}"
+            comment_key = f"comment_{two_letter_loc_abbr}_{model}"
+            prev = by_loc_dict.get(model, {})
+            default_status = prev.get("status", "None")
+            default_comment = prev.get("comment", "")
+            # select boxes for status and comments
+            status = st.selectbox(
+                "Status",
+                ["Preferred", "Omitted", "None"],
+                index=["Preferred", "Omitted", "None"].index(default_status),
+                key=status_key,
+            )
+            comment = st.text_input(
+                "Comments", value=default_comment, key=comment_key
+            )
+            # save in dictionary and write out
+            by_loc_dict[model] = {"status": status, "comment": comment}
+        with open(annotations_file, "w") as f:
+            json.dump(annotations, f, indent=2)
 
         # export button
         if st.button("Export forecasts"):
             col1, col2, col3 = st.columns([1, 3, 1])
             with col2:
                 st.success("Need export")
+
     # record end time
     end_time = time.time()
     duration = end_time - start_time
