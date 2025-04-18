@@ -3,7 +3,7 @@ A streamlit application for that loads hubverse formatted
 tables and plots model forecasts for the user to compare
 and annotate models.
 
-To run: poetry run streamlit run app.py
+To run: poetry run streamlit run app.py --dir-path .
 """
 
 import datetime as dt
@@ -214,6 +214,19 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    # parser = argparse.ArgumentParser(
+    #     description="Parser for the hubverse annotator."
+    # )
+    # parser.add_argument(
+    #     "--dir-path",
+    #     type=str,
+    #     help=(
+    #         "The relative path to the directory for where to save the "
+    #         "annotations json file."
+    #     )
+    # )
+    # args = parser.parse_args()
+    # main(**vars(args))
 
 
 # Opacities correct on plot
