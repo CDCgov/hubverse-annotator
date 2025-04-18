@@ -134,6 +134,15 @@ def main() -> None:
         two_letter_loc_abbr = forecasttools.location_lookup(
             location_vector=[location], location_format="long_name"
         )["location_code"].item()
+        print(
+            forecasttools.location_lookup(
+                location_vector=[location], location_format="long_name"
+            )
+        )
+        # filter to location before filtering to model
+        smhub_table = smhub_table.filter(
+            pl.col("location") == two_letter_loc_abbr,
+        )
         # models and targets available
         models_available = smhub_table["model"].unique().to_list()
         selected_models = st.multiselect(
@@ -148,7 +157,6 @@ def main() -> None:
         )
         # filter hubverse table by selected models and target
         smhub_table = smhub_table.filter(
-            pl.col("location") == two_letter_loc_abbr,
             pl.col("model").is_in(selected_models),
             pl.col("target") == selected_target,
         )
