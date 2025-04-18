@@ -79,7 +79,6 @@ def create_forecast_chart(
         )
         .add_params(sel)
         .properties(
-            title="Streamgraph of Quantile Bands by Model",
             width=600,
             height=100 * long_df["model"].nunique(),
         )
