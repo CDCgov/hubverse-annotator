@@ -9,6 +9,7 @@ To run: poetry run streamlit run app.py
 import json
 import logging
 import os
+import pathlib
 import time
 
 import altair as alt
@@ -92,10 +93,18 @@ def main() -> None:
     )
     # load the hubverse data
     if uploaded_file is not None:
-        if uploaded_file.name.endswith("parquet"):
-            smhub_table = pl.read_parquet(uploaded_file)
-        else:
-            smhub_table = pl.read_csv(uploaded_file)
+        ext = pathlib.Path(uploaded_file.name).suffix.lower()
+        try:
+            if ext == ".parquet":
+                smhub_table = pl.read_parquet(uploaded_file)
+            elif ext == ".csv":
+                smhub_table = pl.read_csv(uploaded_file)
+            else:
+                raise ValueError(f"Unsupported file type: {ext}")
+        except ValueError as e:
+            st.error(str(e))
+            st.stop()
+        st.success(f"Loaded {uploaded_file.name} ({ext}).")
         logger.info(f"Uploaded file:\n{uploaded_file.name}")
         logger.info(f"Contents\n:{smhub_table}")
         # two-column layout for reference date and location
