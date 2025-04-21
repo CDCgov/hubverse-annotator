@@ -145,16 +145,23 @@ def main() -> None:
         st.markdown(f"## Forecasts For: {two_num_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
-        forecast_chart = create_forecast_chart(
-            smhubt_to_plot, selected_ref_date
-        )
-        st.altair_chart(forecast_chart, use_container_width=True)
+        if smhubt_to_plot.is_empty():
+            st.warning(
+                "No forecasts available for the combination\nReference "
+                "Date: {selected_ref_date}\nModels: {selected_models}\n"
+                "Target: {selected_target}"
+            )
+        else:
+            forecast_chart = create_forecast_chart(
+                smhubt_to_plot, selected_ref_date
+            )
+            st.altair_chart(forecast_chart, use_container_width=True)
 
         # preference and comments saving
         output_dir = pathlib.Path("../output")
         output_dir.mkdir(parents=True, exist_ok=True)
         annotations_file = output_dir / f"anno_{selected_ref_date}.json"
-        if annotations_file.exist():
+        if annotations_file.exists():
             with annotations_file.open("r") as f:
                 annotations = json.load(f)
             logger.info(f"Annotations file created:\n{annotations_file}")
