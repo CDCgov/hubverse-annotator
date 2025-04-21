@@ -22,10 +22,8 @@ def create_forecast_chart(
     hubverse_table: pl.DataFrame, reference_date: str
 ) -> alt.Chart:
     """
-    Ingests a hubverse table (polars) and a reference_date string,
-    pivots quantiles wide, melts back long, then creates a
-    stacked‐area (streamgraph‐style) chart where X is the discrete
-    set of target_end_date weeks.
+    Uses a hubverse table (polars) and a reference date to
+    display forecast quantiles faceted by model.
     """
     df = hubverse_table.filter(
         pl.col("output_type") == "quantile"
