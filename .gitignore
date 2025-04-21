@@ -659,5 +659,4 @@ author_emails.txt
 *.csv
 /private
 private
-/examples/private
-examples/private
+/output

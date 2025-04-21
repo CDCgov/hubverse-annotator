@@ -28,6 +28,13 @@ def create_forecast_chart(
     stacked‐area (streamgraph‐style) chart where X is the discrete
     set of target_end_date weeks.
     """
+    quantile_cols = (
+        hubverse_table["output_type_id"]
+        .cast(pl.Utf8)
+        .unique()
+        .sort()
+        .to_list()
+    )
     wide = hubverse_table.pivot(
         values="value",
         index=["model", "target_end_date", "reference_date"],
@@ -35,12 +42,6 @@ def create_forecast_chart(
     ).sort(by=["model", "target_end_date", "reference_date"])
     pdf = wide.to_pandas().reset_index()
     pdf["target_end_date"] = pd.to_datetime(pdf["target_end_date"])
-    quantile_cols = [
-        c
-        for c in pdf.columns
-        if isinstance(c, float)
-        or (isinstance(c, str) and c.replace(".", "", 1).isdigit())
-    ]
 
     long_df = pdf.melt(
         id_vars=["model", "target_end_date", "reference_date"],
@@ -168,7 +169,7 @@ def main() -> None:
         st.altair_chart(forecast_chart, use_container_width=True)
 
         # preference and comments saving
-        annotations_file = f"anno_{selected_ref_date}.json"
+        annotations_file = f"../output/anno_{selected_ref_date}.json"
         if os.path.exists(annotations_file):
             with open(annotations_file) as f:
                 annotations = json.load(f)
