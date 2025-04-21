@@ -3,7 +3,7 @@ A streamlit application for that loads hubverse formatted
 tables and plots model forecasts for the user to compare
 and annotate models.
 
-To run: poetry run streamlit run app.py --dir-path .
+To run: poetry run streamlit run app.py
 """
 
 import datetime as dt
