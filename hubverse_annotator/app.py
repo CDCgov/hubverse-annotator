@@ -114,12 +114,11 @@ def main() -> None:
                 options=locations_available,
             )
         # get location abbreviation
-        two_num_loc_abbr = forecasttools.location_lookup(
+        lookup_loc = forecasttools.location_lookup(
             location_vector=[location], location_format="long_name"
-        )["location_code"].item()
-        two_letter_loc_abbr = forecasttools.location_lookup(
-            location_vector=[location], location_format="long_name"
-        )["short_name"].item()
+        )
+        two_num_loc_abbr = lookup_loc["location_code"].item()
+        two_letter_loc_abbr = lookup_loc["short_name"].item()
         # filter to location before filtering to model
         smhubt_by_loc = smhub_table.filter(
             pl.col("location") == two_num_loc_abbr,
