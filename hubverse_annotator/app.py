@@ -89,7 +89,7 @@ def main() -> None:
         logger.info(f"Uploaded file:\n{uploaded_file.name}")
         n_rows, n_cols = smhub_table.shape
         size_bytes = smhub_table.estimated_size()
-        size_mb = size_bytes / (1024**2)
+        size_mb = size_bytes / 1e6
         logger.info(
             f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
             f"Approximately {size_mb:.2f} MB in memory"
