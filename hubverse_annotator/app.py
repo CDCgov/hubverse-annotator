@@ -87,7 +87,13 @@ def main() -> None:
             st.stop()
         st.success(f"Loaded {uploaded_file.name} ({ext}).")
         logger.info(f"Uploaded file:\n{uploaded_file.name}")
-        logger.info(f"Contents\n:{smhub_table}")
+        n_rows, n_cols = smhub_table.shape
+        size_bytes = smhub_table.estimated_size()
+        size_mb = size_bytes / (1024**2)
+        logger.info(
+            f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
+            f"Approximately {size_mb:.2f} MB in memory"
+        )
         # locations in the hubverse table
         smhub_loc_codes = smhub_table["location"].unique().to_list()
         loc_lookup = forecasttools.location_lookup(
@@ -149,10 +155,7 @@ def main() -> None:
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
         if smhubt_to_plot.is_empty():
-            st.warning(
-                f"No models selected or no forecasts available for the "
-                f"location: {location}"
-            )
+            st.warning("No forecasts available for current selection.")
         else:
             forecast_chart = create_forecast_chart(
                 smhubt_to_plot, selected_ref_date
