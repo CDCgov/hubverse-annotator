@@ -8,7 +8,6 @@ To run: poetry run streamlit run app.py
 
 import json
 import logging
-import os
 import pathlib
 import time
 
@@ -152,9 +151,11 @@ def main() -> None:
         st.altair_chart(forecast_chart, use_container_width=True)
 
         # preference and comments saving
-        annotations_file = f"../output/anno_{selected_ref_date}.json"
-        if os.path.exists(annotations_file):
-            with open(annotations_file) as f:
+        output_dir = pathlib.Path("../output")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        annotations_file = output_dir / f"anno_{selected_ref_date}.json"
+        if annotations_file.exist():
+            with annotations_file.open("r") as f:
                 annotations = json.load(f)
             logger.info(f"Annotations file created:\n{annotations_file}")
         else:
