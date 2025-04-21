@@ -146,9 +146,9 @@ def main() -> None:
         # plotting of the selected model, target, location, and reference date
         if smhubt_to_plot.is_empty():
             st.warning(
-                "No forecasts available for the combination\nReference "
-                "Date: {selected_ref_date}\nModels: {selected_models}\n"
-                "Target: {selected_target}"
+                f"No forecasts available for the combination\nReference "
+                f"Date: {selected_ref_date}\nModels: {selected_models}\n"
+                f"Target: {selected_target}"
             )
         else:
             forecast_chart = create_forecast_chart(
