@@ -1,5 +1,5 @@
 """
-A streamlit application for that loads hubverse formatted
+A streamlit application that loads hubverse formatted
 tables and plots model forecasts for the user to compare
 and annotate models.
 
@@ -35,7 +35,7 @@ def create_forecast_chart(
     ).sort(by=["model", "target_end_date", "reference_date"])
     pdf = wide.to_pandas().reset_index()
     pdf["target_end_date"] = pd.to_datetime(pdf["target_end_date"])
-    qcols = [
+    quantile_cols = [
         c
         for c in pdf.columns
         if isinstance(c, float)
@@ -44,7 +44,7 @@ def create_forecast_chart(
 
     long_df = pdf.melt(
         id_vars=["model", "target_end_date", "reference_date"],
-        value_vars=qcols,
+        value_vars=quantile_cols,
         var_name="quantile",
         value_name="value",
     )
