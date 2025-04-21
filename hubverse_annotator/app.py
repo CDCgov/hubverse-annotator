@@ -18,12 +18,6 @@ import pandas as pd
 import polars as pl
 import streamlit as st
 
-PYRENEW_MODELS = {
-    "CFA_Pyrenew-Pyrenew_HE_COVID": "HE_COVID",
-    "CFA_Pyrenew-Pyrenew_H_COVID": "H_COVID",
-    "CFA_Pyrenew-Pyrenew_HW_COVID": "HW_COVID",
-}
-
 
 def create_forecast_chart(
     hubverse_table: pl.DataFrame, reference_date: str
@@ -176,7 +170,7 @@ def main() -> None:
         # save by location, with empty dict by default
         by_loc_dict = annotations.setdefault(two_num_loc_abbr, {})
         for model in selected_models:
-            st.markdown(f"### {PYRENEW_MODELS[model]}")
+            st.markdown(f"### {model}")
             # set status and comments keys, and get previous in json
             status_key = f"status_{two_letter_loc_abbr}_{model}"
             comment_key = f"comment_{two_letter_loc_abbr}_{model}"
