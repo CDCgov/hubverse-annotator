@@ -35,12 +35,18 @@ def create_forecast_chart(
             pl.col("output_type_id").alias("quantile_num"),
         ]
     )
-    pdf = df.to_pandas()
-    pdf["opacity"] = 1 - (pdf["quantile_num"] - 0.5).abs() * 2
-    unique_dates = sorted(pdf["target_end_date"].astype(str).unique())
+
+    df = df.with_columns(
+        [(1 - (pl.col("quantile_num") - 0.5).abs() * 2).alias("opacity")]
+    )
+    unique_dates = (
+        df.select(pl.col("target_end_date").cast(pl.Utf8).unique().sort())
+        .to_series()
+        .to_list()
+    )
     sel = alt.selection_point(fields=["model"], bind="legend")
     chart = (
-        alt.Chart(pdf)
+        alt.Chart(df)
         .mark_area(interpolate="linear")
         .encode(
             x=alt.X(
@@ -52,7 +58,7 @@ def create_forecast_chart(
             row=alt.Row("model:N", title=None),
         )
         .add_selection(sel)
-        .properties(width=600, height=100 * pdf["model"].nunique())
+        .properties(width=600, height=100 * df["model"].unique().len())
         .interactive()
     )
     return chart
