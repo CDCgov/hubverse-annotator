@@ -88,6 +88,12 @@ def main() -> None:
         st.success(f"Loaded {uploaded_file.name} ({ext}).")
         logger.info(f"Uploaded file:\n{uploaded_file.name}")
         logger.info(f"Contents\n:{smhub_table}")
+        # locations in the hubverse table
+        smhub_loc_codes = smhub_table["location"].unique().to_list()
+        loc_lookup = forecasttools.location_lookup(
+            location_vector=smhub_loc_codes, location_format="hubverse"
+        )
+        locs_available = loc_lookup["long_name"].to_list()
         # two-column layout for reference date and location
         col1, col2 = st.columns(2)
         with col1:
@@ -104,22 +110,21 @@ def main() -> None:
                 key="ref_date_selection",
             )
         with col2:
-            # get locations from forecasttools, some might be excluded from the
-            # hubverse table, though
-            locations_available = forecasttools.location_table[
-                "long_name"
-            ].to_list()
             location = st.selectbox(
                 "Location",
-                options=locations_available,
+                options=locs_available,
             )
-        # get location abbreviation
-        lookup_loc = forecasttools.location_lookup(
-            location_vector=[location], location_format="long_name"
-        )
-        two_num_loc_abbr = lookup_loc["location_code"].item()
-        two_letter_loc_abbr = lookup_loc["short_name"].item()
         # filter to location before filtering to model
+        two_num_loc_abbr = (
+            loc_lookup.filter(pl.col("long_name") == location)
+            .get_column("short_name")
+            .item()
+        )
+        two_letter_loc_abbr = (
+            loc_lookup.filter(pl.col("long_name") == location)
+            .get_column("location_code")
+            .item()
+        )
         smhubt_by_loc = smhub_table.filter(
             pl.col("location") == two_num_loc_abbr,
         )
