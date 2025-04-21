@@ -657,5 +657,7 @@ _book
 author_emails.txt
 # csv files must be converted to parquet files
 *.csv
-super_mega_hubverse_table_v2.parquet
-super_mega_hubverse_table.parquet
+/private
+private
+/examples/private
+examples/private
