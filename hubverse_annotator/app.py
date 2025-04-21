@@ -75,7 +75,6 @@ def create_forecast_chart(
             ),
             facet=alt.Facet("model:N", columns=1, title=None),
             opacity=alt.Opacity("opacity:Q", legend=None),
-            # opacity=alt.condition(sel, alt.value(1), alt.value(0.2)),
         )
         .add_params(sel)
         .properties(
@@ -177,7 +176,7 @@ def main() -> None:
         # save by location, with empty dict by default
         by_loc_dict = annotations.setdefault(two_num_loc_abbr, {})
         for model in selected_models:
-            st.markdown(f"### {model}")
+            st.markdown(f"### {PYRENEW_MODELS[model]}")
             # set status and comments keys, and get previous in json
             status_key = f"status_{two_letter_loc_abbr}_{model}"
             comment_key = f"comment_{two_letter_loc_abbr}_{model}"
@@ -213,24 +212,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    # parser = argparse.ArgumentParser(
-    #     description="Parser for the hubverse annotator."
-    # )
-    # parser.add_argument(
-    #     "--dir-path",
-    #     type=str,
-    #     help=(
-    #         "The relative path to the directory for where to save the "
-    #         "annotations json file."
-    #     )
-    # )
-    # args = parser.parse_args()
-    # main(**vars(args))
-
-
-# Opacities correct on plot
-# Wait till the end to use pandas
-# Title of plot
-#
-# Still needs w/ re-runs
-# Interactive plots (toggle)
