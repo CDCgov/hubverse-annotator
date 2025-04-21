@@ -134,7 +134,6 @@ def main() -> None:
             "Model(s)",
             options=models_available,
             key="model_selection",
-            default=models_available,
         )
         targets_available = smhubt_by_loc["target"].unique().to_list()
         selected_target = st.selectbox(
@@ -150,7 +149,10 @@ def main() -> None:
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
         if smhubt_to_plot.is_empty():
-            st.warning(f"No forecasts available for the location: {location}")
+            st.warning(
+                f"No models selected or no forecasts available for the "
+                f"location: {location}"
+            )
         else:
             forecast_chart = create_forecast_chart(
                 smhubt_to_plot, selected_ref_date
