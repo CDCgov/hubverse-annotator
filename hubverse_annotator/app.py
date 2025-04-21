@@ -14,7 +14,6 @@ import time
 
 import altair as alt
 import forecasttools
-import pandas as pd
 import polars as pl
 import streamlit as st
 
@@ -28,54 +27,32 @@ def create_forecast_chart(
     stacked‐area (streamgraph‐style) chart where X is the discrete
     set of target_end_date weeks.
     """
-    quantile_cols = (
-        hubverse_table["output_type_id"]
-        .cast(pl.Utf8)
-        .unique()
-        .sort()
-        .to_list()
+    df = hubverse_table.filter(
+        pl.col("output_type") == "quantile"
+    ).with_columns(
+        [
+            pl.col("output_type_id").cast(pl.Utf8).alias("quantile_str"),
+            pl.col("output_type_id").alias("quantile_num"),
+        ]
     )
-    wide = hubverse_table.pivot(
-        values="value",
-        index=["model", "target_end_date", "reference_date"],
-        on="output_type_id",
-    ).sort(by=["model", "target_end_date", "reference_date"])
-    pdf = wide.to_pandas().reset_index()
-    pdf["target_end_date"] = pd.to_datetime(pdf["target_end_date"])
-
-    long_df = pdf.melt(
-        id_vars=["model", "target_end_date", "reference_date"],
-        value_vars=quantile_cols,
-        var_name="quantile",
-        value_name="value",
-    )
-    long_df["date_str"] = long_df["target_end_date"].dt.strftime("%Y-%m-%d")
-    long_df["quantile_num"] = long_df["quantile"].astype(float)
-    long_df["opacity"] = 1 - (long_df["quantile_num"] - 0.5).abs() * 2
-    unique_dates = list(long_df["date_str"].unique())
+    pdf = df.to_pandas()
+    pdf["opacity"] = 1 - (pdf["quantile_num"] - 0.5).abs() * 2
+    unique_dates = sorted(pdf["target_end_date"].astype(str).unique())
     sel = alt.selection_point(fields=["model"], bind="legend")
     chart = (
-        alt.Chart(long_df)
+        alt.Chart(pdf)
         .mark_area(interpolate="linear")
         .encode(
             x=alt.X(
-                "date_str:O",
-                title="Target End Date (weekly)",
-                sort=unique_dates,
-                axis=alt.Axis(labelAngle=-45),
+                "target_end_date:T", sort=unique_dates, title="Target End Date"
             ),
             y=alt.Y("value:Q", stack="center", title="Forecast Value"),
-            color=alt.Color(
-                "quantile:O", title="Quantile", scale=alt.Scale(scheme="blues")
-            ),
-            facet=alt.Facet("model:N", columns=1, title=None),
+            color=alt.Color("quantile_str:O", scale=alt.Scale(scheme="blues")),
             opacity=alt.Opacity("opacity:Q", legend=None),
+            row=alt.Row("model:N", title=None),
         )
-        .add_params(sel)
-        .properties(
-            width=600,
-            height=100 * long_df["model"].nunique(),
-        )
+        .add_selection(sel)
+        .properties(width=600, height=100 * pdf["model"].nunique())
         .interactive()
     )
     return chart
