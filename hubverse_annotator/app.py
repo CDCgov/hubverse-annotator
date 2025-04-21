@@ -141,23 +141,23 @@ def main() -> None:
             location_vector=[location], location_format="long_name"
         )["short_name"].item()
         # filter to location before filtering to model
-        smhub_table = smhub_table.filter(
+        smhubt_by_loc = smhub_table.filter(
             pl.col("location") == two_num_loc_abbr,
         )
         # models and targets available
-        models_available = smhub_table["model"].unique().to_list()
+        models_available = smhubt_by_loc["model"].unique().to_list()
         selected_models = st.multiselect(
             "Model(s)",
             options=models_available,
             key="model_selection",
             default=models_available,
         )
-        targets_available = smhub_table["target"].unique().to_list()
+        targets_available = smhubt_by_loc["target"].unique().to_list()
         selected_target = st.selectbox(
             "Target(s)", options=targets_available, key="target_selection"
         )
         # filter hubverse table by selected models and target
-        smhub_table = smhub_table.filter(
+        smhubt_to_plot = smhubt_by_loc.filter(
             pl.col("model").is_in(selected_models),
             pl.col("target") == selected_target,
         )
@@ -165,7 +165,9 @@ def main() -> None:
         st.markdown(f"## Forecasts For: {two_num_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
-        forecast_chart = create_forecast_chart(smhub_table, selected_ref_date)
+        forecast_chart = create_forecast_chart(
+            smhubt_to_plot, selected_ref_date
+        )
         st.altair_chart(forecast_chart, use_container_width=True)
 
         # preference and comments saving
