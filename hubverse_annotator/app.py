@@ -6,7 +6,6 @@ and annotate models.
 To run: poetry run streamlit run app.py
 """
 
-import datetime as dt
 import json
 import logging
 import os
@@ -102,16 +101,16 @@ def main() -> None:
         # two-column layout for reference date and location
         col1, col2 = st.columns(2)
         with col1:
-            ref_dates_available = (
-                smhub_table["reference_date"].unique().to_list()
+            ref_dates = (
+                smhub_table["reference_date"]
+                .unique()
+                .sort()
+                .dt.strftime("%Y-%m-%d")
+                .to_list()
             )
-            ref_dates_as_str = [
-                dt.datetime.strftime(ref_d, "%Y-%m-%d")
-                for ref_d in ref_dates_available
-            ]
             selected_ref_date = st.selectbox(
                 "Reference Date",
-                options=ref_dates_as_str,
+                options=ref_dates,
                 key="ref_date_selection",
             )
         with col2:
