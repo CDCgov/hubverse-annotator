@@ -17,51 +17,55 @@ import polars as pl
 import streamlit as st
 
 
-def create_forecast_chart(
-    hubverse_table: pl.DataFrame, reference_date: str
-) -> alt.Chart:
+def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
     display quantile forecasts faceted by model. The number
     of col
     """
-    # filter to quantile only rows and ensure quantiles are str for pivot
-    df = hubverse_table.filter(
-        pl.col("output_type") == "quantile"
-    ).with_columns(
-        [
-            pl.col("output_type_id").cast(pl.Float64).alias("quantile_str"),
-        ]
-    )
     # get quantile values
-    quantiles = df["output_type_id"].unique().sort().to_list()
-    # pivot to wide, so quantiles ids are columns
-    df_wide = df.pivot(
-        on="output_type_id",
-        index=["model", "reference_date", "target_end_date"],
-        values="value",
+    quantiles = hubverse_table["output_type_id"].unique().sort().to_list()
+    # filter to quantile only rows and ensure quantiles are str for pivot
+    # also, pivot to wide, so quantiles ids are columns
+    df_wide = (
+        hubverse_table.filter(pl.col("output_type") == "quantile")
+        .with_columns(
+            [
+                pl.col("output_type_id").cast(pl.Utf8),
+            ]
+        )
+        .pivot(
+            on="output_type_id",
+            index=["model", "reference_date", "target_end_date"],
+            values="value",
+        )
     )
     # create bands for altair errorbands chart
-    band = (
-        alt.Chart(
-            df_wide,
-        )
-        .mark_errorband()
-        .encode(
-            alt.Y("0.05:Q", title="Forecast Value"),
-            alt.Y2("0.95:Q"),
-            alt.X("week(target_end_date):T"),
+    base = alt.Chart(
+        df_wide,
+    ).encode(
+        x=alt.X(
+            "target_end_date:T",
         )
     )
-    # create median forecast line
-    line = (
-        alt.Chart(
-            df_wide,
-        )
-        .mark_line()
-        .encode(alt.Y("0.50:Q"), alt.X("week(target_end_date):T"))
+    band_01 = base.mark_errorband(opacity=0.2).encode(
+        y=alt.Y("0.05:Q", title="Forecast Value"),
+        y2="0.95:Q",
+        color=alt.value("lightblue"),
     )
-    return band + line
+    band_02 = base.mark_errorband(opacity=0.4).encode(
+        y="0.25:Q", y2="0.75:Q", color=alt.value("lightblue")
+    )
+    line = base.mark_line(strokeWidth=2).encode(
+        y=alt.Y("0.5Q"), color=alt.value("black")
+    )
+    # put together in chart
+    chart = (
+        (band_01 + band_02 + line)
+        .facet(row=alt.Row("model:N", title="Model"), columns=1)
+        .resolve_scale("independent")
+    )
+    return chart
 
 
 def main() -> None:
@@ -161,9 +165,7 @@ def main() -> None:
         if smhubt_to_plot.is_empty():
             st.warning("No forecasts available for current selection.")
         else:
-            forecast_chart = create_forecast_chart(
-                smhubt_to_plot, selected_ref_date
-            )
+            forecast_chart = create_forecast_chart(smhubt_to_plot)
             st.altair_chart(forecast_chart, use_container_width=True)
 
         # preference and comments saving
