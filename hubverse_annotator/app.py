@@ -23,44 +23,45 @@ def create_forecast_chart(
     """
     Uses a hubverse table (polars) and a reference date to
     display quantile forecasts faceted by model. The number
-    of columns per Chart is equal to the number of targets.
+    of col
     """
-    # get only quantile output types
+    # filter to quantile only rows and ensure quantiles are str for pivot
     df = hubverse_table.filter(
         pl.col("output_type") == "quantile"
     ).with_columns(
         [
-            pl.col("output_type_id").cast(pl.Utf8).alias("quantile_str"),
-            pl.col("output_type_id").alias("quantile_num"),
+            pl.col("output_type_id").cast(pl.Float64).alias("quantile_str"),
         ]
     )
-
-    df = df.with_columns(
-        [(1 - (pl.col("quantile_num") - 0.5).abs() * 2).alias("opacity")]
+    # get quantile values
+    quantiles = df["output_type_id"].unique().sort().to_list()
+    # pivot to wide, so quantiles ids are columns
+    df_wide = df.pivot(
+        on="output_type_id",
+        index=["model", "reference_date", "target_end_date"],
+        values="value",
     )
-    unique_dates = (
-        df.select(pl.col("target_end_date").cast(pl.Utf8).unique().sort())
-        .to_series()
-        .to_list()
-    )
-    sel = alt.selection_point(fields=["model"], bind="legend")
-    chart = (
-        alt.Chart(df)
-        .mark_area(interpolate="linear")
-        .encode(
-            x=alt.X(
-                "target_end_date:T", sort=unique_dates, title="Target End Date"
-            ),
-            y=alt.Y("value:Q", stack="center", title="Forecast Value"),
-            color=alt.Color("quantile_str:O", scale=alt.Scale(scheme="blues")),
-            opacity=alt.Opacity("opacity:Q", legend=None),
-            row=alt.Row("model:N", title=None),
+    # create bands for altair errorbands chart
+    band = (
+        alt.Chart(
+            df_wide,
         )
-        .add_selection(sel)
-        .properties(width=600, height=100 * df["model"].unique().len())
-        .interactive()
+        .mark_errorband()
+        .encode(
+            alt.Y("0.05:Q", title="Forecast Value"),
+            alt.Y2("0.95:Q"),
+            alt.X("week(target_end_date)"),
+        )
     )
-    return chart
+    # create median forecast line
+    line = (
+        alt.Chart(
+            df_wide,
+        )
+        .mark_line()
+        .encode(alt.Y("0.50:Q"), alt.X("week(target_end_date)"))
+    )
+    return band + line
 
 
 def main() -> None:
