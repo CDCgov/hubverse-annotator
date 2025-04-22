@@ -40,25 +40,22 @@ def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
             values="value",
         )
     )
-    # create bands for altair errorbands chart
+    # create base Chart for altair errorbands
     base = alt.Chart(
         df_wide,
-    ).encode(
-        x=alt.X(
-            "target_end_date:T",
-        )
-    )
+    ).encode(x=alt.X("target_end_date:T", title="Target End Date"))
+    # allow toggling off of bands
+    # toggle = alt.selection_point(fields=["band"], bind="legend")
+    # create bands and lines
     band_01 = base.mark_errorband(opacity=0.2).encode(
         y=alt.Y("0.05:Q", title="Forecast Value"),
         y2="0.95:Q",
-        color=alt.value("lightblue"),
+        color=alt.value("cyan"),
     )
-    band_02 = base.mark_errorband(opacity=0.4).encode(
-        y="0.25:Q", y2="0.75:Q", color=alt.value("lightblue")
+    band_02 = base.mark_errorband(opacity=0.3).encode(
+        y="0.25:Q", y2="0.75:Q", color=alt.value("cyan")
     )
-    line = base.mark_line(strokeWidth=2).encode(
-        y=alt.Y("0.5Q"), color=alt.value("black")
-    )
+    line = base.mark_line().encode(y="0.5", color=alt.value("black"))
     # put together in chart
     chart = (
         (band_01 + band_02 + line)
@@ -159,7 +156,7 @@ def main() -> None:
             pl.col("target") == selected_target,
         )
 
-        st.markdown(f"## Forecasts For: {two_num_loc_abbr}")
+        st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
         if smhubt_to_plot.is_empty():
