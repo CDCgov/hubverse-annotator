@@ -20,11 +20,16 @@ import streamlit as st
 def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
-    display quantile forecasts faceted by model. The number
-    of col
+    display quantile forecasts faceted by model.
     """
     # get quantile values
     quantiles = hubverse_table["output_type_id"].unique().sort().to_list()
+    # pivot columns
+    pivot_columns = [
+        c
+        for c in hubverse_table.columns
+        if c not in ["output_type_id", "value"]
+    ]
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
     df_wide = (
@@ -36,7 +41,7 @@ def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
         )
         .pivot(
             on="output_type_id",
-            index=["model", "reference_date", "target_end_date"],
+            index=pivot_columns,
             values="value",
         )
     )
@@ -47,18 +52,20 @@ def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
     # allow toggling off of bands
     # toggle = alt.selection_point(fields=["band"], bind="legend")
     # create bands and lines
+    line = base.mark_line().encode(
+        y=alt.Y("0.5", title=None), color=alt.value("black")
+    )
     band_01 = base.mark_errorband(opacity=0.2).encode(
         y=alt.Y("0.05:Q", title="Forecast Value"),
         y2="0.95:Q",
         color=alt.value("cyan"),
     )
     band_02 = base.mark_errorband(opacity=0.3).encode(
-        y="0.25:Q", y2="0.75:Q", color=alt.value("cyan")
+        y=alt.Y("0.25:Q", title=None), y2="0.75:Q", color=alt.value("cyan")
     )
-    line = base.mark_line().encode(y="0.5", color=alt.value("black"))
     # put together in chart
     chart = (
-        (band_01 + band_02 + line)
+        (line + band_01 + band_02)
         .facet(row=alt.Row("model:N", title="Model"), columns=1)
         .resolve_scale("independent")
     )
@@ -89,6 +96,8 @@ def main() -> None:
         except ValueError as e:
             st.error(str(e))
             st.stop()
+        for c in smhub_table.columns:
+            print(c)
         st.success(f"Loaded {uploaded_file.name} ({ext}).")
         logger.info(f"Uploaded file:\n{uploaded_file.name}")
         n_rows, n_cols = smhub_table.shape
@@ -99,9 +108,9 @@ def main() -> None:
             f"Approximately {size_mb:.2f} MB in memory"
         )
         # locations in the hubverse table
-        smhub_loc_codes = smhub_table["location"].unique().to_list()
+        smhub_loc_abbrs = smhub_table["location"].unique().to_list()
         loc_lookup = forecasttools.location_lookup(
-            location_vector=smhub_loc_codes, location_format="hubverse"
+            location_vector=smhub_loc_abbrs, location_format="abbr"
         )
         locs_available = loc_lookup["long_name"].to_list()
         # two-column layout for reference date and location
@@ -136,7 +145,7 @@ def main() -> None:
             .item()
         )
         smhubt_by_loc = smhub_table.filter(
-            pl.col("location") == two_num_loc_abbr,
+            pl.col("location") == two_letter_loc_abbr,
         )
         # models and targets available
         models_available = smhubt_by_loc["model"].unique().to_list()

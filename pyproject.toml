@@ -13,8 +13,8 @@ keywords = ["hubverse", "application", "infectious-disease-modeling", "data-scie
 python = "^3.12"
 streamlit = "^1.44.1"
 altair = "^5.5.0"
-polars = "^1.27.0"
 forecasttools = {git = "https://github.com/CDCgov/forecasttools-py", rev = "main"}
+polars = "^1.27.0"
 
 [tool.poetry.urls]
 "Repository Issues" = "https://github.com/CDCgov/hubverse-annotator/issues"
