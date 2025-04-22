@@ -50,7 +50,7 @@ def create_forecast_chart(
         .encode(
             alt.Y("0.05:Q", title="Forecast Value"),
             alt.Y2("0.95:Q"),
-            alt.X("week(target_end_date)"),
+            alt.X("week(target_end_date):T"),
         )
     )
     # create median forecast line
@@ -59,7 +59,7 @@ def create_forecast_chart(
             df_wide,
         )
         .mark_line()
-        .encode(alt.Y("0.50:Q"), alt.X("week(target_end_date)"))
+        .encode(alt.Y("0.50:Q"), alt.X("week(target_end_date):T"))
     )
     return band + line
 
@@ -124,12 +124,12 @@ def main() -> None:
                 options=locs_available,
             )
         # filter to location before filtering to model
-        two_num_loc_abbr = (
+        two_letter_loc_abbr = (
             loc_lookup.filter(pl.col("long_name") == location)
             .get_column("short_name")
             .item()
         )
-        two_letter_loc_abbr = (
+        two_num_loc_abbr = (
             loc_lookup.filter(pl.col("long_name") == location)
             .get_column("location_code")
             .item()
