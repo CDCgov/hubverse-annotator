@@ -22,8 +22,10 @@ def create_forecast_chart(
 ) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
-    display forecast quantiles faceted by model.
+    display quantile forecasts faceted by model. The number
+    of columns per Chart is equal to the number of targets.
     """
+    # get only quantile output types
     df = hubverse_table.filter(
         pl.col("output_type") == "quantile"
     ).with_columns(
@@ -139,6 +141,7 @@ def main() -> None:
         selected_models = st.multiselect(
             "Model(s)",
             options=models_available,
+            default=models_available,
             key="model_selection",
         )
         targets_available = smhubt_by_loc["target"].unique().to_list()
