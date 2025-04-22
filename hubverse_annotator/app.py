@@ -161,7 +161,7 @@ def main() -> None:
                 smhubt_to_plot, selected_ref_date
             )
             st.altair_chart(forecast_chart, use_container_width=True)
-
+        # st.cache
         # preference and comments saving
         output_dir = pathlib.Path("../output")
         output_dir.mkdir(parents=True, exist_ok=True)
