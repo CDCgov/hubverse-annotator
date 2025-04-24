@@ -16,7 +16,6 @@ altair = "^5.5.0"
 polars = "^1.27.0"
 forecasttools = {git = "https://github.com/CDCgov/forecasttools-py", rev = "main"}
 
-
 [tool.poetry.urls]
 "Repository Issues" = "https://github.com/CDCgov/hubverse-annotator/issues"
 "CFA Homepage" = "https://www.cdc.gov/forecast-outbreak-analytics/index.html"
