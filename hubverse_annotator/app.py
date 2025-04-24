@@ -27,8 +27,6 @@ def create_quantile_forecast_chart(
     output_type of the hubverse table must therefore be
     'quantile'.
     """
-    # get quantile values
-    quantiles = hubverse_table["output_type_id"].unique().sort().to_list()
     # pivot columns
     pivot_columns = [
         c
