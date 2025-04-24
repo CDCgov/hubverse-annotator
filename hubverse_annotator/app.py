@@ -14,6 +14,7 @@ import time
 import altair as alt
 import forecasttools
 import polars as pl
+import polars.selectors as cs
 import streamlit as st
 
 
@@ -27,12 +28,9 @@ def create_quantile_forecast_chart(
     output_type of the hubverse table must therefore be
     'quantile'.
     """
-    # pivot columns
-    pivot_columns = [
-        c
-        for c in hubverse_table.columns
-        if c not in ["output_type_id", value_col]
-    ]
+    pivot_columns = hubverse_table.select(
+        cs.exclude("output_type_id", value_col)
+    ).columns
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
     df_wide = (
