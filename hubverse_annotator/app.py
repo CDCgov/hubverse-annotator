@@ -17,10 +17,15 @@ import polars as pl
 import streamlit as st
 
 
-def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
+def create_quantile_forecast_chart(
+    hubverse_table: pl.DataFrame,
+    value_col: str = "value",
+) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
-    display quantile forecasts faceted by model.
+    display quantile forecasts faceted by model. The
+    output_type of the hubverse table must therefore be
+    'quantile'.
     """
     # get quantile values
     quantiles = hubverse_table["output_type_id"].unique().sort().to_list()
@@ -28,7 +33,7 @@ def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
     pivot_columns = [
         c
         for c in hubverse_table.columns
-        if c not in ["output_type_id", "value"]
+        if c not in ["output_type_id", value_col]
     ]
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
@@ -42,18 +47,18 @@ def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
         .pivot(
             on="output_type_id",
             index=pivot_columns,
-            values="value",
+            values=value_col,
         )
     )
     # create base Chart for altair errorbands
     base = alt.Chart(
         df_wide,
     ).encode(x=alt.X("target_end_date:T", title="Target End Date"))
-    # allow toggling off of bands
-    # toggle = alt.selection_point(fields=["band"], bind="legend")
-    # create bands and lines
+    # create median line and CI bands
     line = base.mark_line().encode(
-        y=alt.Y("0.5", title=None), color=alt.value("black")
+        x="target_end_date:T",
+        y=alt.Y("0.5", title=None),
+        color=alt.value("black"),
     )
     band_01 = base.mark_errorband(opacity=0.2).encode(
         y=alt.Y("0.05:Q", title="Forecast Value"),
@@ -63,7 +68,7 @@ def create_forecast_chart(hubverse_table: pl.DataFrame) -> alt.Chart:
     band_02 = base.mark_errorband(opacity=0.3).encode(
         y=alt.Y("0.25:Q", title=None), y2="0.75:Q", color=alt.value("cyan")
     )
-    # put together in chart
+    # compose line and bands into faceted chart
     chart = (
         (line + band_01 + band_02)
         .facet(row=alt.Row("model:N", title="Model"), columns=1)
@@ -171,7 +176,7 @@ def main() -> None:
         if smhubt_to_plot.is_empty():
             st.warning("No forecasts available for current selection.")
         else:
-            forecast_chart = create_forecast_chart(smhubt_to_plot)
+            forecast_chart = create_quantile_forecast_chart(smhubt_to_plot)
             st.altair_chart(forecast_chart, use_container_width=True)
 
         # preference and comments saving
