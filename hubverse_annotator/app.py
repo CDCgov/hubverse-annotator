@@ -14,50 +14,53 @@ import time
 import altair as alt
 import forecasttools
 import polars as pl
+import polars.selectors as cs
 import streamlit as st
 
 
-def create_forecast_chart(
-    hubverse_table: pl.DataFrame, reference_date: str
+def create_quantile_forecast_chart(
+    hubverse_table: pl.DataFrame,
+    value_col: str = "value",
 ) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
-    display forecast quantiles faceted by model.
+    display quantile forecasts faceted by model. The
+    output_type of the hubverse table must therefore be
+    'quantile'.
     """
-    df = hubverse_table.filter(
-        pl.col("output_type") == "quantile"
-    ).with_columns(
-        [
-            pl.col("output_type_id").cast(pl.Utf8).alias("quantile_str"),
-            pl.col("output_type_id").alias("quantile_num"),
-        ]
-    )
-
-    df = df.with_columns(
-        [(1 - (pl.col("quantile_num") - 0.5).abs() * 2).alias("opacity")]
-    )
-    unique_dates = (
-        df.select(pl.col("target_end_date").cast(pl.Utf8).unique().sort())
-        .to_series()
-        .to_list()
-    )
-    sel = alt.selection_point(fields=["model"], bind="legend")
-    chart = (
-        alt.Chart(df)
-        .mark_area(interpolate="linear")
-        .encode(
-            x=alt.X(
-                "target_end_date:T", sort=unique_dates, title="Target End Date"
-            ),
-            y=alt.Y("value:Q", stack="center", title="Forecast Value"),
-            color=alt.Color("quantile_str:O", scale=alt.Scale(scheme="blues")),
-            opacity=alt.Opacity("opacity:Q", legend=None),
-            row=alt.Row("model:N", title=None),
+    # filter to quantile only rows and ensure quantiles are str for pivot
+    # also, pivot to wide, so quantiles ids are columns
+    df_wide = (
+        hubverse_table.filter(pl.col("output_type") == "quantile")
+        .pivot(
+            on="output_type_id",
+            index=cs.exclude("output_type_id", value_col),
+            values=value_col,
         )
-        .add_selection(sel)
-        .properties(width=600, height=100 * df["model"].unique().len())
-        .interactive()
+        .with_columns(pl.col("0.5").alias("median"))
     )
+    # create base Chart for altair errorbands
+    base = alt.Chart(df_wide).encode(
+        x=alt.X("target_end_date:T", title="Target End Date")
+    )
+    # create median line and CI bands
+    median_line = base.mark_line(strokeWidth=2, interpolate="monotone").encode(
+        y=alt.Y("median:Q", title=None)
+    )
+    band_90 = base.mark_errorband(opacity=0.2, interpolate="monotone").encode(
+        y=alt.Y("0.05:Q", title="Forecast Value"),
+        y2="0.95:Q",
+    )
+    band_IQR = base.mark_errorband(opacity=0.3, interpolate="monotone").encode(
+        y=alt.Y("0.25:Q", title=None),
+        y2="0.75:Q",
+    )
+    # compose line and bands into faceted chart
+    chart = (
+        (median_line + band_90 + band_IQR)
+        .facet(row=alt.Row("model:N", title="Model"), columns=1)
+        .resolve_scale("independent")
+    ).interactive()
     return chart
 
 
@@ -95,9 +98,9 @@ def main() -> None:
             f"Approximately {size_mb:.2f} MB in memory"
         )
         # locations in the hubverse table
-        smhub_loc_codes = smhub_table["location"].unique().to_list()
+        smhub_loc_abbrs = smhub_table["location"].unique().to_list()
         loc_lookup = forecasttools.location_lookup(
-            location_vector=smhub_loc_codes, location_format="hubverse"
+            location_vector=smhub_loc_abbrs, location_format="abbr"
         )
         locs_available = loc_lookup["long_name"].to_list()
         # two-column layout for reference date and location
@@ -121,24 +124,25 @@ def main() -> None:
                 options=locs_available,
             )
         # filter to location before filtering to model
-        two_num_loc_abbr = (
+        two_letter_loc_abbr = (
             loc_lookup.filter(pl.col("long_name") == location)
             .get_column("short_name")
             .item()
         )
-        two_letter_loc_abbr = (
+        two_num_loc_abbr = (
             loc_lookup.filter(pl.col("long_name") == location)
             .get_column("location_code")
             .item()
         )
         smhubt_by_loc = smhub_table.filter(
-            pl.col("location") == two_num_loc_abbr,
+            pl.col("location") == two_letter_loc_abbr,
         )
         # models and targets available
         models_available = smhubt_by_loc["model"].unique().to_list()
         selected_models = st.multiselect(
             "Model(s)",
             options=models_available,
+            default=models_available,
             key="model_selection",
         )
         targets_available = smhubt_by_loc["target"].unique().to_list()
@@ -151,15 +155,13 @@ def main() -> None:
             pl.col("target") == selected_target,
         )
 
-        st.markdown(f"## Forecasts For: {two_num_loc_abbr}")
+        st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
         if smhubt_to_plot.is_empty():
             st.warning("No forecasts available for current selection.")
         else:
-            forecast_chart = create_forecast_chart(
-                smhubt_to_plot, selected_ref_date
-            )
+            forecast_chart = create_quantile_forecast_chart(smhubt_to_plot)
             st.altair_chart(forecast_chart, use_container_width=True)
         # st.cache
         # preference and comments saving
