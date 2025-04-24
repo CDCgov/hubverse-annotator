@@ -32,11 +32,6 @@ def create_quantile_forecast_chart(
     # also, pivot to wide, so quantiles ids are columns
     df_wide = (
         hubverse_table.filter(pl.col("output_type") == "quantile")
-        .with_columns(
-            [
-                pl.col("output_type_id").cast(pl.Utf8),
-            ]
-        )
         .pivot(
             on="output_type_id",
             index=cs.exclude("output_type_id", value_col),
