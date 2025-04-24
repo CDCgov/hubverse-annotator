@@ -50,30 +50,35 @@ def create_quantile_forecast_chart(
             values=value_col,
         )
     )
+    # define scale radios for log or linear scale
+    scale_radio = alt.binding_radio(name="Y Scale", options=["linear", "log"])
+    scale_param = alt.param("scaleType", bind=scale_radio, value="linear")
     # create base Chart for altair errorbands
-    base = alt.Chart(
-        df_wide,
-    ).encode(x=alt.X("target_end_date:T", title="Target End Date"))
+    base = (
+        alt.Chart(df_wide)
+        .add_params(scale_param)
+        .encode(x=alt.X("target_end_date:T", title="Target End Date"))
+    )
     # create median line and CI bands
-    line = base.mark_line().encode(
-        x="target_end_date:T",
-        y=alt.Y("0.5", title=None),
-        color=alt.value("black"),
+    line = base.mark_rule(color="black", strokeWidth=2).encode(
+        y=alt.Y("0.5:Q", scale=alt.Scale(type="log"), title=None)
     )
     band_01 = base.mark_errorband(opacity=0.2).encode(
-        y=alt.Y("0.05:Q", title="Forecast Value"),
+        y=alt.Y("0.05:Q", scale=alt.Scale(type="log"), title="Forecast Value"),
         y2="0.95:Q",
         color=alt.value("cyan"),
     )
     band_02 = base.mark_errorband(opacity=0.3).encode(
-        y=alt.Y("0.25:Q", title=None), y2="0.75:Q", color=alt.value("cyan")
+        y=alt.Y("0.25:Q", scale=alt.Scale(type="log"), title=None),
+        y2="0.75:Q",
+        color=alt.value("cyan"),
     )
     # compose line and bands into faceted chart
     chart = (
         (line + band_01 + band_02)
         .facet(row=alt.Row("model:N", title="Model"), columns=1)
         .resolve_scale("independent")
-    )
+    )  # .interactive()
     return chart
 
 
