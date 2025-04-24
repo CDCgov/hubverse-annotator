@@ -102,8 +102,6 @@ def main() -> None:
         except ValueError as e:
             st.error(str(e))
             st.stop()
-        for c in smhub_table.columns:
-            print(c)
         st.success(f"Loaded {uploaded_file.name} ({ext}).")
         logger.info(f"Uploaded file:\n{uploaded_file.name}")
         n_rows, n_cols = smhub_table.shape
