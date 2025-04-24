@@ -28,9 +28,6 @@ def create_quantile_forecast_chart(
     output_type of the hubverse table must therefore be
     'quantile'.
     """
-    pivot_columns = hubverse_table.select(
-        cs.exclude("output_type_id", value_col)
-    ).columns
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
     df_wide = (
@@ -42,7 +39,7 @@ def create_quantile_forecast_chart(
         )
         .pivot(
             on="output_type_id",
-            index=pivot_columns,
+            index=cs.exclude("output_type_id", value_col),
             values=value_col,
         )
         .with_columns(pl.col("0.5").alias("median"))
