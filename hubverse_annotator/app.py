@@ -52,18 +52,16 @@ def create_quantile_forecast_chart(
         x=alt.X("target_end_date:T", title="Target End Date")
     )
     # create median line and CI bands
-    median_line = base.mark_line(
-        color="blue", strokeWidth=2, interpolate="monotone"
-    ).encode(y=alt.Y("median:Q", title=None))
+    median_line = base.mark_line(strokeWidth=2, interpolate="monotone").encode(
+        y=alt.Y("median:Q", title=None)
+    )
     band_90 = base.mark_errorband(opacity=0.2, interpolate="monotone").encode(
         y=alt.Y("0.05:Q", title="Forecast Value"),
         y2="0.95:Q",
-        color=alt.value("cyan"),
     )
     band_IQR = base.mark_errorband(opacity=0.3, interpolate="monotone").encode(
         y=alt.Y("0.25:Q", title=None),
         y2="0.75:Q",
-        color=alt.value("cyan"),
     )
     # compose line and bands into faceted chart
     chart = (
