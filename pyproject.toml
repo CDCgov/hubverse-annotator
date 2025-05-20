@@ -1,28 +1,27 @@
-[tool.poetry]
-name = "hubverse_annotator"
+[project]
+name = "hubverse-annotator"
 version = "0.0.1"
+authors = [
+    {name = "Dylan H. Morris", email = "dzl1@cdc.gov"},
+    {name = "Damon Bayer", email = "xum8@cdc.gov"},
+    {name = "T. M.", email = "upx3@cdc.gov"},
+]
 description = "Local web application that loads hubverse formatted tables and plots model forecasts, enabling the end user to compare and annotate models."
-authors = ["UPX3 <127630341+AFg6K7h4fhy2@users.noreply.github.com>"]
-license = "Apache-2.0"
 readme = "README.md"
-package-mode = false
-repository = "https://github.com/CDCgov/hubverse-annotator/"
+license = "Apache-2.0"
 keywords = ["hubverse", "application", "infectious-disease-modeling", "data-science"]
+requires-python = ">=3.13"
+classifiers = ["Private :: Do Not Upload"]
+dependencies = [
+    "altair>=5.5.0",
+    "forecasttools @ git+https://github.com/cdcgov/forecasttools-py",
+    "streamlit>=1.44.1",
+    "polars>=1.27.1",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-streamlit = "^1.44.1"
-altair = "^5.5.0"
-polars = "^1.27.0"
-forecasttools = {git = "https://github.com/CDCgov/forecasttools-py", rev = "main"}
-
-[tool.poetry.urls]
+[project.urls]
 "Repository Issues" = "https://github.com/CDCgov/hubverse-annotator/issues"
 "CFA Homepage" = "https://www.cdc.gov/forecast-outbreak-analytics/index.html"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
 
 [tool.ruff.lint.mccabe]
 max-complexity = 15
