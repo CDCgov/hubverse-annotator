@@ -191,7 +191,7 @@ wheels = [
 [[package]]
 name = "forecasttools"
 version = "0.0.1"
-source = { git = "https://github.com/CDCgov/forecasttools-py#95fe1c3c49f591da8b681276603aedf3949ff478" }
+source = { git = "https://github.com/cdcgov/forecasttools-py#95fe1c3c49f591da8b681276603aedf3949ff478" }
 dependencies = [
     { name = "arviz" },
     { name = "epiweeks" },
@@ -270,7 +270,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "altair", specifier = ">=5.5.0" },
-    { name = "forecasttools", git = "https://github.com/CDCgov/forecasttools-py" },
+    { name = "forecasttools", git = "https://github.com/cdcgov/forecasttools-py" },
     { name = "polars", specifier = ">=1.27.1" },
     { name = "streamlit", specifier = ">=1.44.1" },
 ]

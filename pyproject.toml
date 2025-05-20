@@ -25,6 +25,3 @@ dependencies = [
 
 [tool.ruff.lint.mccabe]
 max-complexity = 15
-
-[tool.uv.sources]
-forecasttools = { git = "https://github.com/CDCgov/forecasttools-py" }
