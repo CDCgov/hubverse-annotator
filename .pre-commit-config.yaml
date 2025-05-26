@@ -75,7 +75,7 @@ repos:
 # PYTHON
 ################################################################################
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.5
+    rev: v0.11.11
     hooks:
     # "currently, the Ruff formatter does not sort imports.
     # In order to both sort imports and format, call
@@ -119,7 +119,7 @@ repos:
           "--line-length=79",
         ]
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.3
+    rev: 0.7.8
     hooks:
     -   id: uv-lock
 ################################################################################
@@ -137,7 +137,7 @@ repos:
 # SPELLING
 ################################################################################
 -   repo: https://github.com/crate-ci/typos
-    rev: typos-dict-v0.12.4
+    rev: v1
     hooks:
     -   id: typos
         args: ["--force-exclude"]
