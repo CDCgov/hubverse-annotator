@@ -1,24 +1,46 @@
-################################################################################
+###############################################################################
 # OVERVIEW
-################################################################################
-# The following file contains the pre-commit hooks for this repository, which
-# are likely a modified version of the configuration file from the author's
-# (AFg6K7h4fhy2) repository template.
+###############################################################################
+# Note that some of the comments below may come from their respective
+# documentation sources.
 #
 # Links:
 #
 # Pre-commit: https://pre-commit.com/
-# The author's template: https://github.com/AFg6K7h4fhy2/AFg6K7h4fhy2-Template
 # Supported hooks: https://github.com/pre-commit/pre-commit-hooks
 # Ruff Linter rules: https://docs.astral.sh/ruff/rules/
 # Ruff formatter overview: https://docs.astral.sh/ruff/formatter/#line-breaks
 # Ruff-Black deviations:
 # https://docs.astral.sh/ruff/formatter/black/#line-width-vs-line-length
 # Ruff settings: https://docs.astral.sh/ruff/settings/#unsafe-fixes
-repos:
-################################################################################
+###############################################################################
+# CONTINUOUS INTEGRATION
+###############################################################################
+ci:
+    # custom commit message for PR autofixes
+    autofix_commit_msg: |
+        [pre-commit.ci] auto fixes from pre-commit.com hooks
+        for more information, see https://pre-commit.ci
+    # whether to autofix pull requests. when disabled, comment / label
+    # "pre-commit.ci autofix" to a pull request to manually trigger
+    # auto-fixing.
+    autofix_prs: true
+    # branch to send autoupdate PRs to; by default, pre-commit.ci will update
+    # the default branch of the repository.
+    autoupdate_branch: ""
+    # custom commit message for autoupdate PRs.
+    autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
+    # control when the autoupdate runs, possible values: 'weekly',
+    # 'monthly', 'quarterly'.
+    autoupdate_schedule: weekly
+    # a list of hook ids to skip only in pre-commit.ci;
+    skip: []
+    #  whether to recursively check out submodules
+    submodules: false
+###############################################################################
 # GENERAL
-################################################################################
+###############################################################################
+repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -71,11 +93,11 @@ repos:
         files: \.sh$
     # checks for the existence of private keys.
     -   id: detect-private-key
-################################################################################
+###############################################################################
 # PYTHON
-################################################################################
+###############################################################################
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.5
+    rev: v0.11.11
     hooks:
     # "currently, the Ruff formatter does not sort imports.
     # In order to both sort imports and format, call
@@ -119,12 +141,12 @@ repos:
           "--line-length=79",
         ]
 -   repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.7.3
+    rev: 0.7.8
     hooks:
     -   id: uv-lock
-################################################################################
+###############################################################################
 # SECURITY
-################################################################################
+###############################################################################
 -   repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
@@ -133,12 +155,12 @@ repos:
     -   id: detect-secrets
         args: ["--baseline", ".secrets.baseline"]
         exclude: package.lock.json
-################################################################################
+###############################################################################
 # SPELLING
-################################################################################
+###############################################################################
 -   repo: https://github.com/crate-ci/typos
-    rev: typos-dict-v0.12.4
+    rev: v1
     hooks:
     -   id: typos
         args: ["--force-exclude"]
-################################################################################
+###############################################################################
