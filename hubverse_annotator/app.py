@@ -17,6 +17,9 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 def create_quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
@@ -65,31 +68,34 @@ def create_quantile_forecast_chart(
 
 
 def main() -> None:
-    # initiate logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
     # record start time
     start_time = time.time()
     # begin streamlit application
     st.title("Forecast Annotator")
-    uploaded_file = st.file_uploader(
-        "Upload Hubverse File", type=["csv", "parquet"]
+    # super-mega hubverse table upload
+    smht_file = st.file_uploader(
+        "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
+    # hubverse timeseries table upload
+    htt_file = st.file_uploader(
+        "Upload Hubverse Target Data", type=["parquet"]
+    )
+    print(htt_file)
     # load the hubverse data
-    if uploaded_file is not None:
-        ext = pathlib.Path(uploaded_file.name).suffix.lower()
+    if smht_file is not None:
+        ext = pathlib.Path(smht_file.name).suffix.lower()
         try:
             if ext == ".parquet":
-                smhub_table = pl.read_parquet(uploaded_file)
+                smhub_table = pl.read_parquet(smht_file)
             elif ext == ".csv":
-                smhub_table = pl.read_csv(uploaded_file)
+                smhub_table = pl.read_csv(smht_file)
             else:
                 raise ValueError(f"Unsupported file type: {ext}")
         except ValueError as e:
             st.error(str(e))
             st.stop()
-        st.success(f"Loaded {uploaded_file.name} ({ext}).")
-        logger.info(f"Uploaded file:\n{uploaded_file.name}")
+        st.success(f"Loaded {smht_file.name} ({ext}).")
+        logger.info(f"Uploaded file:\n{smht_file.name}")
         n_rows, n_cols = smhub_table.shape
         size_bytes = smhub_table.estimated_size()
         size_mb = size_bytes / 1e6
