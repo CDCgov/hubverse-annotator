@@ -17,6 +17,9 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 def create_quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
@@ -65,9 +68,6 @@ def create_quantile_forecast_chart(
 
 
 def main() -> None:
-    # initiate logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
     # record start time
     start_time = time.time()
     # begin streamlit application
@@ -80,6 +80,7 @@ def main() -> None:
     htt_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
     )
+    print(htt_file)
     # load the hubverse data
     if smht_file is not None:
         ext = pathlib.Path(smht_file.name).suffix.lower()
