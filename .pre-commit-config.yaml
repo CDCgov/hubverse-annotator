@@ -5,6 +5,9 @@
 # are likely a modified version of the configuration file from the author's
 # (AFg6K7h4fhy2) repository template.
 #
+# Note that some of the comments below may come from their respective
+# documentation sources.
+#
 # Links:
 #
 # Pre-commit: https://pre-commit.com/
@@ -15,10 +18,34 @@
 # Ruff-Black deviations:
 # https://docs.astral.sh/ruff/formatter/black/#line-width-vs-line-length
 # Ruff settings: https://docs.astral.sh/ruff/settings/#unsafe-fixes
-repos:
+###############################################################################
+# CONTINUOUS INTEGRATION
+###############################################################################
+ci:
+    # custom commit message for PR autofixes
+    autofix_commit_msg: |
+        [pre-commit.ci] auto fixes from pre-commit.com hooks
+        for more information, see https://pre-commit.ci
+    # whether to autofix pull requests. when disabled, comment / label
+    # "pre-commit.ci autofix" to a pull request to manually trigger
+    # auto-fixing.
+    autofix_prs: true
+    # branch to send autoupdate PRs to; by default, pre-commit.ci will update
+    # the default branch of the repository.
+    autoupdate_branch: ""
+    # custom commit message for autoupdate PRs.
+    autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
+    # control when the autoupdate runs, possible values: 'weekly',
+    # 'monthly', 'quarterly'.
+    autoupdate_schedule: weekly
+    # a list of hook ids to skip only in pre-commit.ci;
+    skip: []
+    #  whether to recursively check out submodules
+    submodules: false
 ################################################################################
 # GENERAL
 ################################################################################
+repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
