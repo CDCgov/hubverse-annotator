@@ -163,7 +163,7 @@ def main() -> None:
         else:
             forecast_chart = create_quantile_forecast_chart(smhubt_to_plot)
             st.altair_chart(forecast_chart, use_container_width=True)
-
+        # st.cache
         # preference and comments saving
         output_dir = pathlib.Path("../output")
         output_dir.mkdir(parents=True, exist_ok=True)
