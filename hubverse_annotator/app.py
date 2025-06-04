@@ -71,17 +71,26 @@ def main() -> None:
     # record start time
     start_time = time.time()
     # begin streamlit application
-    st.title("Forecast Annotator")
+    with st.columns(3)[1]:
+        st.header("Forecast Annotator")
+    # columns for super mega hubverse table & observations (E & H)
+    e_and_h_col, smht_col = st.columns(2)
     # super-mega hubverse table upload
-    smht_file = st.file_uploader(
-        "Upload Hubverse Forecasts", type=["csv", "parquet"]
-    )
+    with e_and_h_col:
+        e_and_h_file = st.file_uploader(
+            "Upload Hubverse Target Data", type=["parquet"]
+        )
     # hubverse timeseries table upload
-    htt_file = st.file_uploader(
-        "Upload Hubverse Target Data", type=["parquet"]
-    )
-    print(htt_file)
+    with smht_col:
+        smht_file = st.file_uploader(
+            "Upload Hubverse Forecasts", type=["csv", "parquet"]
+        )
+    # load the target data
+    eh_table = None
+    if e_and_h_file:
+        pass
     # load the hubverse data
+    smhub_table = None
     if smht_file is not None:
         ext = pathlib.Path(smht_file.name).suffix.lower()
         try:
