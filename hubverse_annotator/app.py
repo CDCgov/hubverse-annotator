@@ -21,6 +21,22 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
+    obs = (
+        alt.Chart(eh_df)
+        .mark_point(filled=True, size=60, color="black")
+        .encode(
+            x=alt.X("date:T", title="Date"),
+            y=alt.Y("observation:Q", title="Observed"),
+            tooltip=[
+                alt.Tooltip("date:T", title="Date"),
+                alt.Tooltip("observation:Q", title="Observed"),
+            ],
+        )
+    )
+    return obs
+
+
 def create_quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
     value_col: str = "value",
@@ -67,51 +83,50 @@ def create_quantile_forecast_chart(
     return chart
 
 
+def load_hubverse_table(hub_file):
+    ext = pathlib.Path(hub_file.name).suffix.lower()
+    try:
+        if ext == ".parquet":
+            hub_table = pl.read_parquet(hub_file)
+        elif ext == ".csv":
+            hub_table = pl.read_csv(hub_file)
+        else:
+            raise ValueError(f"Unsupported file type: {ext}")
+    except ValueError as e:
+        st.error(str(e))
+        st.stop()
+    # st.success(f"Loaded {hub_file.name} ({ext}).")
+    logger.info(f"Uploaded file:\n{hub_file.name}")
+    n_rows, n_cols = hub_table.shape
+    size_bytes = hub_table.estimated_size()
+    size_mb = size_bytes / 1e6
+    logger.info(
+        f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
+        f"Approximately {size_mb:.2f} MB in memory"
+    )
+    return hub_table
+
+
 def main() -> None:
     # record start time
     start_time = time.time()
     # begin streamlit application
-    with st.columns(3)[1]:
-        st.header("Forecast Annotator")
-    # columns for super mega hubverse table & observations (E & H)
-    e_and_h_col, smht_col = st.columns(2)
-    # super-mega hubverse table upload
-    with e_and_h_col:
-        e_and_h_file = st.file_uploader(
-            "Upload Hubverse Target Data", type=["parquet"]
-        )
-    # hubverse timeseries table upload
-    with smht_col:
-        smht_file = st.file_uploader(
-            "Upload Hubverse Forecasts", type=["csv", "parquet"]
-        )
+    st.title("Forecast Annotator")
+    # super-mega hubverse table and target data uploaded
+    e_and_h_file = st.file_uploader(
+        "Upload Hubverse Target Data", type=["parquet"]
+    )
+    smht_file = st.file_uploader(
+        "Upload Hubverse Forecasts", type=["csv", "parquet"]
+    )
     # load the target data
     eh_table = None
-    if e_and_h_file:
-        pass
+    if e_and_h_file is not None:
+        eh_table = load_hubverse_table(e_and_h_file)
     # load the hubverse data
     smhub_table = None
     if smht_file is not None:
-        ext = pathlib.Path(smht_file.name).suffix.lower()
-        try:
-            if ext == ".parquet":
-                smhub_table = pl.read_parquet(smht_file)
-            elif ext == ".csv":
-                smhub_table = pl.read_csv(smht_file)
-            else:
-                raise ValueError(f"Unsupported file type: {ext}")
-        except ValueError as e:
-            st.error(str(e))
-            st.stop()
-        st.success(f"Loaded {smht_file.name} ({ext}).")
-        logger.info(f"Uploaded file:\n{smht_file.name}")
-        n_rows, n_cols = smhub_table.shape
-        size_bytes = smhub_table.estimated_size()
-        size_mb = size_bytes / 1e6
-        logger.info(
-            f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
-            f"Approximately {size_mb:.2f} MB in memory"
-        )
+        smhub_table = load_hubverse_table(smhub_table)
         # locations in the hubverse table
         smhub_loc_abbrs = smhub_table["location"].unique().to_list()
         loc_lookup = forecasttools.location_lookup(
@@ -178,6 +193,24 @@ def main() -> None:
         else:
             forecast_chart = create_quantile_forecast_chart(smhubt_to_plot)
             st.altair_chart(forecast_chart, use_container_width=True)
+            if eh_table is not None:
+                eh_to_plot = eh_table.filter(
+                    (pl.col("location") == two_letter_loc_abbr)
+                    & (pl.col("target") == selected_target)
+                    & (
+                        pl.col("date").dt.strftime("%Y-%m-%d")
+                        <= selected_ref_date
+                    )
+                ).sort("date")
+
+                if not eh_to_plot.is_empty():
+                    observed = target_data_chart(eh_to_plot)
+                    combined_chart = forecast_chart + observed
+                    st.altair_chart(combined_chart, use_container_width=True)
+                else:
+                    st.info("No E & H data matches the selection.")
+            else:
+                st.altair_chart(forecast_chart, use_container_width=True)
 
         # preference and comments saving
         output_dir = pathlib.Path("../output")
