@@ -22,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 
 def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
-    obs = (
+    obs_layer = (
         alt.Chart(eh_df)
         .mark_point(filled=True, size=60, color="black")
         .encode(
-            x=alt.X("date:T", title="Date"),
+            x=alt.X("target_end_date:T", title="Date"),
             y=alt.Y("observation:Q", title="Observed"),
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
@@ -34,7 +34,7 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
             ],
         )
     )
-    return obs
+    return obs_layer
 
 
 def create_quantile_forecast_chart(
@@ -74,13 +74,8 @@ def create_quantile_forecast_chart(
         y=alt.Y("0.25:Q", title=None),
         y2="0.75:Q",
     )
-    # compose line and bands into faceted chart
-    chart = (
-        (median_line + band_90 + band_IQR)
-        .facet(row=alt.Row("model:N", title="Model"), columns=1)
-        .resolve_scale("independent")
-    ).interactive()
-    return chart
+    forecast_layers = median_line + band_90 + band_IQR
+    return forecast_layers
 
 
 def load_hubverse_table(hub_file):
@@ -126,7 +121,7 @@ def main() -> None:
     # load the hubverse data
     smhub_table = None
     if smht_file is not None:
-        smhub_table = load_hubverse_table(smhub_table)
+        smhub_table = load_hubverse_table(smht_file)
         # locations in the hubverse table
         smhub_loc_abbrs = smhub_table["location"].unique().to_list()
         loc_lookup = forecasttools.location_lookup(
@@ -169,13 +164,17 @@ def main() -> None:
         )
         # models and targets available
         models_available = smhubt_by_loc["model"].unique().to_list()
+        if "model_selection" not in st.session_state:
+            st.session_state.model_selection = models_available.copy()
         selected_models = st.multiselect(
             "Model(s)",
             options=models_available,
-            default=models_available,
+            default=st.session_state.model_selection,
             key="model_selection",
         )
         targets_available = smhubt_by_loc["target"].unique().to_list()
+        if "target_selection" not in st.session_state:
+            st.session_state.target_selection = targets_available[0]
         selected_target = st.selectbox(
             "Target(s)", options=targets_available, key="target_selection"
         )
@@ -191,26 +190,42 @@ def main() -> None:
         if smhubt_to_plot.is_empty():
             st.warning("No forecasts available for current selection.")
         else:
-            forecast_chart = create_quantile_forecast_chart(smhubt_to_plot)
-            st.altair_chart(forecast_chart, use_container_width=True)
+            forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
             if eh_table is not None:
-                eh_to_plot = eh_table.filter(
-                    (pl.col("location") == two_letter_loc_abbr)
-                    & (pl.col("target") == selected_target)
-                    & (
-                        pl.col("date").dt.strftime("%Y-%m-%d")
-                        <= selected_ref_date
+                eh_to_plot = (
+                    eh_table.with_columns(
+                        pl.col("date").alias("target_end_date")
                     )
-                ).sort("date")
-
+                    .filter(
+                        (pl.col("location") == two_num_loc_abbr)
+                        & (pl.col("target") == selected_target)
+                        & (
+                            pl.col("target_end_date").dt.strftime("%Y-%m-%d")
+                            <= selected_ref_date
+                        )
+                    )
+                    .sort("target_end_date")
+                )
                 if not eh_to_plot.is_empty():
-                    observed = target_data_chart(eh_to_plot)
-                    combined_chart = forecast_chart + observed
-                    st.altair_chart(combined_chart, use_container_width=True)
+                    observed_layers = target_data_chart(eh_to_plot)
+                    forecast_and_observed_layers = (
+                        forecast_layers + observed_layers
+                    )
+                    chart = (
+                        forecast_and_observed_layers.facet(
+                            row=alt.Row("model:N", title="Model"), columns=1
+                        ).resolve_scale("independent")
+                    ).interactive()
+                    st.altair_chart(chart, use_container_width=True)
                 else:
                     st.info("No E & H data matches the selection.")
             else:
-                st.altair_chart(forecast_chart, use_container_width=True)
+                chart = (
+                    forecast_layers.facet(
+                        row=alt.Row("model:N", title="Model"), columns=1
+                    ).resolve_scale("independent")
+                ).interactive()
+                st.altair_chart(forecast_layers, use_container_width=True)
 
         # preference and comments saving
         output_dir = pathlib.Path("../output")
