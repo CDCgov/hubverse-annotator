@@ -198,7 +198,7 @@ def main() -> None:
             st.session_state.target_selection = targets_available[0]
         selected_target = st.selectbox(
             "Target(s)",
-            options=["wk inc covid ed visits"],
+            options=targets_available,
             key="target_selection",
         )
         # filter hubverse table by selected models and target
