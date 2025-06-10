@@ -72,24 +72,30 @@ def create_quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
-    # create base Chart for altair errorbands
     base = alt.Chart(df_wide).encode(
-        x=alt.X("target_end_date:T", title="Target End Date")
+        x=alt.X("target_end_date:T", title="Date")
     )
-    # create median line and CI bands
-    median_line = base.mark_line(strokeWidth=2, interpolate="monotone").encode(
-        y=alt.Y("median:Q", title=None)
-    )
-    band_90 = base.mark_errorband(opacity=0.2, interpolate="monotone").encode(
-        y=alt.Y("0.05:Q", title="Forecast Value"),
-        y2="0.95:Q",
-    )
-    band_IQR = base.mark_errorband(opacity=0.3, interpolate="monotone").encode(
-        y=alt.Y("0.25:Q", title=None),
-        y2="0.75:Q",
-    )
-    forecast_layers = median_line + band_90 + band_IQR
-    return forecast_layers
+    band_95 = base.mark_errorband(
+        extent="ci",
+        opacity=0.1,
+        interpolate="step-after",
+    ).encode(y=alt.Y("0.025:Q"), y2="0.975:Q", fill=alt.value("steelblue"))
+    band_80 = base.mark_errorband(
+        extent="ci",
+        opacity=0.2,
+        interpolate="step-after",
+    ).encode(y=alt.Y("0.10:Q"), y2="0.90:Q", fill=alt.value("steelblue"))
+    band_50 = base.mark_errorband(
+        extent="iqr",
+        opacity=0.3,
+        interpolate="step-after",
+    ).encode(y=alt.Y("0.25:Q"), y2="0.75:Q", fill=alt.value("steelblue"))
+    median = base.mark_line(
+        strokeWidth=2,
+        interpolate="step-after",
+        color="navy",
+    ).encode(y=alt.Y("median:Q", title="Forecast"))
+    return alt.layer(band_95, band_80, band_50, median)
 
 
 def load_hubverse_table(hub_file):
