@@ -17,6 +17,39 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
+    """
+    Creates visualization layering for hubverse formatted
+    observations time series.
+
+    Parameters
+    ----------
+    eh_df : pl.DataFrame
+        A polars dataframe of E and H target data.
+
+    Returns
+    -------
+    alt.Chart
+        A layering for use in a faceted altair chart.
+    """
+    obs_layer = (
+        alt.Chart(eh_df)
+        .mark_point(filled=True, size=35, color="limegreen")
+        .encode(
+            x=alt.X("target_end_date:T", title="Date"),
+            y=alt.Y("observation:Q", title="Observed"),
+            tooltip=[
+                alt.Tooltip("target_end_date:T", title="Date"),
+                alt.Tooltip("observation:Q", title="Observed"),
+            ],
+        )
+    )
+    return obs_layer
+
 
 def create_quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
@@ -39,64 +72,76 @@ def create_quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
-    # create base Chart for altair errorbands
     base = alt.Chart(df_wide).encode(
-        x=alt.X("target_end_date:T", title="Target End Date")
+        x=alt.X("target_end_date:T", title="Date")
     )
-    # create median line and CI bands
-    median_line = base.mark_line(strokeWidth=2, interpolate="monotone").encode(
-        y=alt.Y("median:Q", title=None)
+    band_95 = base.mark_errorband(
+        extent="ci",
+        opacity=0.1,
+        interpolate="step-after",
+    ).encode(y=alt.Y("0.025:Q"), y2="0.975:Q", fill=alt.value("steelblue"))
+    band_80 = base.mark_errorband(
+        extent="ci",
+        opacity=0.2,
+        interpolate="step-after",
+    ).encode(y=alt.Y("0.10:Q"), y2="0.90:Q", fill=alt.value("steelblue"))
+    band_50 = base.mark_errorband(
+        extent="iqr",
+        opacity=0.3,
+        interpolate="step-after",
+    ).encode(y=alt.Y("0.25:Q"), y2="0.75:Q", fill=alt.value("steelblue"))
+    median = base.mark_line(
+        strokeWidth=2,
+        interpolate="step-after",
+        color="navy",
+    ).encode(y=alt.Y("median:Q", title="Forecast"))
+    return alt.layer(band_95, band_80, band_50, median)
+
+
+def load_hubverse_table(hub_file):
+    ext = pathlib.Path(hub_file.name).suffix.lower()
+    try:
+        if ext == ".parquet":
+            hub_table = pl.read_parquet(hub_file)
+        elif ext == ".csv":
+            hub_table = pl.read_csv(hub_file)
+        else:
+            raise ValueError(f"Unsupported file type: {ext}")
+    except ValueError as e:
+        st.error(str(e))
+        st.stop()
+    # st.success(f"Loaded {hub_file.name} ({ext}).")
+    logger.info(f"Uploaded file:\n{hub_file.name}")
+    n_rows, n_cols = hub_table.shape
+    size_bytes = hub_table.estimated_size()
+    size_mb = size_bytes / 1e6
+    logger.info(
+        f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
+        f"Approximately {size_mb:.2f} MB in memory"
     )
-    band_90 = base.mark_errorband(opacity=0.2, interpolate="monotone").encode(
-        y=alt.Y("0.05:Q", title="Forecast Value"),
-        y2="0.95:Q",
-    )
-    band_IQR = base.mark_errorband(opacity=0.3, interpolate="monotone").encode(
-        y=alt.Y("0.25:Q", title=None),
-        y2="0.75:Q",
-    )
-    # compose line and bands into faceted chart
-    chart = (
-        (median_line + band_90 + band_IQR)
-        .facet(row=alt.Row("model:N", title="Model"), columns=1)
-        .resolve_scale("independent")
-    ).interactive()
-    return chart
+    return hub_table
 
 
 def main() -> None:
-    # initiate logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
     # record start time
     start_time = time.time()
     # begin streamlit application
     st.title("Forecast Annotator")
-    uploaded_file = st.file_uploader(
-        "Upload Hubverse File", type=["csv", "parquet"]
+    # super-mega hubverse table and target data uploaded
+    e_and_h_file = st.file_uploader(
+        "Upload Hubverse Target Data", type=["parquet"]
     )
+    smht_file = st.file_uploader(
+        "Upload Hubverse Forecasts", type=["csv", "parquet"]
+    )
+    # load the target data
+    eh_table = None
+    if e_and_h_file is not None:
+        eh_table = load_hubverse_table(e_and_h_file)
     # load the hubverse data
-    if uploaded_file is not None:
-        ext = pathlib.Path(uploaded_file.name).suffix.lower()
-        try:
-            if ext == ".parquet":
-                smhub_table = pl.read_parquet(uploaded_file)
-            elif ext == ".csv":
-                smhub_table = pl.read_csv(uploaded_file)
-            else:
-                raise ValueError(f"Unsupported file type: {ext}")
-        except ValueError as e:
-            st.error(str(e))
-            st.stop()
-        st.success(f"Loaded {uploaded_file.name} ({ext}).")
-        logger.info(f"Uploaded file:\n{uploaded_file.name}")
-        n_rows, n_cols = smhub_table.shape
-        size_bytes = smhub_table.estimated_size()
-        size_mb = size_bytes / 1e6
-        logger.info(
-            f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
-            f"Approximately {size_mb:.2f} MB in memory"
-        )
+    smhub_table = None
+    if smht_file is not None:
+        smhub_table = load_hubverse_table(smht_file)
         # locations in the hubverse table
         smhub_loc_abbrs = smhub_table["location"].unique().to_list()
         loc_lookup = forecasttools.location_lookup(
@@ -113,6 +158,7 @@ def main() -> None:
                 .dt.strftime("%Y-%m-%d")
                 .to_list()
             )
+            print(ref_dates)
             selected_ref_date = st.selectbox(
                 "Reference Date",
                 options=ref_dates,
@@ -139,15 +185,21 @@ def main() -> None:
         )
         # models and targets available
         models_available = smhubt_by_loc["model"].unique().to_list()
+        if "model_selection" not in st.session_state:
+            st.session_state.model_selection = models_available.copy()
         selected_models = st.multiselect(
             "Model(s)",
             options=models_available,
-            default=models_available,
+            default=st.session_state.model_selection,
             key="model_selection",
         )
         targets_available = smhubt_by_loc["target"].unique().to_list()
+        if "target_selection" not in st.session_state:
+            st.session_state.target_selection = targets_available[0]
         selected_target = st.selectbox(
-            "Target(s)", options=targets_available, key="target_selection"
+            "Target(s)",
+            options=targets_available,
+            key="target_selection",
         )
         # filter hubverse table by selected models and target
         smhubt_to_plot = smhubt_by_loc.filter(
@@ -161,8 +213,42 @@ def main() -> None:
         if smhubt_to_plot.is_empty():
             st.warning("No forecasts available for current selection.")
         else:
-            forecast_chart = create_quantile_forecast_chart(smhubt_to_plot)
-            st.altair_chart(forecast_chart, use_container_width=True)
+            forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
+            if eh_table is not None:
+                eh_to_plot = (
+                    eh_table.with_columns(
+                        pl.col("date").alias("target_end_date")
+                    )
+                    .filter(
+                        (pl.col("location") == two_num_loc_abbr)
+                        & (pl.col("target") == selected_target)
+                        & (
+                            pl.col("target_end_date").dt.strftime("%Y-%m-%d")
+                            <= selected_ref_date
+                        )
+                    )
+                    .sort("target_end_date")
+                )
+                if not eh_to_plot.is_empty():
+                    observed_layers = target_data_chart(eh_to_plot)
+                    forecast_and_observed_layers = (
+                        forecast_layers + observed_layers
+                    )
+                    chart = (
+                        forecast_and_observed_layers.facet(
+                            row=alt.Row("model:N", title="Model"), columns=1
+                        ).resolve_scale("independent")
+                    ).interactive()
+                    st.altair_chart(chart, use_container_width=True)
+                else:
+                    st.info("No E & H data matches the selection.")
+            else:
+                chart = (
+                    forecast_layers.facet(
+                        row=alt.Row("model:N", title="Model"), columns=1
+                    ).resolve_scale("independent")
+                ).interactive()
+                st.altair_chart(forecast_layers, use_container_width=True)
 
         # preference and comments saving
         output_dir = pathlib.Path("../output")

@@ -16,7 +16,8 @@ dependencies = [
     "altair>=5.5.0",
     "forecasttools @ git+https://github.com/cdcgov/forecasttools-py",
     "streamlit>=1.44.1",
-    "polars>=1.27.1",
+    "pyarrow>=19.0.1",
+    "polars>=1.30.0",
 ]
 
 [project.urls]
