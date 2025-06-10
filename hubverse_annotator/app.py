@@ -22,14 +22,28 @@ logger = logging.getLogger(__name__)
 
 
 def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
+    """
+    Creates visualization layering for hubverse formatted
+    observations time series.
+
+    Parameters
+    ----------
+    eh_df : pl.DataFrame
+        A polars dataframe of E and H target data.
+
+    Returns
+    -------
+    alt.Chart
+        A layering for use in a faceted altair chart.
+    """
     obs_layer = (
         alt.Chart(eh_df)
-        .mark_point(filled=True, size=60, color="black")
+        .mark_point(filled=True, size=25, color="limegreen")
         .encode(
             x=alt.X("target_end_date:T", title="Date"),
             y=alt.Y("observation:Q", title="Observed"),
             tooltip=[
-                alt.Tooltip("date:T", title="Date"),
+                alt.Tooltip("target_end_date:T", title="Date"),
                 alt.Tooltip("observation:Q", title="Observed"),
             ],
         )
@@ -176,7 +190,7 @@ def main() -> None:
         if "target_selection" not in st.session_state:
             st.session_state.target_selection = targets_available[0]
         selected_target = st.selectbox(
-            "Target(s)", options=targets_available, key="target_selection"
+            "Target(s)", options=["wk inc flu hosp"], key="target_selection"
         )
         # filter hubverse table by selected models and target
         smhubt_to_plot = smhubt_by_loc.filter(
