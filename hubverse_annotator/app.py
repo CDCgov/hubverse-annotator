@@ -38,7 +38,7 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     """
     obs_layer = (
         alt.Chart(eh_df)
-        .mark_point(filled=True, size=25, color="limegreen")
+        .mark_point(filled=True, size=35, color="limegreen")
         .encode(
             x=alt.X("target_end_date:T", title="Date"),
             y=alt.Y("observation:Q", title="Observed"),
@@ -158,6 +158,7 @@ def main() -> None:
                 .dt.strftime("%Y-%m-%d")
                 .to_list()
             )
+            print(ref_dates)
             selected_ref_date = st.selectbox(
                 "Reference Date",
                 options=ref_dates,
@@ -196,7 +197,9 @@ def main() -> None:
         if "target_selection" not in st.session_state:
             st.session_state.target_selection = targets_available[0]
         selected_target = st.selectbox(
-            "Target(s)", options=["wk inc flu hosp"], key="target_selection"
+            "Target(s)",
+            options=["wk inc covid ed visits"],
+            key="target_selection",
         )
         # filter hubverse table by selected models and target
         smhubt_to_plot = smhubt_by_loc.filter(
