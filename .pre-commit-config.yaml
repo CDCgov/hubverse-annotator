@@ -97,7 +97,7 @@ repos:
 # PYTHON
 ###############################################################################
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.13
+    rev: v0.12.0
     hooks:
     # "currently, the Ruff formatter does not sort imports.
     # In order to both sort imports and format, call
