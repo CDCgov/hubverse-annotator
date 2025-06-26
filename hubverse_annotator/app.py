@@ -146,6 +146,10 @@ def main() -> None:
     eh_table = None
     if e_and_h_file is not None:
         eh_table = load_hubverse_table(e_and_h_file)
+        # filter to latest as_of date, if as_of col present
+        if "as_of" in eh_table.columns:
+            latest = eh_table.select(pl.col("as_of").max()).item()
+            eh_table = eh_table.filter(pl.col("as_of") == latest)
     # load the hubverse data
     smhub_table = None
     if smht_file is not None:
