@@ -163,6 +163,7 @@ def main() -> None:
             selected_ref_date = st.selectbox(
                 "Reference Date",
                 options=ref_dates,
+                format_func = lambda x: x.strftime("%Y-%m-%d"),
                 key="ref_date_selection",
             )
         with col2:
