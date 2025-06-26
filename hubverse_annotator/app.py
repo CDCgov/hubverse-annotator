@@ -166,7 +166,6 @@ def main() -> None:
                 .dt.strftime("%Y-%m-%d")
                 .to_list()
             )
-            print(ref_dates)
             selected_ref_date = st.selectbox(
                 "Reference Date",
                 options=ref_dates,
@@ -230,10 +229,7 @@ def main() -> None:
                     .filter(
                         (pl.col("location") == two_num_loc_abbr)
                         & (pl.col("target") == selected_target)
-                        & (
-                            pl.col("target_end_date").dt.strftime("%Y-%m-%d")
-                            <= selected_ref_date
-                        )
+                        & (pl.col("target_end_date") <= selected_ref_date)
                     )
                     .sort("target_end_date")
                 )
