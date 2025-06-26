@@ -159,13 +159,7 @@ def main() -> None:
         # two-column layout for reference date and location
         col1, col2 = st.columns(2)
         with col1:
-            ref_dates = (
-                smhub_table["reference_date"]
-                .unique()
-                .sort()
-                .dt.strftime("%Y-%m-%d")
-                .to_list()
-            )
+            ref_dates = smhub_table["reference_date"].unique().sort().to_list()
             selected_ref_date = st.selectbox(
                 "Reference Date",
                 options=ref_dates,
