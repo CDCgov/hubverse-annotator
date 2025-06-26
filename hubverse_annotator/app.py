@@ -3,7 +3,7 @@ A streamlit application that loads hubverse formatted
 tables and plots model forecasts for the user to compare
 and annotate models.
 
-To run: poetry run streamlit run app.py
+To run: uv run streamlit run ./hubverse_annotator/app.py
 """
 
 import json
@@ -23,28 +23,28 @@ logger = logging.getLogger(__name__)
 
 def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     """
-    Creates visualization layering for hubverse formatted
-    observations time series.
+    Layers target hubverse data onto `altair` plot.
 
     Parameters
     ----------
     eh_df : pl.DataFrame
-        A polars dataframe of E and H target data.
+        A polars dataframe of E and H target data formatted
+        as hubverse time series.
 
     Returns
     -------
     alt.Chart
-        A layering for use in a faceted altair chart.
+        An `altair` chart with the target hubverse data.
     """
     obs_layer = (
         alt.Chart(eh_df)
         .mark_point(filled=True, size=35, color="limegreen")
         .encode(
             x=alt.X("target_end_date:T", title="Date"),
-            y=alt.Y("observation:Q", title="Observed"),
+            y=alt.Y("observation:Q", title="Value"),
             tooltip=[
                 alt.Tooltip("target_end_date:T", title="Date"),
-                alt.Tooltip("observation:Q", title="Observed"),
+                alt.Tooltip("observation:Q", title="Value"),
             ],
         )
     )
@@ -79,22 +79,30 @@ def create_quantile_forecast_chart(
         extent="ci",
         opacity=0.1,
         interpolate="step-after",
-    ).encode(y=alt.Y("0.025:Q"), y2="0.975:Q", fill=alt.value("steelblue"))
+    ).encode(
+        y=alt.Y("0.025:Q", axis=alt.Axis(title="Value")),
+        y2="0.975:Q",
+        fill=alt.value("steelblue"),
+    )
     band_80 = base.mark_errorband(
         extent="ci",
         opacity=0.2,
         interpolate="step-after",
-    ).encode(y=alt.Y("0.10:Q"), y2="0.90:Q", fill=alt.value("steelblue"))
+    ).encode(
+        y=alt.Y("0.10:Q", axis=None), y2="0.90:Q", fill=alt.value("steelblue")
+    )
     band_50 = base.mark_errorband(
         extent="iqr",
         opacity=0.3,
         interpolate="step-after",
-    ).encode(y=alt.Y("0.25:Q"), y2="0.75:Q", fill=alt.value("steelblue"))
+    ).encode(
+        y=alt.Y("0.25:Q", axis=None), y2="0.75:Q", fill=alt.value("steelblue")
+    )
     median = base.mark_line(
         strokeWidth=2,
         interpolate="step-after",
         color="navy",
-    ).encode(y=alt.Y("median:Q", title="Forecast"))
+    ).encode(y=alt.Y("median:Q", axis=None))
     return alt.layer(band_95, band_80, band_50, median)
 
 
