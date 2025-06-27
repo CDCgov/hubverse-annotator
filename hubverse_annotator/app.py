@@ -226,7 +226,6 @@ def main() -> None:
                 ).filter(
                     (pl.col("location") == two_num_loc_abbr)
                     & (pl.col("target") == selected_target)
-                    & (pl.col("target_end_date") <= selected_ref_date)
                 )
                 if not eh_to_plot.is_empty():
                     observed_layers = target_data_chart(eh_to_plot)
