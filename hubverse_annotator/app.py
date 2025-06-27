@@ -40,11 +40,11 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
         alt.Chart(eh_df)
         .mark_point(filled=True, size=35, color="limegreen")
         .encode(
-            x=alt.X("target_end_date:T", title="Date"),
-            y=alt.Y("observation:Q", title="Value"),
+            x=alt.X("date:T"),
+            y=alt.Y("observation:Q"),
             tooltip=[
-                alt.Tooltip("target_end_date:T", title="Date"),
-                alt.Tooltip("observation:Q", title="Value"),
+                alt.Tooltip("date:T"),
+                alt.Tooltip("observation:Q"),
             ],
         )
     )
@@ -72,15 +72,13 @@ def create_quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
-    base = alt.Chart(df_wide).encode(
-        x=alt.X("target_end_date:T", title="Date")
-    )
+    base = alt.Chart(df_wide).encode(x=alt.X("target_end_date:T"))
     band_95 = base.mark_errorband(
         extent="ci",
         opacity=0.1,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.025:Q", axis=alt.Axis(title="Value")),
+        y=alt.Y("0.025:Q"),
         y2="0.975:Q",
         fill=alt.value("steelblue"),
     )
@@ -221,9 +219,7 @@ def main() -> None:
         else:
             forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
             if eh_table is not None:
-                eh_to_plot = eh_table.with_columns(
-                    pl.col("date").alias("target_end_date")
-                ).filter(
+                eh_to_plot = eh_table.with_columns(pl.col("date")).filter(
                     (pl.col("location") == two_num_loc_abbr)
                     & (pl.col("target") == selected_target)
                 )
@@ -235,7 +231,7 @@ def main() -> None:
                     chart = (
                         forecast_and_observed_layers.facet(
                             row=alt.Row("model:N", title="Model"), columns=1
-                        ).resolve_scale("independent")
+                        ).resolve_scale(x="shared")
                     ).interactive()
                     st.altair_chart(chart, use_container_width=True)
                 else:
