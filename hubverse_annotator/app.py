@@ -220,8 +220,8 @@ def main() -> None:
             forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
             if eh_table is not None:
                 eh_to_plot = eh_table.with_columns(pl.col("date")).filter(
-                    (pl.col("location") == two_num_loc_abbr)
-                    & (pl.col("target") == selected_target)
+                    pl.col("location") == two_num_loc_abbr,
+                    pl.col("target") == selected_target
                 )
                 if not eh_to_plot.is_empty():
                     observed_layers = target_data_chart(eh_to_plot)
