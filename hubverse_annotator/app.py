@@ -104,6 +104,7 @@ def create_quantile_forecast_chart(
     return alt.layer(band_95, band_80, band_50, median)
 
 
+@st.cache_data
 def load_hubverse_table(hub_file):
     ext = pathlib.Path(hub_file.name).suffix.lower()
     try:
