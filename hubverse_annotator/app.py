@@ -197,12 +197,17 @@ def main() -> None:
             default=st.session_state.model_selection,
             key="model_selection",
         )
-        targets_available = smhubt_by_loc["target"].unique().to_list()
-        if "target_selection" not in st.session_state:
-            st.session_state.target_selection = targets_available[0]
+        targets_available = (
+            smhubt_by_loc.filter(pl.col("model").is_in(selected_models))[
+                "target"
+            ]
+            .unique()
+            .to_list()
+        )
         selected_target = st.selectbox(
             "Target(s)",
             options=targets_available,
+            index=None,
             key="target_selection",
         )
         # filter hubverse table by selected models and target
