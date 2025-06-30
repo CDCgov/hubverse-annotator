@@ -210,7 +210,7 @@ def main() -> None:
             options=targets_available,
             key="target_selection",
         )
-        if selected_models and selected_target is not None:
+        if (selected_models) and (selected_target is not None):
             smhubt_to_plot = smhubt_by_loc.filter(
                 pl.col("model").is_in(selected_models),
                 pl.col("target") == selected_target,
