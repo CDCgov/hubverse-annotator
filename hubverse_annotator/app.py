@@ -218,35 +218,32 @@ def main() -> None:
         st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
-        if smhubt_to_plot.is_empty():
-            st.warning("No forecasts available for current selection.")
-        else:
-            forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
-            if eh_table is not None:
-                eh_to_plot = eh_table.with_columns(pl.col("date")).filter(
-                    pl.col("location") == two_num_loc_abbr,
-                    pl.col("target") == selected_target,
+        forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
+        if eh_table is not None:
+            eh_to_plot = eh_table.with_columns(pl.col("date")).filter(
+                pl.col("location") == two_num_loc_abbr,
+                pl.col("target") == selected_target,
+            )
+            if not eh_to_plot.is_empty():
+                observed_layers = target_data_chart(eh_to_plot)
+                forecast_and_observed_layers = (
+                    forecast_layers + observed_layers
                 )
-                if not eh_to_plot.is_empty():
-                    observed_layers = target_data_chart(eh_to_plot)
-                    forecast_and_observed_layers = (
-                        forecast_layers + observed_layers
-                    )
-                    chart = (
-                        forecast_and_observed_layers.facet(
-                            row=alt.Row("model:N", title="Model"), columns=1
-                        ).resolve_scale(x="shared")
-                    ).interactive()
-                    st.altair_chart(chart, use_container_width=True)
-                else:
-                    st.info("No E & H data matches the selection.")
-            else:
                 chart = (
-                    forecast_layers.facet(
+                    forecast_and_observed_layers.facet(
                         row=alt.Row("model:N", title="Model"), columns=1
-                    ).resolve_scale("independent")
+                    ).resolve_scale(x="shared")
                 ).interactive()
-                st.altair_chart(forecast_layers, use_container_width=True)
+                st.altair_chart(chart, use_container_width=True)
+            else:
+                st.info("No E & H data matches the selection.")
+        else:
+            chart = (
+                forecast_layers.facet(
+                    row=alt.Row("model:N", title="Model"), columns=1
+                ).resolve_scale("independent")
+            ).interactive()
+            st.altair_chart(chart, use_container_width=True)
 
         # preference and comments saving
         output_dir = pathlib.Path("../output")
