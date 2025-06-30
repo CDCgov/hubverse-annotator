@@ -188,7 +188,7 @@ def main() -> None:
             pl.col("location") == two_letter_loc_abbr,
         )
         # models and targets available
-        models_available = smhubt_by_loc["model"].unique().to_list()
+        models_available = smhubt_by_loc["model"].unique().sort().to_list()
         selected_models = st.multiselect(
             "Model(s)",
             options=models_available,
