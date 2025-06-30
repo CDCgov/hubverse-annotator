@@ -202,20 +202,21 @@ def main() -> None:
                 "target"
             ]
             .unique()
+            .sort()
             .to_list()
         )
         selected_target = st.selectbox(
             "Target(s)",
             options=targets_available,
-            index=None,
             key="target_selection",
         )
-        # filter hubverse table by selected models and target
-        smhubt_to_plot = smhubt_by_loc.filter(
-            pl.col("model").is_in(selected_models),
-            pl.col("target") == selected_target,
-        )
-
+        if selected_models and selected_target is not None:
+            smhubt_to_plot = smhubt_by_loc.filter(
+                pl.col("model").is_in(selected_models),
+                pl.col("target") == selected_target,
+            )
+        else:
+            smhubt_to_plot = pl.DataFrame()
         st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         # plotting of the selected model, target, location, and reference date
