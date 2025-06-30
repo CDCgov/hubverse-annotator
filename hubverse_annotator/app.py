@@ -189,12 +189,10 @@ def main() -> None:
         )
         # models and targets available
         models_available = smhubt_by_loc["model"].unique().to_list()
-        if "model_selection" not in st.session_state:
-            st.session_state.model_selection = models_available.copy()
         selected_models = st.multiselect(
             "Model(s)",
             options=models_available,
-            default=st.session_state.model_selection,
+            default=models_available,
             key="model_selection",
         )
         targets_available = (
