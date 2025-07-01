@@ -225,18 +225,12 @@ def main() -> None:
         )
         observed_layers = target_data_chart(eh_to_plot)
         forecast_and_observed_layers = forecast_layers + observed_layers
-        resolve_scale_x = (
-            "independent"
-            if (eh_to_plot.is_empty() or smhubt_to_plot.is_empty())
-            else "shared"
-        )
         chart = (
             forecast_and_observed_layers.facet(
                 row=alt.Row("model:N", title="Model"), columns=1
-            ).resolve_scale(x=resolve_scale_x, y="independent")
+            )
         ).interactive()
         st.altair_chart(chart, use_container_width=True)
-
         # preference and comments saving
         output_dir = pathlib.Path("../output")
         output_dir.mkdir(parents=True, exist_ok=True)
