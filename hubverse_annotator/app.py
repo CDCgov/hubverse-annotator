@@ -133,23 +133,24 @@ def main() -> None:
     start_time = time.time()
     # begin streamlit application
     st.title("Forecast Annotator")
+    # initialize empty dataframes for observed and forecast data
+    eh_table = pl.DataFrame()
+    smhub_table = pl.DataFrame()
     # super-mega hubverse table and target data uploaded
     e_and_h_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
     )
-    smht_file = st.file_uploader(
-        "Upload Hubverse Forecasts", type=["csv", "parquet"]
-    )
-    # load the target data
-    eh_table = None
     if e_and_h_file is not None:
+        # update eh table with actual data
         eh_table = load_hubverse_table(e_and_h_file)
         # filter to latest as_of date, if as_of col present
         if "as_of" in eh_table.columns:
             latest = eh_table.select(pl.col("as_of").max()).item()
             eh_table = eh_table.filter(pl.col("as_of") == latest)
+    smht_file = st.file_uploader(
+        "Upload Hubverse Forecasts", type=["csv", "parquet"]
+    )
     # load the hubverse data
-    smhub_table = None
     if smht_file is not None:
         smhub_table = load_hubverse_table(smht_file)
         # locations in the hubverse table
@@ -217,33 +218,20 @@ def main() -> None:
             smhubt_to_plot = pl.DataFrame()
         st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
-        # plotting of the selected model, target, location, and reference date
         forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
-        if eh_table is not None:
-            eh_to_plot = eh_table.with_columns(pl.col("date")).filter(
-                pl.col("location") == two_num_loc_abbr,
-                pl.col("target") == selected_target,
-            )
-            if not eh_to_plot.is_empty():
-                observed_layers = target_data_chart(eh_to_plot)
-                forecast_and_observed_layers = (
-                    forecast_layers + observed_layers
-                )
-                chart = (
-                    forecast_and_observed_layers.facet(
-                        row=alt.Row("model:N", title="Model"), columns=1
-                    ).resolve_scale(x="shared")
-                ).interactive()
-                st.altair_chart(chart, use_container_width=True)
-            else:
-                st.info("No E & H data matches the selection.")
-        else:
-            chart = (
-                forecast_layers.facet(
-                    row=alt.Row("model:N", title="Model"), columns=1
-                ).resolve_scale("independent")
-            ).interactive()
-            st.altair_chart(chart, use_container_width=True)
+        eh_to_plot = eh_table.filter(
+            pl.col("location") == two_num_loc_abbr,
+            pl.col("target") == selected_target,
+        )
+        observed_layers = target_data_chart(eh_to_plot)
+        forecast_and_observed_layers = forecast_layers + observed_layers
+        resolve_scale = "independent" if eh_to_plot.is_empty() else "shared"
+        chart = (
+            forecast_and_observed_layers.facet(
+                row=alt.Row("model:N", title="Model"), columns=1
+            ).resolve_scale(x=resolve_scale)
+        ).interactive()
+        st.altair_chart(chart, use_container_width=True)
 
         # preference and comments saving
         output_dir = pathlib.Path("../output")
