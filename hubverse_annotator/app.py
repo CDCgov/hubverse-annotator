@@ -16,6 +16,7 @@ import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
+from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -104,30 +105,51 @@ def create_quantile_forecast_chart(
     return alt.layer(band_95, band_80, band_50, median)
 
 
-def load_hubverse_table(hub_file):
-    if hub_file is not None:
-        ext = pathlib.Path(hub_file.name).suffix.lower()
-        try:
-            if ext == ".parquet":
-                hub_table = pl.read_parquet(hub_file)
-            elif ext == ".csv":
-                hub_table = pl.read_csv(hub_file)
-            else:
-                raise ValueError(f"Unsupported file type: {ext}")
-        except ValueError as e:
-            st.error(str(e))
-            st.stop()
-        # st.success(f"Loaded {hub_file.name} ({ext}).")
-        logger.info(f"Uploaded file:\n{hub_file.name}")
-        n_rows, n_cols = hub_table.shape
-        size_bytes = hub_table.estimated_size()
-        size_mb = size_bytes / 1e6
-        logger.info(
-            f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
-            f"Approximately {size_mb:.2f} MB in memory"
-        )
-        return hub_table
-    return pl.DataFrame()
+def load_hubverse_table(hub_file: UploadedFile | None):
+    """
+    Load a hubverse formatted table into Polars from a
+    data file uploaded to Streamlit.
+
+    Parameters
+    ----------
+    hub_file : UploadedFile | None
+        A file-like object returned by Streamlit's
+        `st.file_uploader`. Supported file extensions are:
+        `.parquet` and `.csv`. If `hub_file` is `None`,
+        an empty DataFrame is returned.
+
+    Returns
+    -------
+    pl.DataFrame
+        A DataFrame containing the loaded data as a
+        hubverse formatted table, or an empty DataFrame if
+        no file was uploaded.
+
+    Raises
+    ------
+    ValueError
+        If the uploaded file has an unsupported extension
+        (not `.parquet` or `.csv`).
+    """
+    if hub_file is None:
+        return pl.DataFrame()
+    ext = pathlib.Path(hub_file.name).suffix.lower()
+    if ext == ".parquet":
+        hub_table = pl.read_parquet(hub_file)
+    elif ext == ".csv":
+        hub_table = pl.read_csv(hub_file)
+    else:
+        st.error(f"Unsupported file type: {ext}")
+        st.stop()
+    logger.info(f"Uploaded file:\n{hub_file.name}")
+    n_rows, n_cols = hub_table.shape
+    size_bytes = hub_table.estimated_size()
+    size_mb = size_bytes / 1e6
+    logger.info(
+        f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
+        f"Approximately {size_mb:.2f} MB in memory"
+    )
+    return hub_table
 
 
 def main() -> None:
