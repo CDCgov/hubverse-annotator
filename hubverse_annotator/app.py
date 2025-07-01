@@ -105,7 +105,34 @@ def create_quantile_forecast_chart(
 
 
 def load_hubverse_table(hub_file):
-    if hub_file is not None:
+    """
+    Load a hubverse formatted table into Polars from a
+    data file uploaded to Streamlit.
+
+    Parameters
+    ----------
+    hub_file :
+        A file-like object returned by Streamlit's
+        `st.file_uploader`. Supported file extensions are:
+        `.parquet` and `.csv`. If `hub_file` is `None`,
+        an empty DataFrame is returned.
+
+    Returns
+    -------
+    pl.DataFrame
+        A DataFrame containing the loaded data as a
+        hubverse formatted table, or an empty DataFrame if
+        no file was uploaded.
+
+    Raises
+    ------
+    ValueError
+        If the uploaded file has an unsupported extension
+        (not `.parquet` or `.csv`).
+    """
+    if hub_file is None:
+        return pl.DataFrame()
+    else:
         ext = pathlib.Path(hub_file.name).suffix.lower()
         try:
             if ext == ".parquet":
@@ -127,7 +154,6 @@ def load_hubverse_table(hub_file):
             f"Approximately {size_mb:.2f} MB in memory"
         )
         return hub_table
-    return pl.DataFrame()
 
 
 def main() -> None:
