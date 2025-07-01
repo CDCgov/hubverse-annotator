@@ -134,15 +134,12 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     if hub_file is None:
         return pl.DataFrame()
     ext = pathlib.Path(hub_file.name).suffix.lower()
-    try:
-        if ext == ".parquet":
-            hub_table = pl.read_parquet(hub_file)
-        elif ext == ".csv":
-            hub_table = pl.read_csv(hub_file)
-        else:
-            raise ValueError(f"Unsupported file type: {ext}")
-    except ValueError as e:
-        st.error(str(e))
+    if ext == ".parquet":
+        hub_table = pl.read_parquet(hub_file)
+    elif ext == ".csv":
+        hub_table = pl.read_csv(hub_file)
+    else:
+        st.error(f"Unsupported file type: {ext}")
         st.stop()
     # st.success(f"Loaded {hub_file.name} ({ext}).")
     logger.info(f"Uploaded file:\n{hub_file.name}")
