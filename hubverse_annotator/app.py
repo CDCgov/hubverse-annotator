@@ -105,27 +105,29 @@ def create_quantile_forecast_chart(
 
 
 def load_hubverse_table(hub_file):
-    ext = pathlib.Path(hub_file.name).suffix.lower()
-    try:
-        if ext == ".parquet":
-            hub_table = pl.read_parquet(hub_file)
-        elif ext == ".csv":
-            hub_table = pl.read_csv(hub_file)
-        else:
-            raise ValueError(f"Unsupported file type: {ext}")
-    except ValueError as e:
-        st.error(str(e))
-        st.stop()
-    # st.success(f"Loaded {hub_file.name} ({ext}).")
-    logger.info(f"Uploaded file:\n{hub_file.name}")
-    n_rows, n_cols = hub_table.shape
-    size_bytes = hub_table.estimated_size()
-    size_mb = size_bytes / 1e6
-    logger.info(
-        f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
-        f"Approximately {size_mb:.2f} MB in memory"
-    )
-    return hub_table
+    if hub_file is not None:
+        ext = pathlib.Path(hub_file.name).suffix.lower()
+        try:
+            if ext == ".parquet":
+                hub_table = pl.read_parquet(hub_file)
+            elif ext == ".csv":
+                hub_table = pl.read_csv(hub_file)
+            else:
+                raise ValueError(f"Unsupported file type: {ext}")
+        except ValueError as e:
+            st.error(str(e))
+            st.stop()
+        # st.success(f"Loaded {hub_file.name} ({ext}).")
+        logger.info(f"Uploaded file:\n{hub_file.name}")
+        n_rows, n_cols = hub_table.shape
+        size_bytes = hub_table.estimated_size()
+        size_mb = size_bytes / 1e6
+        logger.info(
+            f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
+            f"Approximately {size_mb:.2f} MB in memory"
+        )
+        return hub_table
+    return pl.DataFrame()
 
 
 def main() -> None:
@@ -133,26 +135,22 @@ def main() -> None:
     start_time = time.time()
     # begin streamlit application
     st.title("Forecast Annotator")
-    # initialize empty dataframes for observed and forecast data
-    eh_table = pl.DataFrame()
-    smhub_table = pl.DataFrame()
     # super-mega hubverse table and target data uploaded
     e_and_h_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
     )
-    if e_and_h_file is not None:
-        # update eh table with actual data
-        eh_table = load_hubverse_table(e_and_h_file)
-        # filter to latest as_of date, if as_of col present
-        if "as_of" in eh_table.columns:
-            latest = eh_table.select(pl.col("as_of").max()).item()
-            eh_table = eh_table.filter(pl.col("as_of") == latest)
+    # update eh table with actual data
+    eh_table = load_hubverse_table(e_and_h_file)
+    # filter to latest as_of date, if as_of col present
+    if "as_of" in eh_table.columns:
+        latest = eh_table.select(pl.col("as_of").max()).item()
+        eh_table = eh_table.filter(pl.col("as_of") == latest)
     smht_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
     # load the hubverse data
-    if smht_file is not None:
-        smhub_table = load_hubverse_table(smht_file)
+    smhub_table = load_hubverse_table(smht_file)
+    if not smhub_table.is_empty():
         # locations in the hubverse table
         smhub_loc_abbrs = smhub_table["location"].unique().to_list()
         loc_lookup = forecasttools.location_lookup(
@@ -214,15 +212,17 @@ def main() -> None:
                 pl.col("model").is_in(selected_models),
                 pl.col("target") == selected_target,
             )
+            eh_to_plot = eh_table.filter(
+                pl.col("location") == two_num_loc_abbr,
+                pl.col("target") == selected_target,
+            )
         else:
             smhubt_to_plot = pl.DataFrame()
+            eh_to_plot = pl.DataFrame()
         st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
-        eh_to_plot = eh_table.filter(
-            pl.col("location") == two_num_loc_abbr,
-            pl.col("target") == selected_target,
-        )
+
         observed_layers = target_data_chart(eh_to_plot)
         forecast_and_observed_layers = forecast_layers + observed_layers
         chart = (
