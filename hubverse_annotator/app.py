@@ -207,22 +207,21 @@ def main() -> None:
             options=targets_available,
             key="target_selection",
         )
+        smhubt_to_plot = pl.DataFrame()
+        eh_to_plot = pl.DataFrame()
         if (selected_models) and (selected_target is not None):
             smhubt_to_plot = smhubt_by_loc.filter(
                 pl.col("model").is_in(selected_models),
                 pl.col("target") == selected_target,
             )
-            eh_to_plot = eh_table.filter(
-                pl.col("location") == two_num_loc_abbr,
-                pl.col("target") == selected_target,
-            )
-        else:
-            smhubt_to_plot = pl.DataFrame()
-            eh_to_plot = pl.DataFrame()
+            if not eh_table.is_empty():
+                eh_to_plot = eh_table.filter(
+                    pl.col("location") == two_num_loc_abbr,
+                    pl.col("target") == selected_target,
+                )
         st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
         st.markdown(f"## Reference Date: {selected_ref_date}")
         forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
-
         observed_layers = target_data_chart(eh_to_plot)
         forecast_and_observed_layers = forecast_layers + observed_layers
         chart = (
