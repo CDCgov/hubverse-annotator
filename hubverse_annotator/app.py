@@ -105,27 +105,29 @@ def create_quantile_forecast_chart(
 
 
 def load_hubverse_table(hub_file):
-    ext = pathlib.Path(hub_file.name).suffix.lower()
-    try:
-        if ext == ".parquet":
-            hub_table = pl.read_parquet(hub_file)
-        elif ext == ".csv":
-            hub_table = pl.read_csv(hub_file)
-        else:
-            raise ValueError(f"Unsupported file type: {ext}")
-    except ValueError as e:
-        st.error(str(e))
-        st.stop()
-    # st.success(f"Loaded {hub_file.name} ({ext}).")
-    logger.info(f"Uploaded file:\n{hub_file.name}")
-    n_rows, n_cols = hub_table.shape
-    size_bytes = hub_table.estimated_size()
-    size_mb = size_bytes / 1e6
-    logger.info(
-        f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
-        f"Approximately {size_mb:.2f} MB in memory"
-    )
-    return hub_table
+    if hub_file is not None:
+        ext = pathlib.Path(hub_file.name).suffix.lower()
+        try:
+            if ext == ".parquet":
+                hub_table = pl.read_parquet(hub_file)
+            elif ext == ".csv":
+                hub_table = pl.read_csv(hub_file)
+            else:
+                raise ValueError(f"Unsupported file type: {ext}")
+        except ValueError as e:
+            st.error(str(e))
+            st.stop()
+        # st.success(f"Loaded {hub_file.name} ({ext}).")
+        logger.info(f"Uploaded file:\n{hub_file.name}")
+        n_rows, n_cols = hub_table.shape
+        size_bytes = hub_table.estimated_size()
+        size_mb = size_bytes / 1e6
+        logger.info(
+            f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
+            f"Approximately {size_mb:.2f} MB in memory"
+        )
+        return hub_table
+    return pl.DataFrame()
 
 
 def main() -> None:
@@ -137,21 +139,18 @@ def main() -> None:
     e_and_h_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
     )
+    # update eh table with actual data
+    eh_table = load_hubverse_table(e_and_h_file)
+    # filter to latest as_of date, if as_of col present
+    if "as_of" in eh_table.columns:
+        latest = eh_table.select(pl.col("as_of").max()).item()
+        eh_table = eh_table.filter(pl.col("as_of") == latest)
     smht_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
-    # load the target data
-    eh_table = None
-    if e_and_h_file is not None:
-        eh_table = load_hubverse_table(e_and_h_file)
-        # filter to latest as_of date, if as_of col present
-        if "as_of" in eh_table.columns:
-            latest = eh_table.select(pl.col("as_of").max()).item()
-            eh_table = eh_table.filter(pl.col("as_of") == latest)
     # load the hubverse data
-    smhub_table = None
-    if smht_file is not None:
-        smhub_table = load_hubverse_table(smht_file)
+    smhub_table = load_hubverse_table(smht_file)
+    if not smhub_table.is_empty():
         # locations in the hubverse table
         smhub_loc_abbrs = smhub_table["location"].unique().to_list()
         loc_lookup = forecasttools.location_lookup(
@@ -188,62 +187,49 @@ def main() -> None:
             pl.col("location") == two_letter_loc_abbr,
         )
         # models and targets available
-        models_available = smhubt_by_loc["model"].unique().to_list()
-        if "model_selection" not in st.session_state:
-            st.session_state.model_selection = models_available.copy()
+        models_available = smhubt_by_loc["model"].unique().sort().to_list()
         selected_models = st.multiselect(
             "Model(s)",
             options=models_available,
-            default=st.session_state.model_selection,
+            default=models_available,
             key="model_selection",
         )
-        targets_available = smhubt_by_loc["target"].unique().to_list()
-        if "target_selection" not in st.session_state:
-            st.session_state.target_selection = targets_available[0]
+        targets_available = (
+            smhubt_by_loc.filter(pl.col("model").is_in(selected_models))[
+                "target"
+            ]
+            .unique()
+            .sort()
+            .to_list()
+        )
         selected_target = st.selectbox(
             "Target(s)",
             options=targets_available,
             key="target_selection",
         )
-        # filter hubverse table by selected models and target
-        smhubt_to_plot = smhubt_by_loc.filter(
-            pl.col("model").is_in(selected_models),
-            pl.col("target") == selected_target,
-        )
-
-        st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
-        st.markdown(f"## Reference Date: {selected_ref_date}")
-        # plotting of the selected model, target, location, and reference date
-        if smhubt_to_plot.is_empty():
-            st.warning("No forecasts available for current selection.")
-        else:
-            forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
-            if eh_table is not None:
-                eh_to_plot = eh_table.with_columns(pl.col("date")).filter(
+        smhubt_to_plot = pl.DataFrame()
+        eh_to_plot = pl.DataFrame()
+        if (selected_models) and (selected_target is not None):
+            smhubt_to_plot = smhubt_by_loc.filter(
+                pl.col("model").is_in(selected_models),
+                pl.col("target") == selected_target,
+            )
+            if not eh_table.is_empty():
+                eh_to_plot = eh_table.filter(
                     pl.col("location") == two_num_loc_abbr,
                     pl.col("target") == selected_target,
                 )
-                if not eh_to_plot.is_empty():
-                    observed_layers = target_data_chart(eh_to_plot)
-                    forecast_and_observed_layers = (
-                        forecast_layers + observed_layers
-                    )
-                    chart = (
-                        forecast_and_observed_layers.facet(
-                            row=alt.Row("model:N", title="Model"), columns=1
-                        ).resolve_scale(x="shared")
-                    ).interactive()
-                    st.altair_chart(chart, use_container_width=True)
-                else:
-                    st.info("No E & H data matches the selection.")
-            else:
-                chart = (
-                    forecast_layers.facet(
-                        row=alt.Row("model:N", title="Model"), columns=1
-                    ).resolve_scale("independent")
-                ).interactive()
-                st.altair_chart(forecast_layers, use_container_width=True)
-
+        st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
+        st.markdown(f"## Reference Date: {selected_ref_date}")
+        forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
+        observed_layers = target_data_chart(eh_to_plot)
+        forecast_and_observed_layers = forecast_layers + observed_layers
+        chart = (
+            forecast_and_observed_layers.facet(
+                row=alt.Row("model:N", title="Model"), columns=1
+            )
+        ).interactive()
+        st.altair_chart(chart, use_container_width=True)
         # preference and comments saving
         output_dir = pathlib.Path("../output")
         output_dir.mkdir(parents=True, exist_ok=True)
