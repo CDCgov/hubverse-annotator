@@ -104,14 +104,14 @@ def create_quantile_forecast_chart(
     return alt.layer(band_95, band_80, band_50, median)
 
 
-def load_hubverse_table(hub_file):
+def load_hubverse_table(hub_file: st.UploadedFile | None):
     """
     Load a hubverse formatted table into Polars from a
     data file uploaded to Streamlit.
 
     Parameters
     ----------
-    hub_file :
+    hub_file : st.UploadedFile | None
         A file-like object returned by Streamlit's
         `st.file_uploader`. Supported file extensions are:
         `.parquet` and `.csv`. If `hub_file` is `None`,
@@ -132,28 +132,27 @@ def load_hubverse_table(hub_file):
     """
     if hub_file is None:
         return pl.DataFrame()
-    else:
-        ext = pathlib.Path(hub_file.name).suffix.lower()
-        try:
-            if ext == ".parquet":
-                hub_table = pl.read_parquet(hub_file)
-            elif ext == ".csv":
-                hub_table = pl.read_csv(hub_file)
-            else:
-                raise ValueError(f"Unsupported file type: {ext}")
-        except ValueError as e:
-            st.error(str(e))
-            st.stop()
-        # st.success(f"Loaded {hub_file.name} ({ext}).")
-        logger.info(f"Uploaded file:\n{hub_file.name}")
-        n_rows, n_cols = hub_table.shape
-        size_bytes = hub_table.estimated_size()
-        size_mb = size_bytes / 1e6
-        logger.info(
-            f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
-            f"Approximately {size_mb:.2f} MB in memory"
-        )
-        return hub_table
+    ext = pathlib.Path(hub_file.name).suffix.lower()
+    try:
+        if ext == ".parquet":
+            hub_table = pl.read_parquet(hub_file)
+        elif ext == ".csv":
+            hub_table = pl.read_csv(hub_file)
+        else:
+            raise ValueError(f"Unsupported file type: {ext}")
+    except ValueError as e:
+        st.error(str(e))
+        st.stop()
+    # st.success(f"Loaded {hub_file.name} ({ext}).")
+    logger.info(f"Uploaded file:\n{hub_file.name}")
+    n_rows, n_cols = hub_table.shape
+    size_bytes = hub_table.estimated_size()
+    size_mb = size_bytes / 1e6
+    logger.info(
+        f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
+        f"Approximately {size_mb:.2f} MB in memory"
+    )
+    return hub_table
 
 
 def main() -> None:
