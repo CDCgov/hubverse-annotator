@@ -141,7 +141,6 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     else:
         st.error(f"Unsupported file type: {ext}")
         st.stop()
-    # st.success(f"Loaded {hub_file.name} ({ext}).")
     logger.info(f"Uploaded file:\n{hub_file.name}")
     n_rows, n_cols = hub_table.shape
     size_bytes = hub_table.estimated_size()
