@@ -52,6 +52,41 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     return obs_layer
 
 
+def render_chart_section(
+    smhubt_to_plot: pl.DataFrame,
+    eh_to_plot: pl.DataFrame,
+    selected_ref_date,
+    two_letter_loc_abbr: str,
+) -> None:
+    """
+    Build and display the combined forecast and observed chart.
+    """
+    st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
+    st.markdown(f"## Reference Date: {selected_ref_date}")
+
+    forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
+    observed_layers = (
+        target_data_chart(eh_to_plot)
+        if not eh_to_plot.is_empty()
+        else alt.Chart().interactive()
+    )
+
+    resolve_x = (
+        "independent"
+        if smhubt_to_plot.is_empty() or eh_to_plot.is_empty()
+        else "shared"
+    )
+
+    chart = (
+        (forecast_layers + observed_layers)
+        .facet(row=alt.Row("model:N", title="Model"), columns=1)
+        .resolve_scale(x=resolve_x, y="independent")
+        .properties(height=200)
+        .interactive()
+    )
+    st.altair_chart(chart, use_container_width=True)
+
+
 def create_quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
     value_col: str = "value",
