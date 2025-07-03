@@ -220,6 +220,32 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     return hub_table
 
 
+def filter_for_plotting(
+    smhubt_by_loc: pl.DataFrame,
+    eh_table: pl.DataFrame,
+    selected_models: list[str],
+    selected_target: str,
+    two_num_loc_abbr: str,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """
+    Filter forecast and EH tables for the selected models
+    and target.
+    """
+    smhubt_to_plot = smhubt_by_loc.filter(
+        pl.col("model").is_in(selected_models),
+        pl.col("target") == selected_target,
+    )
+    if not eh_table.is_empty():
+        eh_to_plot = eh_table.filter(
+            pl.col("location") == two_num_loc_abbr,
+            pl.col("target") == selected_target,
+        )
+    else:
+        eh_to_plot = pl.DataFrame()
+
+    return smhubt_to_plot, eh_to_plot
+
+
 def main() -> None:
     # record start time
     start_time = time.time()
