@@ -52,6 +52,51 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     return obs_layer
 
 
+def render_reference_and_location_controls(
+    smhub_table: pl.DataFrame,
+) -> tuple[pl.Series, str, str]:
+    """
+    Render the reference date and location select-boxes.
+
+    Returns
+    -------
+    tuple
+        Returns a tuple of the selected reference date,
+        the two letter location abbreviation, and the
+        numerical location reference.
+    """
+    locs = smhub_table["location"].unique().to_list()
+    loc_lookup = forecasttools.location_lookup(
+        location_vector=locs, location_format="abbr"
+    )
+    long_names = loc_lookup["long_name"].to_list()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        ref_dates = smhub_table["reference_date"].unique().sort().to_list()
+        selected_ref_date = st.selectbox(
+            "Reference Date",
+            options=ref_dates,
+            format_func=lambda x: x.strftime("%Y-%m-%d"),
+            key="ref_date_selection",
+        )
+    with col2:
+        location = st.selectbox("Location", options=long_names)
+
+    two_letter = (
+        loc_lookup.filter(pl.col("long_name") == location)
+        .get_column("short_name")
+        .item()
+    )
+    two_num = (
+        loc_lookup.filter(pl.col("long_name") == location)
+        .get_column("location_code")
+        .item()
+    )
+
+    return selected_ref_date, two_letter, two_num
+
+
 def render_chart_section(
     smhubt_to_plot: pl.DataFrame,
     eh_to_plot: pl.DataFrame,
