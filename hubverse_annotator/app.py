@@ -52,6 +52,74 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     return obs_layer
 
 
+def render_reference_and_location_controls(
+    smhub_table: pl.DataFrame,
+) -> tuple[pl.Series, str, str]:
+    """
+    Render the reference date and location select-boxes.
+
+    Returns
+    -------
+    tuple
+        Returns a tuple of the selected reference date,
+        the two letter location abbreviation, and the
+        numerical location reference.
+    """
+    locs = smhub_table["location"].unique().to_list()
+    loc_lookup = forecasttools.location_lookup(
+        location_vector=locs, location_format="abbr"
+    )
+    long_names = loc_lookup["long_name"].to_list()
+
+    col1, col2 = st.columns(2)
+    with col1:
+        ref_dates = smhub_table["reference_date"].unique().sort().to_list()
+        selected_ref_date = st.selectbox(
+            "Reference Date",
+            options=ref_dates,
+            format_func=lambda x: x.strftime("%Y-%m-%d"),
+            key="ref_date_selection",
+        )
+    with col2:
+        location = st.selectbox("Location", options=long_names)
+
+    two_letter = (
+        loc_lookup.filter(pl.col("long_name") == location)
+        .get_column("short_name")
+        .item()
+    )
+    two_num = (
+        loc_lookup.filter(pl.col("long_name") == location)
+        .get_column("location_code")
+        .item()
+    )
+
+    return selected_ref_date, two_letter, two_num
+
+
+def render_chart_section(
+    smhubt_to_plot: pl.DataFrame,
+    eh_to_plot: pl.DataFrame,
+    selected_ref_date,
+    two_letter_loc_abbr: str,
+) -> None:
+    """
+    Build and display the combined forecast and observed chart.
+    """
+    st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
+    st.markdown(f"## Reference Date: {selected_ref_date}")
+
+    forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
+    observed_layers = target_data_chart(eh_to_plot)
+    forecast_and_observed_layers = forecast_layers + observed_layers
+    chart = (
+        forecast_and_observed_layers.facet(
+            row=alt.Row("model:N", title="Model"), columns=1
+        )
+    ).interactive()
+    st.altair_chart(chart, use_container_width=True)
+
+
 def create_quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
     value_col: str = "value",
@@ -150,6 +218,32 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         f"Approximately {size_mb:.2f} MB in memory"
     )
     return hub_table
+
+
+def filter_for_plotting(
+    smhubt_by_loc: pl.DataFrame,
+    eh_table: pl.DataFrame,
+    selected_models: list[str],
+    selected_target: str,
+    two_num_loc_abbr: str,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """
+    Filter forecast and EH tables for the selected models
+    and target.
+    """
+    smhubt_to_plot = smhubt_by_loc.filter(
+        pl.col("model").is_in(selected_models),
+        pl.col("target") == selected_target,
+    )
+    if not eh_table.is_empty():
+        eh_to_plot = eh_table.filter(
+            pl.col("location") == two_num_loc_abbr,
+            pl.col("target") == selected_target,
+        )
+    else:
+        eh_to_plot = pl.DataFrame()
+
+    return smhubt_to_plot, eh_to_plot
 
 
 def main() -> None:
