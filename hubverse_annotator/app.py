@@ -110,25 +110,13 @@ def render_chart_section(
     st.markdown(f"## Reference Date: {selected_ref_date}")
 
     forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
-    observed_layers = (
-        target_data_chart(eh_to_plot)
-        if not eh_to_plot.is_empty()
-        else alt.Chart().interactive()
-    )
-
-    resolve_x = (
-        "independent"
-        if smhubt_to_plot.is_empty() or eh_to_plot.is_empty()
-        else "shared"
-    )
-
+    observed_layers = target_data_chart(eh_to_plot)
+    forecast_and_observed_layers = forecast_layers + observed_layers
     chart = (
-        (forecast_layers + observed_layers)
-        .facet(row=alt.Row("model:N", title="Model"), columns=1)
-        .resolve_scale(x=resolve_x, y="independent")
-        .properties(height=200)
-        .interactive()
-    )
+        forecast_and_observed_layers.facet(
+            row=alt.Row("model:N", title="Model"), columns=1
+        )
+    ).interactive()
     st.altair_chart(chart, use_container_width=True)
 
 
