@@ -355,7 +355,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
             lookup.select(["location_code", "short_name"]).iter_rows()
         )
         hub_table = hub_table.with_columns(
-            pl.col("location").map_dict(code_to_abbr)
+            pl.col("location").replace(code_to_abbr)
         )
     return hub_table
 
