@@ -52,6 +52,32 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     return obs_layer
 
 
+def render_model_and_target_controls(
+    smhubt_by_loc: pl.DataFrame,
+) -> tuple[list[str], str]:
+    """
+    Render model multiselect and target selectbox,
+    returning selected_models and selected_target.
+    """
+    models = smhubt_by_loc["model"].unique().sort().to_list()
+    selected_models = st.multiselect(
+        "Model(s)", options=models, default=models, key="model_selection"
+    )
+
+    targets = (
+        smhubt_by_loc.filter(pl.col("model").is_in(selected_models))
+        .get_column("target")
+        .unique()
+        .sort()
+        .to_list()
+    )
+    selected_target = st.selectbox(
+        "Target(s)", options=targets, key="target_selection"
+    )
+
+    return selected_models, selected_target
+
+
 def render_reference_and_location_controls(
     smhub_table: pl.DataFrame,
 ) -> tuple[pl.Series, str, str]:
