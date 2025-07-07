@@ -58,7 +58,8 @@ def render_annotation_section(
     selected_ref_date: str,
 ) -> None:
     """
-    Render status/comments UI per model and save to JSON.
+    Streamlit widget for status/comments UI per model and
+    saving to JSON.
     """
     output_dir = pathlib.Path("../output")
     output_dir.mkdir(parents=True, exist_ok=True)
