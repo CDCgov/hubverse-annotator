@@ -60,6 +60,15 @@ def render_annotation_section(
     """
     Streamlit widget for status/comments UI per model and
     saving to JSON.
+
+    Parameters
+    ----------
+    selected_models : list[str]
+        Selected models to annotate.
+    two_letter_loc_abbr : str
+        The selection location, i.e. US jurisdiction.
+    selected_ref_date : str
+        The selected reference date.
     """
     output_dir = pathlib.Path("../output")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -196,8 +205,8 @@ def render_ref_and_loc_controls(
 def render_chart_section(
     smhubt_to_plot: pl.DataFrame,
     eh_to_plot: pl.DataFrame,
-    selected_ref_date: str,
     two_letter_loc_abbr: str,
+    selected_ref_date: str,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -211,10 +220,10 @@ def render_chart_section(
     eh_to_plot : pl.DataFrame
         The hubverse observations time-series, filtered by
         location, target, and model.
-    selected_ref_date : str
-        The selected reference date.
     two_letter_loc_abbr : str
         The selection location, i.e. US jurisdiction.
+    selected_ref_date : str
+        The selected reference date.
     """
 
     st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
@@ -240,6 +249,18 @@ def create_quantile_forecast_chart(
     display quantile forecasts faceted by model. The
     output_type of the hubverse table must therefore be
     'quantile'.
+
+    Parameters
+    ----------
+    hubverse_table
+        The "super-mega" hubverse forecast table.
+    value_col
+        The name of the target column for plotting.
+
+    Returns
+    -------
+    alt.Chart
+        An altair chart object with plotted forecasts.
     """
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
@@ -340,11 +361,11 @@ def load_data() -> tuple[pl.DataFrame, pl.DataFrame]:
 
     Returns
     -------
-    eh_table : pl.DataFrame
-        Loaded EH table (filtered to latest as_of) or
-        an empty DataFrame.
-    smhub_table : pl.DataFrame
-        Loaded forecast table or an empty DataFrame.
+    tuple
+        A tuple of eh_table (pl.DataFrame), i.e. the loaded
+        EH table (filtered to latest as_of) or an empty
+        DataFrame and smhub_table (pl.DataFrame), i.e. the
+        loaded forecast table or an empty DataFrame.
     """
     e_and_h_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
@@ -372,6 +393,29 @@ def filter_for_plotting(
     """
     Filter forecast and EH tables for the selected models
     and target.
+
+    Parameters
+    ----------
+    smhubt_by_loc : pl.DataFrame
+        The super-mega hubverse table of forecasted ED
+        visits and or hospital admissions, filtered by
+        location.
+    eh_table : pl.DataFrame
+        The loaded EH table (filtered to latest as_of).
+    selected_models : list[str]
+        Selected models to annotate.
+    selected_target
+        The target for filtering in the forecast and or
+        observed hubverse tables.
+    two_num_loc_abbr
+        The two number US jurisdiction code.
+
+    Returns
+    -------
+    tuple
+        A tuple of eh_table (pl.DataFrame) and smhub_table
+        (pl.DataFrame) filtered by model, target, and
+        location, to be used for plotting.
     """
     smhubt_to_plot = smhubt_by_loc.filter(
         pl.col("model").is_in(selected_models),
@@ -423,7 +467,7 @@ def main() -> None:
     )
 
     render_chart_section(
-        smhubt_to_plot, eh_to_plot, selected_ref_date, two_letter_loc_abbr
+        smhubt_to_plot, eh_to_plot, two_letter_loc_abbr, selected_ref_date
     )
 
     render_annotation_section(
