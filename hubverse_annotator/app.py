@@ -114,7 +114,7 @@ def render_annotation_section(
     render_export_button()
 
 
-def render_model_and_target_controls(
+def model_and_target_selection_ui(
     single_loc_hub_table: pl.DataFrame,
 ) -> tuple[list[str], str]:
     """
@@ -456,7 +456,7 @@ def main() -> None:
         pl.col("location") == two_letter_loc_abbr
     )
 
-    selected_models, selected_target = render_model_and_target_controls(
+    selected_models, selected_target = model_and_target_selection_ui(
         single_loc_hub_table
     )
 
