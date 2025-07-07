@@ -205,8 +205,8 @@ def render_ref_and_loc_controls(
 
 
 def render_chart_section(
-    smhubt_to_plot: pl.DataFrame,
-    eh_to_plot: pl.DataFrame,
+    forecasts_to_plot: pl.DataFrame,
+    data_to_plot: pl.DataFrame,
     two_letter_loc_abbr: str,
     selected_ref_date: str,
 ) -> None:
@@ -216,10 +216,10 @@ def render_chart_section(
 
     Parameters
     ----------
-    smhubt_to_plot : pl.DataFrame
+    forecasts_to_plot : pl.DataFrame
         The super-mega hubverse forecast table, filtered
         by location, target, and model.
-    eh_to_plot : pl.DataFrame
+    data_to_plot : pl.DataFrame
         The hubverse observations time-series, filtered by
         location, target, and model.
     two_letter_loc_abbr : str
@@ -231,8 +231,8 @@ def render_chart_section(
     st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
     st.markdown(f"## Reference Date: {selected_ref_date}")
 
-    forecast_layers = create_quantile_forecast_chart(smhubt_to_plot)
-    observed_layers = target_data_chart(eh_to_plot)
+    forecast_layers = create_quantile_forecast_chart(forecasts_to_plot)
+    observed_layers = target_data_chart(data_to_plot)
     forecast_and_observed_layers = forecast_layers + observed_layers
     chart = (
         forecast_and_observed_layers.facet(
@@ -419,19 +419,19 @@ def filter_for_plotting(
         (pl.DataFrame) filtered by model, target, and
         location, to be used for plotting.
     """
-    smhubt_to_plot = single_loc_hub_table.filter(
+    forecasts_to_plot = single_loc_hub_table.filter(
         pl.col("model").is_in(selected_models),
         pl.col("target") == selected_target,
     )
     if not eh_table.is_empty():
-        eh_to_plot = eh_table.filter(
+        data_to_plot = eh_table.filter(
             pl.col("location") == two_num_loc_abbr,
             pl.col("target") == selected_target,
         )
     else:
-        eh_to_plot = pl.DataFrame()
+        data_to_plot = pl.DataFrame()
 
-    return smhubt_to_plot, eh_to_plot
+    return forecasts_to_plot, data_to_plot
 
 
 def main() -> None:
@@ -460,7 +460,7 @@ def main() -> None:
         single_loc_hub_table
     )
 
-    smhubt_to_plot, eh_to_plot = filter_for_plotting(
+    forecasts_to_plot, data_to_plot = filter_for_plotting(
         single_loc_hub_table,
         eh_table,
         selected_models,
@@ -469,7 +469,7 @@ def main() -> None:
     )
 
     render_chart_section(
-        smhubt_to_plot, eh_to_plot, two_letter_loc_abbr, selected_ref_date
+        forecasts_to_plot, data_to_plot, two_letter_loc_abbr, selected_ref_date
     )
 
     render_annotation_section(
