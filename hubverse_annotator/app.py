@@ -52,6 +52,16 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     return obs_layer
 
 
+def render_export_button() -> None:
+    """
+    Streamlit widget for exporting annotated forecasts.
+    """
+    if st.button("Export forecasts"):
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            st.success("Need export")
+
+
 def render_annotation_section(
     selected_models: list[str],
     two_letter_loc_abbr: str,
@@ -101,15 +111,7 @@ def render_annotation_section(
     with annotations_file.open("w") as f:
         json.dump(annotations, f, indent=2)
 
-
-def render_export_button() -> None:
-    """
-    Streamlit widget for exporting annotated forecasts.
-    """
-    if st.button("Export forecasts"):
-        col1, col2, col3 = st.columns([1, 3, 1])
-        with col2:
-            st.success("Need export")
+    render_export_button()
 
 
 def render_model_and_target_controls(
@@ -473,8 +475,6 @@ def main() -> None:
     render_annotation_section(
         selected_models, two_letter_loc_abbr, selected_ref_date
     )
-
-    render_export_button()
 
     duration = time.time() - start_time
     logger.info(f"Session lasted {duration:.1f}s")
