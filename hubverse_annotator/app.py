@@ -52,14 +52,14 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     return obs_layer
 
 
-def render_export_button() -> None:
+def export_button() -> None:
     """
     Streamlit widget for exporting annotated forecasts.
     """
     if st.button("Export forecasts"):
         col1, col2, col3 = st.columns([1, 3, 1])
         with col2:
-            st.success("Need export")
+            st.success("Export functionality not yet implemented.")
 
 
 def render_annotation_section(
@@ -111,7 +111,7 @@ def render_annotation_section(
     with annotations_file.open("w") as f:
         json.dump(annotations, f, indent=2)
 
-    render_export_button()
+    export_button()
 
 
 def model_and_target_selection_ui(
@@ -354,7 +354,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     return hub_table
 
 
-def load_data() -> tuple[pl.DataFrame, pl.DataFrame]:
+def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     """
     Streamlit widget for the upload of the hubverse
     formatted influenza and COVID-19 ED visits and hospital
@@ -442,11 +442,11 @@ def main() -> None:
     st.title("Forecast Annotator")
 
     # super-mega hubverse forecast table required
-    eh_table, smhub_table = load_data()
+    eh_table, smhub_table = load_data_ui()
 
     if smhub_table.is_empty():
         st.info("Please upload Hubverse Forecasts to begin.")
-        return
+        return None
 
     selected_ref_date, two_letter_loc_abbr, two_num_loc_abbr = (
         render_ref_and_loc_controls(smhub_table)
