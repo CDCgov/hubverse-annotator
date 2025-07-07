@@ -152,9 +152,9 @@ def model_and_target_selection_ui(
     return selected_models, selected_target
 
 
-def render_ref_and_loc_controls(
+def ref_and_loc_ui(
     smhub_table: pl.DataFrame,
-) -> tuple[str, str, str]:
+) -> tuple[str, str]:
     """
     Streamlit widget for the reference data and location
     selection.
@@ -168,9 +168,8 @@ def render_ref_and_loc_controls(
     Returns
     -------
     tuple
-        Returns a tuple of the selected reference date,
-        the two letter location abbreviation, and the
-        numerical location reference.
+        Returns a tuple of the selected reference date and
+        the two letter location abbreviation.
     """
     locs = smhub_table["location"].unique().to_list()
     loc_lookup = forecasttools.location_lookup(
@@ -195,16 +194,11 @@ def render_ref_and_loc_controls(
         .get_column("short_name")
         .item()
     )
-    two_num = (
-        loc_lookup.filter(pl.col("long_name") == location)
-        .get_column("location_code")
-        .item()
-    )
 
-    return selected_ref_date, two_letter, two_num
+    return selected_ref_date, two_letter
 
 
-def render_chart_section(
+def plotting_ui(
     forecasts_to_plot: pl.DataFrame,
     data_to_plot: pl.DataFrame,
     two_letter_loc_abbr: str,
@@ -351,6 +345,18 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         f"Hubverse Shape: {n_rows} rows x {n_cols} columns\n"
         f"Approximately {size_mb:.2f} MB in memory"
     )
+    # ensure hub table loc column is two letter abbrs
+    if "location" in hub_table.columns:
+        codes = hub_table["location"].unique().to_list()
+        lookup = forecasttools.location_lookup(
+            location_vector=codes, location_format="abbr"
+        )
+        code_to_abbr = dict(
+            lookup.select(["location_code", "short_name"]).iter_rows()
+        )
+        hub_table = hub_table.with_columns(
+            pl.col("location").map_dict(code_to_abbr)
+        )
     return hub_table
 
 
@@ -390,7 +396,7 @@ def filter_for_plotting(
     eh_table: pl.DataFrame,
     selected_models: list[str],
     selected_target: str,
-    two_num_loc_abbr: str,
+    two_letter_loc_abbr: str,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """
     Filter forecast and EH tables for the selected models
@@ -409,8 +415,8 @@ def filter_for_plotting(
     selected_target
         The target for filtering in the forecast and or
         observed hubverse tables.
-    two_num_loc_abbr
-        The two number US jurisdiction code.
+    two_letter_loc_abbr
+        The abbreviated US jurisdiction code.
 
     Returns
     -------
@@ -425,7 +431,7 @@ def filter_for_plotting(
     )
     if not eh_table.is_empty():
         data_to_plot = eh_table.filter(
-            pl.col("location") == two_num_loc_abbr,
+            pl.col("location") == two_letter_loc_abbr,
             pl.col("target") == selected_target,
         )
     else:
@@ -448,9 +454,7 @@ def main() -> None:
         st.info("Please upload Hubverse Forecasts to begin.")
         return None
 
-    selected_ref_date, two_letter_loc_abbr, two_num_loc_abbr = (
-        render_ref_and_loc_controls(smhub_table)
-    )
+    selected_ref_date, two_letter_loc_abbr = ref_and_loc_ui(smhub_table)
 
     single_loc_hub_table = smhub_table.filter(
         pl.col("location") == two_letter_loc_abbr
@@ -465,10 +469,10 @@ def main() -> None:
         eh_table,
         selected_models,
         selected_target,
-        two_num_loc_abbr,
+        two_letter_loc_abbr,
     )
 
-    render_chart_section(
+    plotting_ui(
         forecasts_to_plot, data_to_plot, two_letter_loc_abbr, selected_ref_date
     )
 
