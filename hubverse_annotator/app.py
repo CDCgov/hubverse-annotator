@@ -62,7 +62,7 @@ def export_button() -> None:
             st.success("Export functionality not yet implemented.")
 
 
-def render_annotation_section(
+def forecast_annotation_ui(
     selected_models: list[str],
     two_letter_loc_abbr: str,
     selected_ref_date: str,
@@ -472,7 +472,7 @@ def main() -> None:
         forecasts_to_plot, data_to_plot, two_letter_loc_abbr, selected_ref_date
     )
 
-    render_annotation_section(
+    forecast_annotation_ui(
         selected_models, two_letter_loc_abbr, selected_ref_date
     )
 
