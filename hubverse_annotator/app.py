@@ -115,14 +115,14 @@ def render_annotation_section(
 
 
 def render_model_and_target_controls(
-    smhubt_by_loc: pl.DataFrame,
+    single_loc_hub_table: pl.DataFrame,
 ) -> tuple[list[str], str]:
     """
     Streamlit widget for model and target selection.
 
     Parameters
     ----------
-    smhubt_by_loc : pl.DataFrame
+    single_loc_hub_table : pl.DataFrame
         The super-mega hubverse table of forecasted ED
         visits and or hospital admissions, filtered by
         location.
@@ -133,13 +133,13 @@ def render_model_and_target_controls(
         Returns a list of selected model names and the
         annotator target.
     """
-    models = smhubt_by_loc["model"].unique().sort().to_list()
+    models = single_loc_hub_table["model"].unique().sort().to_list()
     selected_models = st.multiselect(
         "Model(s)", options=models, default=models, key="model_selection"
     )
 
     targets = (
-        smhubt_by_loc.filter(pl.col("model").is_in(selected_models))
+        single_loc_hub_table.filter(pl.col("model").is_in(selected_models))
         .get_column("target")
         .unique()
         .sort()
@@ -386,7 +386,7 @@ def load_data() -> tuple[pl.DataFrame, pl.DataFrame]:
 
 
 def filter_for_plotting(
-    smhubt_by_loc: pl.DataFrame,
+    single_loc_hub_table: pl.DataFrame,
     eh_table: pl.DataFrame,
     selected_models: list[str],
     selected_target: str,
@@ -398,7 +398,7 @@ def filter_for_plotting(
 
     Parameters
     ----------
-    smhubt_by_loc : pl.DataFrame
+    single_loc_hub_table : pl.DataFrame
         The super-mega hubverse table of forecasted ED
         visits and or hospital admissions, filtered by
         location.
@@ -419,7 +419,7 @@ def filter_for_plotting(
         (pl.DataFrame) filtered by model, target, and
         location, to be used for plotting.
     """
-    smhubt_to_plot = smhubt_by_loc.filter(
+    smhubt_to_plot = single_loc_hub_table.filter(
         pl.col("model").is_in(selected_models),
         pl.col("target") == selected_target,
     )
@@ -452,16 +452,16 @@ def main() -> None:
         render_ref_and_loc_controls(smhub_table)
     )
 
-    smhubt_by_loc = smhub_table.filter(
+    single_loc_hub_table = smhub_table.filter(
         pl.col("location") == two_letter_loc_abbr
     )
 
     selected_models, selected_target = render_model_and_target_controls(
-        smhubt_by_loc
+        single_loc_hub_table
     )
 
     smhubt_to_plot, eh_to_plot = filter_for_plotting(
-        smhubt_by_loc,
+        single_loc_hub_table,
         eh_table,
         selected_models,
         selected_target,
