@@ -153,7 +153,7 @@ def model_and_target_selection_ui(
 
 
 def reference_date_and_location_ui(
-    smhub_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
 ) -> tuple[str, str]:
     """
     Streamlit widget for the reference date and location
@@ -161,7 +161,7 @@ def reference_date_and_location_ui(
 
     Parameters
     ----------
-    smhub_table : pl.DataFrame
+    forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions.
 
@@ -171,7 +171,7 @@ def reference_date_and_location_ui(
         Returns a tuple of the selected reference date and
         the two letter location abbreviation.
     """
-    locs = smhub_table["location"].unique().to_list()
+    locs = forecast_table["location"].unique().to_list()
     loc_lookup = forecasttools.location_lookup(
         location_vector=locs, location_format="abbr"
     )
@@ -179,7 +179,7 @@ def reference_date_and_location_ui(
 
     col1, col2 = st.columns(2)
     with col1:
-        ref_dates = smhub_table["reference_date"].unique().sort().to_list()
+        ref_dates = forecast_table["reference_date"].unique().sort().to_list()
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=ref_dates,
@@ -371,30 +371,35 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     Returns
     -------
     tuple
-        A tuple of eh_table (pl.DataFrame), i.e. the loaded
+        A tuple of observed_data_table (pl.DataFrame), i.e. the loaded
         observed data table (filtered to latest as_of) or
-        an empty DataFrame and smhub_table (pl.DataFrame),
+        an empty DataFrame and forecast_table (pl.DataFrame),
         i.e. the loaded forecast table or an empty DataFrame.
     """
     observed_data_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
     )
-    eh_table = load_hubverse_table(observed_data_file)
-    if not eh_table.is_empty() and "as_of" in eh_table.columns:
-        latest = eh_table.select(pl.col("as_of").max()).item()
-        eh_table = eh_table.filter(pl.col("as_of") == latest)
+    observed_data_table = load_hubverse_table(observed_data_file)
+    if (
+        not observed_data_table.is_empty()
+        and "as_of" in observed_data_table.columns
+    ):
+        latest = observed_data_table.select(pl.col("as_of").max()).item()
+        observed_data_table = observed_data_table.filter(
+            pl.col("as_of") == latest
+        )
 
     smht_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
-    smhub_table = load_hubverse_table(smht_file)
+    forecast_table = load_hubverse_table(smht_file)
 
-    return eh_table, smhub_table
+    return observed_data_table, forecast_table
 
 
 def filter_for_plotting(
     single_loc_hub_table: pl.DataFrame,
-    eh_table: pl.DataFrame,
+    observed_data_table: pl.DataFrame,
     selected_models: list[str],
     selected_target: str,
     two_letter_loc_abbr: str,
@@ -409,7 +414,7 @@ def filter_for_plotting(
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions, filtered by
         location.
-    eh_table : pl.DataFrame
+    observed_data_table : pl.DataFrame
         The loaded EH table (filtered to latest as_of).
     selected_models : list[str]
         Selected models to annotate.
@@ -422,7 +427,7 @@ def filter_for_plotting(
     Returns
     -------
     tuple
-        A tuple of eh_table (pl.DataFrame) and smhub_table
+        A tuple of observed_data_table (pl.DataFrame) and forecast_table
         (pl.DataFrame) filtered by model, target, and
         location, to be used for plotting.
     """
@@ -430,8 +435,8 @@ def filter_for_plotting(
         pl.col("model").is_in(selected_models),
         pl.col("target") == selected_target,
     )
-    if not eh_table.is_empty():
-        data_to_plot = eh_table.filter(
+    if not observed_data_table.is_empty():
+        data_to_plot = observed_data_table.filter(
             pl.col("location") == two_letter_loc_abbr,
             pl.col("target") == selected_target,
         )
@@ -449,17 +454,17 @@ def main() -> None:
     st.title("Forecast Annotator")
 
     # hubverse formatted forecast table required
-    eh_table, smhub_table = load_data_ui()
+    observed_data_table, forecast_table = load_data_ui()
 
-    if smhub_table.is_empty():
+    if forecast_table.is_empty():
         st.info("Please upload Hubverse Forecasts to begin.")
         return None
 
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
-        smhub_table
+        forecast_table
     )
 
-    single_loc_hub_table = smhub_table.filter(
+    single_loc_hub_table = forecast_table.filter(
         pl.col("location") == two_letter_loc_abbr
     )
 
@@ -469,7 +474,7 @@ def main() -> None:
 
     forecasts_to_plot, data_to_plot = filter_for_plotting(
         single_loc_hub_table,
-        eh_table,
+        observed_data_table,
         selected_models,
         selected_target,
         two_letter_loc_abbr,
