@@ -76,7 +76,7 @@ def forecast_annotation_ui(
     selected_models : list[str]
         Selected models to annotate.
     two_letter_loc_abbr : str
-        The selection location, i.e. US jurisdiction.
+        The selection location, typically a US jurisdiction.
     selected_ref_date : str
         The selected reference date.
     """
@@ -123,7 +123,7 @@ def model_and_target_selection_ui(
     Parameters
     ----------
     single_loc_hub_table : pl.DataFrame
-        The super-mega hubverse table of forecasted ED
+        The hubverse formatted table of forecasted ED
         visits and or hospital admissions, filtered by
         location.
 
@@ -131,7 +131,7 @@ def model_and_target_selection_ui(
     -------
     tuple
         Returns a list of selected model names and the
-        annotator target.
+        selected target.
     """
     models = single_loc_hub_table["model"].unique().sort().to_list()
     selected_models = st.multiselect(
@@ -152,17 +152,17 @@ def model_and_target_selection_ui(
     return selected_models, selected_target
 
 
-def ref_and_loc_ui(
+def reference_date_and_location_ui(
     smhub_table: pl.DataFrame,
 ) -> tuple[str, str]:
     """
-    Streamlit widget for the reference data and location
+    Streamlit widget for the reference date and location
     selection.
 
     Parameters
     ----------
     smhub_table : pl.DataFrame
-        The super-mega hubverse table of forecasted ED
+        The hubverse formatted table of forecasted ED
         visits and or hospital admissions.
 
     Returns
@@ -206,18 +206,19 @@ def plotting_ui(
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
-    overlain where possible.
+    overlaid where possible.
 
     Parameters
     ----------
     forecasts_to_plot : pl.DataFrame
-        The super-mega hubverse forecast table, filtered
-        by location, target, and model.
+        The hubverse formatted forecast table, filtered
+        to the requested location, target, and model.
     data_to_plot : pl.DataFrame
-        The hubverse observations time-series, filtered by
-        location, target, and model.
+        The hubverse formatted observations time-series,
+        filtered to the requested location, target, and
+        model(s).
     two_letter_loc_abbr : str
-        The selection location, i.e. US jurisdiction.
+        The selection location, typically a US jurisdiction.
     selected_ref_date : str
         The selected reference date.
     """
@@ -225,7 +226,7 @@ def plotting_ui(
     st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
     st.markdown(f"## Reference Date: {selected_ref_date}")
 
-    forecast_layers = create_quantile_forecast_chart(forecasts_to_plot)
+    forecast_layers = quantile_forecast_chart(forecasts_to_plot)
     observed_layers = target_data_chart(data_to_plot)
     forecast_and_observed_layers = forecast_layers + observed_layers
     chart = (
@@ -236,7 +237,7 @@ def plotting_ui(
     st.altair_chart(chart, use_container_width=True)
 
 
-def create_quantile_forecast_chart(
+def quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
     value_col: str = "value",
 ) -> alt.Chart:
@@ -249,7 +250,7 @@ def create_quantile_forecast_chart(
     Parameters
     ----------
     hubverse_table
-        The "super-mega" hubverse forecast table.
+        The hubverse-formatted forecast table.
     value_col
         The name of the target column for plotting.
 
@@ -365,7 +366,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     Streamlit widget for the upload of the hubverse
     formatted influenza and COVID-19 ED visits and hospital
     admissions observations time-series and hubverse
-    formatted "super-mega" forecast table.
+    formatted forecast table.
 
     Returns
     -------
@@ -405,7 +406,7 @@ def filter_for_plotting(
     Parameters
     ----------
     single_loc_hub_table : pl.DataFrame
-        The super-mega hubverse table of forecasted ED
+        The hubverse formatted table of forecasted ED
         visits and or hospital admissions, filtered by
         location.
     eh_table : pl.DataFrame
@@ -447,14 +448,16 @@ def main() -> None:
     # streamlit application begins
     st.title("Forecast Annotator")
 
-    # super-mega hubverse forecast table required
+    # hubverse formatted forecast table required
     eh_table, smhub_table = load_data_ui()
 
     if smhub_table.is_empty():
         st.info("Please upload Hubverse Forecasts to begin.")
         return None
 
-    selected_ref_date, two_letter_loc_abbr = ref_and_loc_ui(smhub_table)
+    selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
+        smhub_table
+    )
 
     single_loc_hub_table = smhub_table.filter(
         pl.col("location") == two_letter_loc_abbr
