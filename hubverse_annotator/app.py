@@ -239,7 +239,6 @@ def plotting_ui(
 
 def quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
-    value_col: str = "value",
 ) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
@@ -251,14 +250,13 @@ def quantile_forecast_chart(
     ----------
     hubverse_table
         The hubverse-formatted forecast table.
-    value_col
-        The name of the target column for plotting.
 
     Returns
     -------
     alt.Chart
         An altair chart object with plotted forecasts.
     """
+    value_col = ("value",)
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
     df_wide = (
