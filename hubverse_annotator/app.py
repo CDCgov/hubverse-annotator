@@ -256,7 +256,7 @@ def quantile_forecast_chart(
     alt.Chart
         An altair chart object with plotted forecasts.
     """
-    value_col = ("value",)
+    value_col = "value"
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
     df_wide = (
