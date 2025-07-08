@@ -234,7 +234,7 @@ def plotting_ui(
             row=alt.Row("model:N", title="Model"), columns=1
         )
     ).interactive()
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, use_container_width=True, key="plotted_forecasts")
 
 
 def quantile_forecast_chart(
