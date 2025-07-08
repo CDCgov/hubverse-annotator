@@ -372,14 +372,14 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     -------
     tuple
         A tuple of eh_table (pl.DataFrame), i.e. the loaded
-        EH table (filtered to latest as_of) or an empty
-        DataFrame and smhub_table (pl.DataFrame), i.e. the
-        loaded forecast table or an empty DataFrame.
+        observed data table (filtered to latest as_of) or
+        an empty DataFrame and smhub_table (pl.DataFrame),
+        i.e. the loaded forecast table or an empty DataFrame.
     """
-    e_and_h_file = st.file_uploader(
+    observed_data_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
     )
-    eh_table = load_hubverse_table(e_and_h_file)
+    eh_table = load_hubverse_table(observed_data_file)
     if not eh_table.is_empty() and "as_of" in eh_table.columns:
         latest = eh_table.select(pl.col("as_of").max()).item()
         eh_table = eh_table.filter(pl.col("as_of") == latest)
