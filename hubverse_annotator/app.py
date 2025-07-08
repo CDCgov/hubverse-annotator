@@ -429,17 +429,22 @@ def filter_for_plotting(
         (pl.DataFrame) filtered by model, target, and
         location, to be used for plotting.
     """
-    forecasts_to_plot = single_loc_hub_table.filter(
-        pl.col("model").is_in(selected_models),
-        pl.col("target") == selected_target,
+    forecasts_to_plot = (
+        single_loc_hub_table.filter(
+            pl.col("model").is_in(selected_models),
+            pl.col("target") == selected_target,
+        )
+        if not single_loc_hub_table.is_empty()
+        else pl.DataFrame()
     )
-    if not observed_data_table.is_empty():
-        data_to_plot = observed_data_table.filter(
+    data_to_plot = (
+        observed_data_table.filter(
             pl.col("location") == two_letter_loc_abbr,
             pl.col("target") == selected_target,
         )
-    else:
-        data_to_plot = pl.DataFrame()
+        if not observed_data_table.is_empty()
+        else pl.DataFrame()
+    )
 
     return forecasts_to_plot, data_to_plot
 
