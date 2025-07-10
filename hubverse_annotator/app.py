@@ -22,36 +22,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
-    """
-    Layers target hubverse data onto `altair` plot.
-
-    Parameters
-    ----------
-    eh_df : pl.DataFrame
-        A polars dataframe of E and H target data formatted
-        as hubverse time series.
-
-    Returns
-    -------
-    alt.Chart
-        An `altair` chart with the target hubverse data.
-    """
-    obs_layer = (
-        alt.Chart(eh_df)
-        .mark_point(filled=True, size=35, color="limegreen")
-        .encode(
-            x=alt.X("date:T"),
-            y=alt.Y("observation:Q"),
-            tooltip=[
-                alt.Tooltip("date:T"),
-                alt.Tooltip("observation:Q"),
-            ],
-        )
-    )
-    return obs_layer
-
-
 def export_button() -> None:
     """
     Streamlit widget for exporting annotated forecasts.
@@ -198,43 +168,34 @@ def reference_date_and_location_ui(
     return selected_ref_date, two_letter
 
 
-def plotting_ui(
-    forecasts_to_plot: pl.DataFrame,
-    data_to_plot: pl.DataFrame,
-    two_letter_loc_abbr: str,
-    selected_ref_date: str,
-) -> None:
+def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     """
-    Altair chart of the forecasts, with observed data
-    overlaid where possible.
+    Layers target hubverse data onto `altair` plot.
 
     Parameters
     ----------
-    forecasts_to_plot : pl.DataFrame
-        The hubverse formatted forecast table, filtered
-        to the requested location, target, and model.
-    data_to_plot : pl.DataFrame
-        The hubverse formatted observations time-series,
-        filtered to the requested location, target, and
-        model(s).
-    two_letter_loc_abbr : str
-        The selection location, typically a US jurisdiction.
-    selected_ref_date : str
-        The selected reference date.
+    eh_df : pl.DataFrame
+        A polars dataframe of E and H target data formatted
+        as hubverse time series.
+
+    Returns
+    -------
+    alt.Chart
+        An `altair` chart with the target hubverse data.
     """
-
-    st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
-    st.markdown(f"## Reference Date: {selected_ref_date}")
-
-    forecast_layers = quantile_forecast_chart(forecasts_to_plot)
-    observed_layers = target_data_chart(data_to_plot)
-    forecast_and_observed_layers = forecast_layers + observed_layers
-    chart = (
-        forecast_and_observed_layers.facet(
-            row=alt.Row("model:N", title="Model"), columns=1
+    obs_layer = (
+        alt.Chart(eh_df)
+        .mark_point(filled=True, size=35, color="limegreen")
+        .encode(
+            x=alt.X("date:T"),
+            y=alt.Y("observation:Q"),
+            tooltip=[
+                alt.Tooltip("date:T"),
+                alt.Tooltip("observation:Q"),
+            ],
         )
-    ).interactive()
-    st.altair_chart(chart, use_container_width=True)
+    )
+    return obs_layer
 
 
 def quantile_forecast_chart(
@@ -298,6 +259,58 @@ def quantile_forecast_chart(
         color="navy",
     ).encode(y=alt.Y("median:Q", axis=None))
     return alt.layer(band_95, band_80, band_50, median)
+
+
+def plotting_ui(
+    forecasts_to_plot: pl.DataFrame,
+    data_to_plot: pl.DataFrame,
+    two_letter_loc_abbr: str,
+    selected_ref_date: str,
+    selected_target: str,
+) -> None:
+    """
+    Altair chart of the forecasts, with observed data
+    overlaid where possible.
+
+    Parameters
+    ----------
+    forecasts_to_plot : pl.DataFrame
+        The hubverse formatted forecast table, filtered
+        to the requested location, target, and model.
+    data_to_plot : pl.DataFrame
+        The hubverse formatted observations time-series,
+        filtered to the requested location, target, and
+        model(s).
+    two_letter_loc_abbr : str
+        The selection location, typically a US jurisdiction.
+    selected_ref_date : str
+        The selected reference date.
+    selected_target
+        The target for filtering in the forecast and or
+        observed hubverse tables.
+    """
+
+    st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
+    st.markdown(f"## Reference Date: {selected_ref_date}")
+
+    forecast_layers = quantile_forecast_chart(forecasts_to_plot)
+    observed_layers = target_data_chart(data_to_plot)
+    forecast_and_observed_layers = forecast_layers + observed_layers
+    if forecasts_to_plot["model"].n_unique() == 1:
+        chart = (
+            (forecast_layers + observed_layers)
+            .interactive()
+            .configure_axisX(title="Date")
+        )
+    else:
+        chart = (
+            (forecast_layers + observed_layers)
+            .facet(row=alt.Row("model:N"), columns=1)
+            .interactive()
+            .configure_axisX(title="Date")
+        )
+    chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
+    st.altair_chart(chart, use_container_width=True, key=chart_key)
 
 
 def load_hubverse_table(hub_file: UploadedFile | None):
@@ -484,7 +497,11 @@ def main() -> None:
     )
 
     plotting_ui(
-        forecasts_to_plot, data_to_plot, two_letter_loc_abbr, selected_ref_date
+        forecasts_to_plot,
+        data_to_plot,
+        two_letter_loc_abbr,
+        selected_ref_date,
+        selected_target,
     )
 
     forecast_annotation_ui(
