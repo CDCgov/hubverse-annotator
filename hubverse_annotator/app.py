@@ -266,6 +266,7 @@ def plotting_ui(
     data_to_plot: pl.DataFrame,
     two_letter_loc_abbr: str,
     selected_ref_date: str,
+    selected_target: str,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -284,6 +285,9 @@ def plotting_ui(
         The selection location, typically a US jurisdiction.
     selected_ref_date : str
         The selected reference date.
+    selected_target
+        The target for filtering in the forecast and or
+        observed hubverse tables.
     """
 
     st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
@@ -292,16 +296,21 @@ def plotting_ui(
     forecast_layers = quantile_forecast_chart(forecasts_to_plot)
     observed_layers = target_data_chart(data_to_plot)
     forecast_and_observed_layers = forecast_layers + observed_layers
-    chart = (
-        (
-            forecast_and_observed_layers.facet(
-                row=alt.Row("model:N", title="Model"), columns=1
-            )
+    if forecasts_to_plot["model"].n_unique() == 1:
+        chart = (
+            (forecast_layers + observed_layers)
+            .interactive()
+            .configure_axisX(title="Date")
         )
-        .interactive()
-        .configure_axisX(title="Date")
-    )
-    st.altair_chart(chart, use_container_width=True, key="plotted_forecasts")
+    else:
+        chart = (
+            (forecast_layers + observed_layers)
+            .facet(row=alt.Row("model:N"), columns=1)
+            .interactive()
+            .configure_axisX(title="Date")
+        )
+    chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
+    st.altair_chart(chart, use_container_width=True, key=chart_key)
 
 
 def load_hubverse_table(hub_file: UploadedFile | None):
@@ -488,7 +497,11 @@ def main() -> None:
     )
 
     plotting_ui(
-        forecasts_to_plot, data_to_plot, two_letter_loc_abbr, selected_ref_date
+        forecasts_to_plot,
+        data_to_plot,
+        two_letter_loc_abbr,
+        selected_ref_date,
+        selected_target,
     )
 
     forecast_annotation_ui(
