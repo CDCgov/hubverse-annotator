@@ -16,6 +16,7 @@ import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 logging.basicConfig(level=logging.INFO)
@@ -267,6 +268,7 @@ def plotting_ui(
     two_letter_loc_abbr: str,
     selected_ref_date: str,
     selected_target: str,
+    base_chart: DeltaGenerator,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -285,9 +287,12 @@ def plotting_ui(
         The selection location, typically a US jurisdiction.
     selected_ref_date : str
         The selected reference date.
-    selected_target
+    selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    base_chart : DeltaGenerator
+        An empty streamlit object needed for plots to
+        reload successfully with new data.
     """
 
     st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
@@ -295,7 +300,6 @@ def plotting_ui(
 
     forecast_layers = quantile_forecast_chart(forecasts_to_plot)
     observed_layers = target_data_chart(data_to_plot)
-    forecast_and_observed_layers = forecast_layers + observed_layers
     if forecasts_to_plot["model"].n_unique() == 1:
         chart = (
             (forecast_layers + observed_layers)
@@ -310,7 +314,7 @@ def plotting_ui(
             .configure_axisX(title="Date")
         )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
-    st.altair_chart(chart, use_container_width=True, key=chart_key)
+    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
 
 
 def load_hubverse_table(hub_file: UploadedFile | None):
@@ -496,12 +500,14 @@ def main() -> None:
         two_letter_loc_abbr,
     )
 
+    base_chart = st.empty()
     plotting_ui(
         forecasts_to_plot,
         data_to_plot,
         two_letter_loc_abbr,
         selected_ref_date,
         selected_target,
+        base_chart,
     )
 
     forecast_annotation_ui(
