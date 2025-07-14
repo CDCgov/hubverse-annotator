@@ -298,6 +298,7 @@ def plotting_ui(
         reload successfully with new data.
     """
     log_scale = st.checkbox("Log-Scale", value=False)
+    show_grid = st.checkbox("Gridlines", value=False)
     forecast_layers = quantile_forecast_chart(
         forecasts_to_plot, log_scale=log_scale
     )
@@ -307,6 +308,7 @@ def plotting_ui(
             (forecast_layers + observed_layers)
             .interactive()
             .configure_axisX(title="Date")
+            .configure_axis(grid=show_grid)
         )
     else:
         chart = (
@@ -314,6 +316,7 @@ def plotting_ui(
             .facet(row=alt.Row("model:N"), columns=1)
             .interactive()
             .configure_axisX(title="Date")
+            .configure_axis(grid=show_grid)
         )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
