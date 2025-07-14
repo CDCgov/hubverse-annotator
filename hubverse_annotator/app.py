@@ -192,8 +192,7 @@ def target_data_chart(
         .mark_point(filled=True, size=35, color="limegreen")
         .encode(
             x=alt.X("date:T"),
-            y=alt.Y("observation:Q"),
-            scale=scale,
+            y=alt.Y("observation:Q", scale=scale),
             tooltip=[
                 alt.Tooltip("date:T"),
                 alt.Tooltip("observation:Q"),
@@ -226,7 +225,6 @@ def quantile_forecast_chart(
     scale = alt.Scale(type="log") if log_scale else alt.Undefined
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
-
     df_wide = (
         hubverse_table.filter(pl.col("output_type") == "quantile")
         .pivot(
@@ -236,10 +234,9 @@ def quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
-    print(df_wide.columns)
     base = alt.Chart(df_wide).encode(
         x=alt.X("target_end_date:T"),
-        y=alt.Y("median:Q", scale=scale, title="Forecast"),
+        y=alt.Y("median:Q", title="Forecast", scale=scale),
         color=alt.Color(
             "ci:N", title="Confidence band", legend=alt.Legend(orient="bottom")
         ),
@@ -249,7 +246,7 @@ def quantile_forecast_chart(
         opacity=0.1,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.025:Q"),
+        y=alt.Y("0.025:Q", scale=scale),
         y2="0.975:Q",
         fill=alt.value("steelblue"),
     )
@@ -258,20 +255,24 @@ def quantile_forecast_chart(
         opacity=0.2,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.10:Q", axis=None), y2="0.90:Q", fill=alt.value("steelblue")
+        y=alt.Y("0.10:Q", axis=None, scale=scale),
+        y2="0.90:Q",
+        fill=alt.value("steelblue"),
     )
     band_50 = base.mark_errorband(
         extent="iqr",
         opacity=0.3,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.25:Q", axis=None), y2="0.75:Q", fill=alt.value("steelblue")
+        y=alt.Y("0.25:Q", axis=None, scale=scale),
+        y2="0.75:Q",
+        fill=alt.value("steelblue"),
     )
     median = base.mark_line(
         strokeWidth=2,
         interpolate="step-after",
         color="navy",
-    ).encode(y=alt.Y("median:Q", axis=None))
+    ).encode(y=alt.Y("median:Q", axis=None, scale=scale))
     return alt.layer(band_95, band_80, band_50, median)
 
 
