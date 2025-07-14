@@ -59,7 +59,6 @@ def forecast_annotation_ui(
             annotations = json.load(f)
     else:
         annotations = {}
-
     by_loc = annotations.setdefault(two_letter_loc_abbr, {})
     for m in selected_models:
         st.markdown(f"### {m}")
@@ -78,10 +77,8 @@ def forecast_annotation_ui(
             key=f"comment_{two_letter_loc_abbr}_{m}",
         )
         by_loc[m] = {"status": status, "comment": comment}
-
     with annotations_file.open("w") as f:
         json.dump(annotations, f, indent=2)
-
     export_button()
 
 
@@ -108,7 +105,6 @@ def model_and_target_selection_ui(
     selected_models = st.multiselect(
         "Model(s)", options=models, default=models, key="model_selection"
     )
-
     targets = (
         single_loc_hub_table.filter(pl.col("model").is_in(selected_models))
         .get_column("target")
@@ -119,7 +115,6 @@ def model_and_target_selection_ui(
     selected_target = st.selectbox(
         "Target(s)", options=targets, key="target_selection"
     )
-
     return selected_models, selected_target
 
 
@@ -147,7 +142,6 @@ def reference_date_and_location_ui(
         location_vector=locs, location_format="abbr"
     )
     long_names = loc_lookup["long_name"].to_list()
-
     col1, col2 = st.columns(2)
     with col1:
         ref_dates = forecast_table["reference_date"].unique().sort().to_list()
@@ -159,13 +153,11 @@ def reference_date_and_location_ui(
         )
     with col2:
         location = st.selectbox("Location", options=long_names)
-
     two_letter = (
         loc_lookup.filter(pl.col("long_name") == location)
         .get_column("short_name")
         .item()
     )
-
     return selected_ref_date, two_letter
 
 
@@ -311,9 +303,7 @@ def plotting_ui(
 
     st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
     st.markdown(f"## Reference Date: {selected_ref_date}")
-
     log_scale = st.sidebar.checkbox("Log-Scale", value=False)
-
     forecast_layers = quantile_forecast_chart(
         forecasts_to_plot, log_scale=log_scale
     )
@@ -421,7 +411,6 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         observed_data_table = observed_data_table.filter(
             pl.col("as_of") == latest
         )
-
     smht_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
