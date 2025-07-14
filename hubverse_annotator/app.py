@@ -169,7 +169,9 @@ def reference_date_and_location_ui(
     return selected_ref_date, two_letter
 
 
-def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
+def target_data_chart(
+    eh_df: pl.DataFrame, log_scale: bool = False
+) -> alt.Chart:
     """
     Layers target hubverse data onto `altair` plot.
 
@@ -184,12 +186,14 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
     alt.Chart
         An `altair` chart with the target hubverse data.
     """
+    scale = alt.Scale(type="log") if log_scale else alt.Undefined
     obs_layer = (
         alt.Chart(eh_df)
         .mark_point(filled=True, size=35, color="limegreen")
         .encode(
             x=alt.X("date:T"),
             y=alt.Y("observation:Q"),
+            scale=scale,
             tooltip=[
                 alt.Tooltip("date:T"),
                 alt.Tooltip("observation:Q"),
@@ -200,7 +204,7 @@ def target_data_chart(eh_df: pl.DataFrame) -> alt.Chart:
 
 
 def quantile_forecast_chart(
-    hubverse_table: pl.DataFrame,
+    hubverse_table: pl.DataFrame, log_scale: bool = False
 ) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
@@ -219,8 +223,10 @@ def quantile_forecast_chart(
         An altair chart object with plotted forecasts.
     """
     value_col = "value"
+    scale = alt.Scale(type="log") if log_scale else alt.Undefined
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
+
     df_wide = (
         hubverse_table.filter(pl.col("output_type") == "quantile")
         .pivot(
@@ -230,7 +236,14 @@ def quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
-    base = alt.Chart(df_wide).encode(x=alt.X("target_end_date:T"))
+    print(df_wide.columns)
+    base = alt.Chart(df_wide).encode(
+        x=alt.X("target_end_date:T"),
+        y=alt.Y("median:Q", scale=scale, title="Forecast"),
+        color=alt.Color(
+            "ci:N", title="Confidence band", legend=alt.Legend(orient="bottom")
+        ),
+    )
     band_95 = base.mark_errorband(
         extent="ci",
         opacity=0.1,
@@ -298,8 +311,12 @@ def plotting_ui(
     st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
     st.markdown(f"## Reference Date: {selected_ref_date}")
 
-    forecast_layers = quantile_forecast_chart(forecasts_to_plot)
-    observed_layers = target_data_chart(data_to_plot)
+    log_scale = st.sidebar.checkbox("Log-Scale", value=False)
+
+    forecast_layers = quantile_forecast_chart(
+        forecasts_to_plot, log_scale=log_scale
+    )
+    observed_layers = target_data_chart(data_to_plot, log_scale=log_scale)
     if forecasts_to_plot["model"].n_unique() == 1:
         chart = (
             (forecast_layers + observed_layers)
@@ -314,7 +331,7 @@ def plotting_ui(
             .configure_axisX(title="Date")
         )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
-    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
+    base_chart.altair_chart(chart, use_container_width=True, key=chart_key)
 
 
 def load_hubverse_table(hub_file: UploadedFile | None):
