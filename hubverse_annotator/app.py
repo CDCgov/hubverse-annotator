@@ -180,7 +180,7 @@ def target_data_chart(
     """
     scale = alt.Scale(type="log") if log_scale else alt.Undefined
     obs_layer = (
-        alt.Chart(eh_df)
+        alt.Chart(eh_df, width=625)
         .mark_point(filled=True, size=35, color="limegreen")
         .encode(
             x=alt.X("date:T"),
@@ -226,7 +226,7 @@ def quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
-    base = alt.Chart(df_wide).encode(
+    base = alt.Chart(df_wide, width=625).encode(
         x=alt.X("target_end_date:T"),
         y=alt.Y("median:Q", title="Forecast", scale=scale),
         color=alt.Color(
@@ -272,7 +272,6 @@ def plotting_ui(
     forecasts_to_plot: pl.DataFrame,
     data_to_plot: pl.DataFrame,
     two_letter_loc_abbr: str,
-    selected_ref_date: str,
     selected_target: str,
     base_chart: DeltaGenerator,
 ) -> None:
@@ -291,8 +290,6 @@ def plotting_ui(
         model(s).
     two_letter_loc_abbr : str
         The selection location, typically a US jurisdiction.
-    selected_ref_date : str
-        The selected reference date.
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
@@ -300,10 +297,7 @@ def plotting_ui(
         An empty streamlit object needed for plots to
         reload successfully with new data.
     """
-
-    st.markdown(f"## Forecasts For: {two_letter_loc_abbr}")
-    st.markdown(f"## Reference Date: {selected_ref_date}")
-    log_scale = st.sidebar.checkbox("Log-Scale", value=False)
+    log_scale = st.checkbox("Log-Scale", value=False)
     forecast_layers = quantile_forecast_chart(
         forecasts_to_plot, log_scale=log_scale
     )
@@ -322,7 +316,7 @@ def plotting_ui(
             .configure_axisX(title="Date")
         )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
-    base_chart.altair_chart(chart, use_container_width=True, key=chart_key)
+    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
 
 
 def load_hubverse_table(hub_file: UploadedFile | None):
@@ -512,7 +506,6 @@ def main() -> None:
         forecasts_to_plot,
         data_to_plot,
         two_letter_loc_abbr,
-        selected_ref_date,
         selected_target,
         base_chart,
     )
