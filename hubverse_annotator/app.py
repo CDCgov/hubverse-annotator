@@ -394,7 +394,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         i.e. the loaded forecast table or an empty DataFrame.
     """
     observed_data_file = st.file_uploader(
-        "Upload Hubverse Target Data", type=["parquet"]
+        "(Optional) Upload Hubverse Target Data", type=["parquet"]
     )
     observed_data_table = load_hubverse_table(observed_data_file)
     if (
