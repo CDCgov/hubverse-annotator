@@ -478,8 +478,8 @@ def main() -> None:
     st.title("Forecast Annotator")
     # hubverse formatted forecast table required
     observed_data_table, forecast_table = load_data_ui()
-    if forecast_table.is_empty():
-        st.info("Please upload Hubverse Forecasts to begin.")
+    if observed_data_table.is_empty() and forecast_table.is_empty():
+        st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
         return None
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
         forecast_table
