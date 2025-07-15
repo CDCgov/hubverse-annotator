@@ -317,19 +317,13 @@ def plotting_ui(
         data_to_plot, log_scale=log_scale, show_grid=show_grid
     )
     fc_title = f"Forecasts For {two_letter_loc_abbr} For {selected_ref_date}"
-    if forecasts_to_plot["model"].n_unique() == 1:
-        chart = (
-            (forecast_layers + observed_layers)
-            .interactive()
-            .properties(title=alt.TitleParams(text=fc_title, anchor="middle"))
-        )
-    else:
-        chart = (
-            (forecast_layers + observed_layers)
-            .facet(row=alt.Row("model:N"), columns=1)
-            .interactive()
-            .properties(title=alt.TitleParams(text=fc_title, anchor="middle"))
-        )
+
+    chart = (
+        (forecast_layers + observed_layers)
+        .facet(row=alt.Row("model:N"), columns=1)
+        .interactive()
+        .properties(title=alt.TitleParams(text=fc_title, anchor="middle"))
+    )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
 
