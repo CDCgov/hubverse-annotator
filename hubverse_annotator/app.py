@@ -161,7 +161,7 @@ def reference_date_and_location_ui(
 
 
 def target_data_chart(
-    eh_df: pl.DataFrame, scale: str = "log", grid: bool = False
+    eh_df: pl.DataFrame, scale: str = "log", grid: bool = True
 ) -> alt.Chart:
     """
     Layers target hubverse data onto `altair` plot.
@@ -197,7 +197,7 @@ def target_data_chart(
 def quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
     scale: str = "log",
-    grid: bool = False,
+    grid: bool = True,
 ) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
@@ -307,7 +307,7 @@ def plotting_ui(
     # plots to reload successfully with new data.
     base_chart = st.empty()
     scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
-    grid = st.checkbox("Gridlines", value=False)
+    grid = st.checkbox("Gridlines", value=True)
     forecast_layers = quantile_forecast_chart(
         forecasts_to_plot, scale=scale, grid=grid
     )
