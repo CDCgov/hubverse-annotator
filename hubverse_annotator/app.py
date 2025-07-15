@@ -162,7 +162,7 @@ def reference_date_and_location_ui(
 
 
 def target_data_chart(
-    eh_df: pl.DataFrame, log_scale: bool = False, show_grid: bool = False
+    eh_df: pl.DataFrame, log_scale: bool = False, grid: bool = False
 ) -> alt.Chart:
     """
     Layers target hubverse data onto `altair` plot.
@@ -178,7 +178,7 @@ def target_data_chart(
     alt.Chart
         An `altair` chart with the target hubverse data.
     """
-    x_axis = alt.Axis(title=None, ticks=True, labels=True, grid=show_grid)
+    x_axis = alt.Axis(title=None, ticks=True, labels=True, grid=grid)
     scale = alt.Scale(type="log") if log_scale else alt.Undefined
     obs_layer = (
         alt.Chart(eh_df, width=625)
@@ -198,7 +198,7 @@ def target_data_chart(
 def quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
     log_scale: bool = False,
-    show_grid: bool = False,
+    grid: bool = False,
 ) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
@@ -234,9 +234,9 @@ def quantile_forecast_chart(
         orient="right",
         ticks=True,
         labels=True,
-        grid=show_grid,
+        grid=grid,
     )
-    x_axis = alt.Axis(ticks=True, labels=True, grid=show_grid)
+    x_axis = alt.Axis(ticks=True, labels=True, grid=grid)
     base = alt.Chart(df_wide, width=625).encode(
         x=alt.X("target_end_date:T", axis=x_axis),
         y=alt.Y("median:Q", axis=y_axis, scale=scale),
@@ -309,12 +309,12 @@ def plotting_ui(
         reload successfully with new data.
     """
     log_scale = st.checkbox("Log-Scale", value=False)
-    show_grid = st.checkbox("Gridlines", value=False)
+    grid = st.checkbox("Gridlines", value=False)
     forecast_layers = quantile_forecast_chart(
-        forecasts_to_plot, log_scale=log_scale, show_grid=show_grid
+        forecasts_to_plot, log_scale=log_scale, grid=grid
     )
     observed_layers = target_data_chart(
-        data_to_plot, log_scale=log_scale, show_grid=show_grid
+        data_to_plot, log_scale=log_scale, grid=grid
     )
     fc_title = f"Forecasts For {two_letter_loc_abbr} For {selected_ref_date}"
 
