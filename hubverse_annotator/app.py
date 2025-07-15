@@ -162,7 +162,7 @@ def reference_date_and_location_ui(
 
 
 def target_data_chart(
-    eh_df: pl.DataFrame, log_scale: bool = False, grid: bool = False
+    eh_df: pl.DataFrame, scale: str = "linear", grid: bool = False
 ) -> alt.Chart:
     """
     Layers target hubverse data onto `altair` plot.
@@ -179,7 +179,7 @@ def target_data_chart(
         An `altair` chart with the target hubverse data.
     """
     x_axis = alt.Axis(title=None, ticks=True, labels=True, grid=grid)
-    scale = alt.Scale(type="log") if log_scale else alt.Undefined
+    scale = alt.Scale(type=scale)
     obs_layer = (
         alt.Chart(eh_df, width=625)
         .mark_point(filled=True, size=35, color="limegreen")
@@ -197,7 +197,7 @@ def target_data_chart(
 
 def quantile_forecast_chart(
     hubverse_table: pl.DataFrame,
-    log_scale: bool = False,
+    scale: str = "linear",
     grid: bool = False,
 ) -> alt.Chart:
     """
@@ -217,7 +217,7 @@ def quantile_forecast_chart(
         An altair chart object with plotted forecasts.
     """
     value_col = "value"
-    scale = alt.Scale(type="log") if log_scale else alt.Undefined
+    scale = alt.Scale(type=scale)
     # filter to quantile only rows and ensure quantiles are str for pivot
     # also, pivot to wide, so quantiles ids are columns
     df_wide = (
@@ -308,14 +308,12 @@ def plotting_ui(
         An empty streamlit object needed for plots to
         reload successfully with new data.
     """
-    log_scale = st.checkbox("Log-Scale", value=False)
+    scale = "log" if st.checkbox("Log-scale", value=False) else "linear"
     grid = st.checkbox("Gridlines", value=False)
     forecast_layers = quantile_forecast_chart(
-        forecasts_to_plot, log_scale=log_scale, grid=grid
+        forecasts_to_plot, scale=scale, grid=grid
     )
-    observed_layers = target_data_chart(
-        data_to_plot, log_scale=log_scale, grid=grid
-    )
+    observed_layers = target_data_chart(data_to_plot, scale=scale, grid=grid)
     fc_title = f"Forecasts For {two_letter_loc_abbr} For {selected_ref_date}"
 
     chart = (
