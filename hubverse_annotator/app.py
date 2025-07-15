@@ -137,9 +137,7 @@ def reference_date_and_location_ui(
         the two letter location abbreviation.
     """
     locs = forecast_table["location"].unique().to_list()
-    loc_lookup = forecasttools.location_lookup(
-        location_vector=locs, location_format="abbr"
-    )
+    loc_lookup = cached_location_lookup(locs)
     long_names = loc_lookup["long_name"].to_list()
     col1, col2 = st.columns(2)
     with col1:
@@ -417,6 +415,13 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     )
     forecast_table = load_hubverse_table(smht_file)
     return observed_data_table, forecast_table
+
+
+@st.cache_data
+def cached_location_lookup(locs: list[str]) -> pl.DataFrame:
+    return forecasttools.location_lookup(
+        location_vector=locs, location_format="abbr"
+    )
 
 
 def filter_for_plotting(
