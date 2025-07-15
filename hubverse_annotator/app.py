@@ -16,7 +16,6 @@ import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
-from streamlit.delta_generator import DeltaGenerator
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 logging.basicConfig(level=logging.INFO)
@@ -282,7 +281,6 @@ def plotting_ui(
     two_letter_loc_abbr: str,
     selected_target: str,
     selected_ref_date: str,
-    base_chart: DeltaGenerator,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -304,10 +302,10 @@ def plotting_ui(
         observed hubverse tables.
     selected_ref_date : str
         The selected reference date.
-    base_chart : DeltaGenerator
-        An empty streamlit object needed for plots to
-        reload successfully with new data.
     """
+    # empty streamlit object (DeltaGenerator) needed for
+    # plots to reload successfully with new data.
+    base_chart = st.empty()
     scale = "log" if st.checkbox("Log-scale", value=False) else "linear"
     grid = st.checkbox("Gridlines", value=False)
     forecast_layers = quantile_forecast_chart(
@@ -498,14 +496,12 @@ def main() -> None:
         selected_target,
         two_letter_loc_abbr,
     )
-    base_chart = st.empty()
     plotting_ui(
         forecasts_to_plot,
         data_to_plot,
         two_letter_loc_abbr,
         selected_target,
         selected_ref_date,
-        base_chart,
     )
     forecast_annotation_ui(
         selected_models, two_letter_loc_abbr, selected_ref_date
