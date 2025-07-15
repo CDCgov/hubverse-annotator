@@ -162,7 +162,7 @@ def reference_date_and_location_ui(
 
 
 def target_data_chart(
-    eh_df: pl.DataFrame, log_scale: bool = False
+    eh_df: pl.DataFrame, log_scale: bool = False, show_grid: bool = False
 ) -> alt.Chart:
     """
     Layers target hubverse data onto `altair` plot.
@@ -195,7 +195,9 @@ def target_data_chart(
 
 
 def quantile_forecast_chart(
-    hubverse_table: pl.DataFrame, log_scale: bool = False
+    hubverse_table: pl.DataFrame,
+    log_scale: bool = False,
+    show_grid: bool = False,
 ) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
@@ -226,19 +228,24 @@ def quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
+    y_axis = alt.Axis(
+        title="Forecast",
+        orient="right",
+        ticks=True,
+        labels=True,
+        grid=show_grid,
+    )
+    x_axis = alt.Axis(ticks=True, labels=True, grid=show_grid)
     base = alt.Chart(df_wide, width=625).encode(
-        x=alt.X("target_end_date:T"),
-        y=alt.Y("median:Q", title="Forecast", scale=scale),
-        color=alt.Color(
-            "ci:N", title="Confidence band", legend=alt.Legend(orient="bottom")
-        ),
+        x=alt.X("target_end_date:T", axis=x_axis),
+        y=alt.Y("median:Q", axis=y_axis, scale=scale),
     )
     band_95 = base.mark_errorband(
         extent="ci",
         opacity=0.1,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.025:Q", scale=scale),
+        y=alt.Y("0.025:Q", axis=y_axis, scale=scale),
         y2="0.975:Q",
         fill=alt.value("steelblue"),
     )
@@ -247,7 +254,7 @@ def quantile_forecast_chart(
         opacity=0.2,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.10:Q", axis=None, scale=scale),
+        y=alt.Y("0.10:Q", axis=y_axis, scale=scale),
         y2="0.90:Q",
         fill=alt.value("steelblue"),
     )
@@ -256,7 +263,7 @@ def quantile_forecast_chart(
         opacity=0.3,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.25:Q", axis=None, scale=scale),
+        y=alt.Y("0.25:Q", axis=y_axis, scale=scale),
         y2="0.75:Q",
         fill=alt.value("steelblue"),
     )
@@ -264,7 +271,7 @@ def quantile_forecast_chart(
         strokeWidth=2,
         interpolate="step-after",
         color="navy",
-    ).encode(y=alt.Y("median:Q", axis=None, scale=scale))
+    ).encode(y=alt.Y("median:Q", axis=y_axis, scale=scale))
     return alt.layer(band_95, band_80, band_50, median)
 
 
@@ -300,23 +307,19 @@ def plotting_ui(
     log_scale = st.checkbox("Log-Scale", value=False)
     show_grid = st.checkbox("Gridlines", value=False)
     forecast_layers = quantile_forecast_chart(
-        forecasts_to_plot, log_scale=log_scale
+        forecasts_to_plot, log_scale=log_scale, show_grid=show_grid
     )
-    observed_layers = target_data_chart(data_to_plot, log_scale=log_scale)
+    observed_layers = target_data_chart(
+        data_to_plot, log_scale=log_scale, show_grid=show_grid
+    )
     if forecasts_to_plot["model"].n_unique() == 1:
-        chart = (
-            (forecast_layers + observed_layers)
-            .interactive()
-            .configure_axisX(title="Date")
-            .configure_axis(grid=show_grid)
-        )
+        chart = (forecast_layers + observed_layers).interactive()
     else:
         chart = (
             (forecast_layers + observed_layers)
             .facet(row=alt.Row("model:N"), columns=1)
+            .resolve_scale(y="independent")
             .interactive()
-            .configure_axisX(title="Date")
-            .configure_axis(grid=show_grid)
         )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
