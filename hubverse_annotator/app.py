@@ -281,6 +281,7 @@ def plotting_ui(
     data_to_plot: pl.DataFrame,
     two_letter_loc_abbr: str,
     selected_target: str,
+    selected_ref_date: str,
     base_chart: DeltaGenerator,
 ) -> None:
     """
@@ -301,6 +302,8 @@ def plotting_ui(
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    selected_ref_date : str
+        The selected reference date.
     base_chart : DeltaGenerator
         An empty streamlit object needed for plots to
         reload successfully with new data.
@@ -313,13 +316,19 @@ def plotting_ui(
     observed_layers = target_data_chart(
         data_to_plot, log_scale=log_scale, show_grid=show_grid
     )
+    fc_title = f"Forecasts For {two_letter_loc_abbr} For {selected_ref_date}"
     if forecasts_to_plot["model"].n_unique() == 1:
-        chart = (forecast_layers + observed_layers).interactive()
+        chart = (
+            (forecast_layers + observed_layers)
+            .interactive()
+            .properties(title=alt.TitleParams(text=fc_title, anchor="middle"))
+        )
     else:
         chart = (
             (forecast_layers + observed_layers)
             .facet(row=alt.Row("model:N"), columns=1)
             .interactive()
+            .properties(title=alt.TitleParams(text=fc_title, anchor="middle"))
         )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
@@ -415,7 +424,6 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
     forecast_table = load_hubverse_table(smht_file)
-
     return observed_data_table, forecast_table
 
 
@@ -469,36 +477,28 @@ def filter_for_plotting(
         if not observed_data_table.is_empty()
         else pl.DataFrame()
     )
-
     return forecasts_to_plot, data_to_plot
 
 
 def main() -> None:
     # record session start time
     start_time = time.time()
-
     # streamlit application begins
     st.title("Forecast Annotator")
-
     # hubverse formatted forecast table required
     observed_data_table, forecast_table = load_data_ui()
-
     if forecast_table.is_empty():
         st.info("Please upload Hubverse Forecasts to begin.")
         return None
-
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
         forecast_table
     )
-
     single_loc_hub_table = forecast_table.filter(
         pl.col("location") == two_letter_loc_abbr
     )
-
     selected_models, selected_target = model_and_target_selection_ui(
         single_loc_hub_table
     )
-
     forecasts_to_plot, data_to_plot = filter_for_plotting(
         single_loc_hub_table,
         observed_data_table,
@@ -506,20 +506,18 @@ def main() -> None:
         selected_target,
         two_letter_loc_abbr,
     )
-
     base_chart = st.empty()
     plotting_ui(
         forecasts_to_plot,
         data_to_plot,
         two_letter_loc_abbr,
         selected_target,
+        selected_ref_date,
         base_chart,
     )
-
     forecast_annotation_ui(
         selected_models, two_letter_loc_abbr, selected_ref_date
     )
-
     duration = time.time() - start_time
     logger.info(f"Session lasted {duration:.1f}s")
 
