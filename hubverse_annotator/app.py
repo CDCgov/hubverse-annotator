@@ -169,6 +169,12 @@ def target_data_chart(
     eh_df : pl.DataFrame
         A polars dataframe of E and H target data formatted
         as hubverse time series.
+    scale : str
+        The scale to use for the Y axis during plotting.
+        Defaults to logarithmic.
+    grid : bool
+        Whether to use gridlines for the X and Y axes.
+        Defaults to True.
 
     Returns
     -------
@@ -206,8 +212,14 @@ def quantile_forecast_chart(
 
     Parameters
     ----------
-    hubverse_table
+    hubverse_table : pl.DataFrame
         The hubverse-formatted forecast table.
+    scale : str
+        The scale to use for the Y axis during plotting.
+        Defaults to logarithmic.
+    grid : bool
+        Whether to use gridlines for the X and Y axes.
+        Defaults to True.
 
     Returns
     -------
@@ -419,6 +431,20 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
 
 @st.cache_data
 def cached_location_lookup(locs: list[str]) -> pl.DataFrame:
+    """
+    Caches a dataframe of locations from forecasttools
+    used for converting between location formats.
+
+    Parameters
+    ----------
+    locs : list[str]
+        A location vector to lookup.
+
+    Returns
+    -------
+    pl.DataFrame
+        A dataframe of locations in different formats.
+    """
     return forecasttools.location_lookup(
         location_vector=locs, location_format="abbr"
     )
