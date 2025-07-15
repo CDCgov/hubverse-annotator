@@ -178,12 +178,13 @@ def target_data_chart(
     alt.Chart
         An `altair` chart with the target hubverse data.
     """
+    x_axis = alt.Axis(title=None, ticks=True, labels=True, grid=show_grid)
     scale = alt.Scale(type="log") if log_scale else alt.Undefined
     obs_layer = (
         alt.Chart(eh_df, width=625)
         .mark_point(filled=True, size=35, color="limegreen")
         .encode(
-            x=alt.X("date:T"),
+            x=alt.X("date:T", axis=x_axis),
             y=alt.Y("observation:Q", scale=scale),
             tooltip=[
                 alt.Tooltip("date:T"),
@@ -229,7 +230,7 @@ def quantile_forecast_chart(
         .with_columns(pl.col("0.5").alias("median"))
     )
     y_axis = alt.Axis(
-        title="Forecast",
+        title="Forecasted Value",
         orient="right",
         ticks=True,
         labels=True,
@@ -318,7 +319,6 @@ def plotting_ui(
         chart = (
             (forecast_layers + observed_layers)
             .facet(row=alt.Row("model:N"), columns=1)
-            .resolve_scale(y="independent")
             .interactive()
         )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
