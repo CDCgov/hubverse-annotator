@@ -177,14 +177,17 @@ def target_data_chart(
     alt.Chart
         An `altair` chart with the target hubverse data.
     """
-    x_axis = alt.Axis(title=None, ticks=True, labels=True, grid=grid)
-    scale = alt.Scale(type=scale)
+    yscale = alt.Scale(type=scale)
+    x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
+    y_axis = alt.Axis(
+        title="Forecasted Value", grid=grid, ticks=True, labels=True
+    )
     obs_layer = (
         alt.Chart(eh_df, width=625)
         .mark_point(filled=True, size=35, color="limegreen")
         .encode(
             x=alt.X("date:T", axis=x_axis),
-            y=alt.Y("observation:Q", scale=scale),
+            y=alt.Y("observation:Q", axis=y_axis, scale=yscale),
             tooltip=[
                 alt.Tooltip("date:T"),
                 alt.Tooltip("observation:Q"),
@@ -195,9 +198,7 @@ def target_data_chart(
 
 
 def quantile_forecast_chart(
-    hubverse_table: pl.DataFrame,
-    scale: str = "log",
-    grid: bool = True,
+    hubverse_table: pl.DataFrame, scale: str = "log", grid: bool = True
 ) -> alt.Chart:
     """
     Uses a hubverse table (polars) and a reference date to
@@ -216,9 +217,18 @@ def quantile_forecast_chart(
         An altair chart object with plotted forecasts.
     """
     value_col = "value"
-    scale = alt.Scale(type=scale)
-    # filter to quantile only rows and ensure quantiles are str for pivot
-    # also, pivot to wide, so quantiles ids are columns
+    yscale = alt.Scale(type=scale)
+    x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
+    y_axis = alt.Axis(
+        title="Forecasted Value",
+        grid=grid,
+        ticks=True,
+        labels=True,
+        orient="right",
+    )
+    # filter to quantile only rows and ensure quantiles
+    # are str for pivot; also, pivot to wide, so quantiles
+    # ids are columns
     df_wide = (
         hubverse_table.filter(pl.col("output_type") == "quantile")
         .pivot(
@@ -228,24 +238,16 @@ def quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
-    y_axis = alt.Axis(
-        title="Forecasted Value",
-        orient="right",
-        ticks=True,
-        labels=True,
-        grid=grid,
-    )
-    x_axis = alt.Axis(ticks=True, labels=True, grid=grid)
     base = alt.Chart(df_wide, width=625).encode(
         x=alt.X("target_end_date:T", axis=x_axis),
-        y=alt.Y("median:Q", axis=y_axis, scale=scale),
+        y=alt.Y("median:Q", axis=y_axis, scale=yscale),
     )
     band_95 = base.mark_errorband(
         extent="ci",
         opacity=0.1,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.025:Q", axis=y_axis, scale=scale),
+        y=alt.Y("0.025:Q", axis=y_axis),
         y2="0.975:Q",
         fill=alt.value("steelblue"),
     )
@@ -254,7 +256,7 @@ def quantile_forecast_chart(
         opacity=0.2,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.10:Q", axis=y_axis, scale=scale),
+        y=alt.Y("0.10:Q", axis=y_axis),
         y2="0.90:Q",
         fill=alt.value("steelblue"),
     )
@@ -263,7 +265,7 @@ def quantile_forecast_chart(
         opacity=0.3,
         interpolate="step-after",
     ).encode(
-        y=alt.Y("0.25:Q", axis=y_axis, scale=scale),
+        y=alt.Y("0.25:Q", axis=y_axis),
         y2="0.75:Q",
         fill=alt.value("steelblue"),
     )
@@ -271,7 +273,7 @@ def quantile_forecast_chart(
         strokeWidth=2,
         interpolate="step-after",
         color="navy",
-    ).encode(y=alt.Y("median:Q", axis=y_axis, scale=scale))
+    ).encode(alt.Y("median:Q", axis=y_axis))
     return alt.layer(band_95, band_80, band_50, median)
 
 
@@ -313,7 +315,6 @@ def plotting_ui(
     )
     observed_layers = target_data_chart(data_to_plot, scale=scale, grid=grid)
     fc_title = f"Forecasts For {two_letter_loc_abbr} For {selected_ref_date}"
-
     chart = (
         (forecast_layers + observed_layers)
         .facet(row=alt.Row("model:N"), columns=1)
