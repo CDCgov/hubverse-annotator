@@ -330,9 +330,9 @@ def plotting_ui(
     fc_title = f"Forecasts For {two_letter_loc_abbr} For {selected_ref_date}"
     chart = (
         (forecast_layers + observed_layers)
-        .facet(row=alt.Row("model:N"), columns=1)
         .interactive()
         .properties(title=alt.TitleParams(text=fc_title, anchor="middle"))
+        .facet(row=alt.Row("model:N"), columns=1)
     )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
