@@ -190,7 +190,7 @@ def target_data_chart(
         title="Forecasted Value", grid=grid, ticks=True, labels=True
     )
     obs_layer = (
-        alt.Chart(eh_df, width=625)
+        alt.Chart(eh_df, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
         .encode(
             x=alt.X("date:T", axis=x_axis),
