@@ -136,11 +136,11 @@ def reference_date_and_location_ui(
         Returns a tuple of the selected reference date and
         the two letter location abbreviation.
     """
-    loc_lookup = lookup_locations(forecast_table)
+    loc_lookup = get_available_locations(forecast_table)
     long_names = loc_lookup["long_name"].to_list()
+    ref_dates = get_reference_dates(forecast_table)
     col1, col2 = st.columns(2)
     with col1:
-        ref_dates = forecast_table["reference_date"].unique().sort().to_list()
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=ref_dates,
@@ -429,10 +429,11 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
 
 
 @st.cache_data
-def lookup_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
+def get_available_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
     """
-    Caches a dataframe of locations from forecasttools
-    used for converting between location formats.
+    Retrieves a dataframe of locations from forecasttools
+    used for converting between location formats. The
+    dataframe is cached for streamlit via cache_data.
 
     Parameters
     ----------
@@ -448,6 +449,26 @@ def lookup_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
     return forecasttools.location_lookup(
         location_vector=locs, location_format="abbr"
     )
+
+
+@st.cache_data
+def get_reference_dates(forecast_table: pl.DataFrame) -> list[str]:
+    """
+    Retrieves a dataframe of forecast reference dates. The
+    dataframe is cached for streamlit via cache_data.
+
+    Parameters
+    ----------
+    forecast_table : pl.DataFrame
+        A dataframe of forecasts.
+
+    Returns
+    -------
+    list[str]
+        A list of available reference dates.
+    """
+    ref_dates = forecast_table["reference_date"].unique().sort().to_list()
+    return ref_dates
 
 
 def filter_for_plotting(
