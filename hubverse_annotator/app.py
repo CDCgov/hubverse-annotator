@@ -140,14 +140,11 @@ def reference_date_and_location_ui(
         Returns a tuple of the selected reference date and
         the two letter location abbreviation.
     """
-    locs = forecast_table["location"].unique().to_list()
-    loc_lookup = forecasttools.location_lookup(
-        location_vector=locs, location_format="abbr"
-    )
+    loc_lookup = get_available_locations(forecast_table)
     long_names = loc_lookup["long_name"].to_list()
+    ref_dates = get_reference_dates(forecast_table)
     col1, col2 = st.columns(2)
     with col1:
-        ref_dates = forecast_table["reference_date"].unique().sort().to_list()
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=ref_dates,
@@ -175,6 +172,12 @@ def target_data_chart(
     eh_df : pl.DataFrame
         A polars dataframe of E and H target data formatted
         as hubverse time series.
+    scale : str
+        The scale to use for the Y axis during plotting.
+        Defaults to logarithmic.
+    grid : bool
+        Whether to use gridlines for the X and Y axes.
+        Defaults to True.
 
     Returns
     -------
@@ -212,8 +215,14 @@ def quantile_forecast_chart(
 
     Parameters
     ----------
-    hubverse_table
+    hubverse_table : pl.DataFrame
         The hubverse-formatted forecast table.
+    scale : str
+        The scale to use for the Y axis during plotting.
+        Defaults to logarithmic.
+    grid : bool
+        Whether to use gridlines for the X and Y axes.
+        Defaults to True.
 
     Returns
     -------
@@ -329,6 +338,7 @@ def plotting_ui(
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
 
 
+@st.cache_data
 def load_hubverse_table(hub_file: UploadedFile | None):
     """
     Load a hubverse formatted table into Polars from a
@@ -420,6 +430,49 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     )
     forecast_table = load_hubverse_table(smht_file)
     return observed_data_table, forecast_table
+
+
+@st.cache_data
+def get_available_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
+    """
+    Retrieves a dataframe of locations from forecasttools
+    used for converting between location formats. The
+    dataframe is cached for streamlit via cache_data.
+
+    Parameters
+    ----------
+    forecast_table : pl.DataFrame
+        A dataframe of forecasts.
+
+    Returns
+    -------
+    pl.DataFrame
+        A dataframe of locations in different formats.
+    """
+    locs = forecast_table["location"].unique().to_list()
+    return forecasttools.location_lookup(
+        location_vector=locs, location_format="abbr"
+    )
+
+
+@st.cache_data
+def get_reference_dates(forecast_table: pl.DataFrame) -> list[str]:
+    """
+    Retrieves a dataframe of forecast reference dates. The
+    dataframe is cached for streamlit via cache_data.
+
+    Parameters
+    ----------
+    forecast_table : pl.DataFrame
+        A dataframe of forecasts.
+
+    Returns
+    -------
+    list[str]
+        A list of available reference dates.
+    """
+    ref_dates = forecast_table["reference_date"].unique().sort().to_list()
+    return ref_dates
 
 
 def filter_for_plotting(
