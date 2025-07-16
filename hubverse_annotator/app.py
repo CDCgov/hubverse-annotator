@@ -21,6 +21,10 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+PLOT_WIDTH = 625
+STROKE_WIDTH = 2
+MARKER_SIZE = 25
+
 
 def export_button() -> None:
     """
@@ -184,7 +188,7 @@ def target_data_chart(
     )
     obs_layer = (
         alt.Chart(eh_df, width=625)
-        .mark_point(filled=True, size=35, color="limegreen")
+        .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
         .encode(
             x=alt.X("date:T", axis=x_axis),
             y=alt.Y("observation:Q", axis=y_axis, scale=yscale),
@@ -238,7 +242,7 @@ def quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
-    base = alt.Chart(df_wide, width=625).encode(
+    base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(
         x=alt.X("target_end_date:T", axis=x_axis),
         y=alt.Y("median:Q", axis=y_axis, scale=yscale),
     )
@@ -270,7 +274,7 @@ def quantile_forecast_chart(
         fill=alt.value("steelblue"),
     )
     median = base.mark_line(
-        strokeWidth=2,
+        strokeWidth=STROKE_WIDTH,
         interpolate="step-after",
         color="navy",
     ).encode(alt.Y("median:Q", axis=y_axis))
