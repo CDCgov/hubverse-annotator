@@ -162,14 +162,14 @@ def reference_date_and_location_ui(
 
 
 def target_data_chart(
-    eh_df: pl.DataFrame, scale: str = "log", grid: bool = True
+    observed_data_table: pl.DataFrame, scale: str = "log", grid: bool = True
 ) -> alt.Chart:
     """
     Layers target hubverse data onto `altair` plot.
 
     Parameters
     ----------
-    eh_df : pl.DataFrame
+    observed_data_table : pl.DataFrame
         A polars dataframe of E and H target data formatted
         as hubverse time series.
     scale : str
@@ -190,7 +190,7 @@ def target_data_chart(
         title="Forecasted Value", grid=grid, ticks=True, labels=True
     )
     obs_layer = (
-        alt.Chart(eh_df, width=625)
+        alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
         .encode(
             x=alt.X("date:T", axis=x_axis),
@@ -330,9 +330,9 @@ def plotting_ui(
     fc_title = f"Forecasts For {two_letter_loc_abbr} For {selected_ref_date}"
     chart = (
         (forecast_layers + observed_layers)
-        .facet(row=alt.Row("model:N"), columns=1)
         .interactive()
         .properties(title=alt.TitleParams(text=fc_title, anchor="middle"))
+        .facet(row=alt.Row("model:N"), columns=1)
     )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
@@ -408,10 +408,11 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     Returns
     -------
     tuple
-        A tuple of observed_data_table (pl.DataFrame), i.e. the loaded
-        observed data table (filtered to latest as_of) or
-        an empty DataFrame and forecast_table (pl.DataFrame),
-        i.e. the loaded forecast table or an empty DataFrame.
+        A tuple of observed_data_table (pl.DataFrame), i.e.
+        the loaded observed data table (filtered to latest
+        as_of date) or an empty DataFrame and
+        forecast_table (pl.DataFrame), i.e. the loaded
+        forecast table or an empty DataFrame.
     """
     observed_data_file = st.file_uploader(
         "(Optional) Upload Hubverse Target Data", type=["parquet"]
@@ -425,10 +426,10 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         observed_data_table = observed_data_table.filter(
             pl.col("as_of") == latest
         )
-    smht_file = st.file_uploader(
+    forecast_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
-    forecast_table = load_hubverse_table(smht_file)
+    forecast_table = load_hubverse_table(forecast_file)
     return observed_data_table, forecast_table
 
 
@@ -483,8 +484,8 @@ def filter_for_plotting(
     two_letter_loc_abbr: str,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """
-    Filter forecast and EH tables for the selected models
-    and target.
+    Filter forecast and observed data tables for the
+    selected models and target.
 
     Parameters
     ----------
@@ -493,7 +494,8 @@ def filter_for_plotting(
         visits and or hospital admissions, filtered by
         location.
     observed_data_table : pl.DataFrame
-        The loaded EH table (filtered to latest as_of).
+        The loaded observed data table (filtered to
+        latest as_of date).
     selected_models : list[str]
         Selected models to annotate.
     selected_target
@@ -505,9 +507,9 @@ def filter_for_plotting(
     Returns
     -------
     tuple
-        A tuple of observed_data_table (pl.DataFrame) and forecast_table
-        (pl.DataFrame) filtered by model, target, and
-        location, to be used for plotting.
+        A tuple of observed_data_table (pl.DataFrame) and
+        forecast_table (pl.DataFrame) filtered by model,
+        target, and location, to be used for plotting.
     """
     forecasts_to_plot = (
         single_loc_hub_table.filter(
