@@ -137,7 +137,7 @@ def reference_date_and_location_ui(
         the two letter location abbreviation.
     """
     locs = forecast_table["location"].unique().to_list()
-    loc_lookup = cached_location_lookup(locs)
+    loc_lookup = lookup_locations(locs)
     long_names = loc_lookup["long_name"].to_list()
     col1, col2 = st.columns(2)
     with col1:
@@ -430,7 +430,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
 
 
 @st.cache_data
-def cached_location_lookup(locs: list[str]) -> pl.DataFrame:
+def lookup_locations(locs: list[str]) -> pl.DataFrame:
     """
     Caches a dataframe of locations from forecasttools
     used for converting between location formats.
