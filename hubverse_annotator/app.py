@@ -136,8 +136,7 @@ def reference_date_and_location_ui(
         Returns a tuple of the selected reference date and
         the two letter location abbreviation.
     """
-    locs = forecast_table["location"].unique().to_list()
-    loc_lookup = lookup_locations(locs)
+    loc_lookup = lookup_locations(forecast_table)
     long_names = loc_lookup["long_name"].to_list()
     col1, col2 = st.columns(2)
     with col1:
@@ -430,21 +429,22 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
 
 
 @st.cache_data
-def lookup_locations(locs: list[str]) -> pl.DataFrame:
+def lookup_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
     """
     Caches a dataframe of locations from forecasttools
     used for converting between location formats.
 
     Parameters
     ----------
-    locs : list[str]
-        A location vector to lookup.
+    forecast_table : pl.DataFrame
+        A dataframe of forecasts.
 
     Returns
     -------
     pl.DataFrame
         A dataframe of locations in different formats.
     """
+    locs = forecast_table["location"].unique().to_list()
     return forecasttools.location_lookup(
         location_vector=locs, location_format="abbr"
     )
