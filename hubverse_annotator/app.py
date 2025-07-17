@@ -434,7 +434,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
 
 
 @st.cache_data
-def get_available_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
+def get_available_locations(hubverse_table: pl.DataFrame) -> pl.DataFrame:
     """
     Retrieves a dataframe of locations from forecasttools
     used for converting between location formats. The
@@ -442,37 +442,39 @@ def get_available_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
 
     Parameters
     ----------
-    forecast_table : pl.DataFrame
-        A dataframe of forecasts.
+    hubverse_table : pl.DataFrame
+        A dataframe of forecasts or observed data in
+        hubverse format.
 
     Returns
     -------
     pl.DataFrame
         A dataframe of locations in different formats.
     """
-    locs = forecast_table["location"].unique().to_list()
+    locs = hubverse_table["location"].unique().to_list()
     return forecasttools.location_lookup(
         location_vector=locs, location_format="abbr"
     )
 
 
 @st.cache_data
-def get_reference_dates(forecast_table: pl.DataFrame) -> list[str]:
+def get_reference_dates(hubverse_table: pl.DataFrame) -> list[str]:
     """
     Retrieves a dataframe of forecast reference dates. The
     dataframe is cached for streamlit via cache_data.
 
     Parameters
     ----------
-    forecast_table : pl.DataFrame
-        A dataframe of forecasts.
+    hubverse_table : pl.DataFrame
+        A dataframe of forecasts or observed data in
+        hubverse format.
 
     Returns
     -------
     list[str]
         A list of available reference dates.
     """
-    ref_dates = forecast_table["reference_date"].unique().sort().to_list()
+    ref_dates = hubverse_table["reference_date"].unique().sort().to_list()
     return ref_dates
 
 
@@ -539,8 +541,8 @@ def main() -> None:
     start_time = time.time()
     # streamlit application begins
     st.title("Forecast Annotator")
-    # hubverse formatted forecast table required
     observed_data_table, forecast_table = load_data_ui()
+    # at least one of the tables must be non-empty
     if observed_data_table.is_empty() and forecast_table.is_empty():
         st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
         return None
