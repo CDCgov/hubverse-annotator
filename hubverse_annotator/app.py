@@ -530,6 +530,10 @@ def filter_for_plotting(
     return forecasts_to_plot, data_to_plot
 
 
+def display_single_hubverse_table(hubverse_table):
+    pass
+
+
 def main() -> None:
     # record session start time
     start_time = time.time()
@@ -540,6 +544,11 @@ def main() -> None:
     if observed_data_table.is_empty() and forecast_table.is_empty():
         st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
         return None
+    hubverse_table = (
+        forecast_table
+        if not forecast_table.is_empty()
+        else observed_data_table
+    )
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
         forecast_table
     )
