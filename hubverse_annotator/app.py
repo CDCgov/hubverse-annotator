@@ -562,9 +562,9 @@ def main() -> None:
         else observed_data_table
     )
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
-        forecast_table
+        hubverse_table
     )
-    single_loc_hub_table = forecast_table.filter(
+    single_loc_hub_table = hubverse_table.filter(
         pl.col("location") == two_letter_loc_abbr
     )
     selected_models, selected_target = model_and_target_selection_ui(
