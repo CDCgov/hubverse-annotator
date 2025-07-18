@@ -148,7 +148,7 @@ def reference_date_and_location_ui(
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=ref_dates,
-            format_func=lambda x: x.strftime("%Y-%m-%d"),
+            # format_func=lambda x: x.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
     with col2:
@@ -375,6 +375,15 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     else:
         st.error(f"Unsupported file type: {ext}")
         st.stop()
+    if (
+        "target_end_date" in hub_table.columns
+        and hub_table["target_end_date"].dtype == pl.Utf8
+    ):
+        hub_table = hub_table.with_columns(
+            pl.col("target_end_date")
+            .str.strptime(pl.Date, "%Y-%m-%d")
+            .alias("target_end_date")
+        )
     logger.info(f"Uploaded file:\n{hub_file.name}")
     n_rows, n_cols = hub_table.shape
     size_bytes = hub_table.estimated_size()
@@ -430,11 +439,12 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
     forecast_table = load_hubverse_table(forecast_file)
+    print(forecast_table)
     return observed_data_table, forecast_table
 
 
 @st.cache_data
-def get_available_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
+def get_available_locations(hubverse_table: pl.DataFrame) -> pl.DataFrame:
     """
     Retrieves a dataframe of locations from forecasttools
     used for converting between location formats. The
@@ -442,37 +452,39 @@ def get_available_locations(forecast_table: pl.DataFrame) -> pl.DataFrame:
 
     Parameters
     ----------
-    forecast_table : pl.DataFrame
-        A dataframe of forecasts.
+    hubverse_table : pl.DataFrame
+        A dataframe of forecasts or observed data in
+        hubverse format.
 
     Returns
     -------
     pl.DataFrame
         A dataframe of locations in different formats.
     """
-    locs = forecast_table["location"].unique().to_list()
+    locs = hubverse_table["location"].unique().to_list()
     return forecasttools.location_lookup(
-        location_vector=locs, location_format="abbr"
+        location_vector=locs, location_format="hubverse"
     )
 
 
 @st.cache_data
-def get_reference_dates(forecast_table: pl.DataFrame) -> list[str]:
+def get_reference_dates(hubverse_table: pl.DataFrame) -> list[str]:
     """
     Retrieves a dataframe of forecast reference dates. The
     dataframe is cached for streamlit via cache_data.
 
     Parameters
     ----------
-    forecast_table : pl.DataFrame
-        A dataframe of forecasts.
+    hubverse_table : pl.DataFrame
+        A dataframe of forecasts or observed data in
+        hubverse format.
 
     Returns
     -------
     list[str]
         A list of available reference dates.
     """
-    ref_dates = forecast_table["reference_date"].unique().sort().to_list()
+    ref_dates = hubverse_table["reference_date"].unique().sort().to_list()
     return ref_dates
 
 
@@ -530,20 +542,29 @@ def filter_for_plotting(
     return forecasts_to_plot, data_to_plot
 
 
+def display_single_hubverse_table(hubverse_table):
+    pass
+
+
 def main() -> None:
     # record session start time
     start_time = time.time()
     # streamlit application begins
     st.title("Forecast Annotator")
-    # hubverse formatted forecast table required
     observed_data_table, forecast_table = load_data_ui()
-    if forecast_table.is_empty():
-        st.info("Please upload Hubverse Forecasts to begin.")
+    # at least one of the tables must be non-empty
+    if observed_data_table.is_empty() and forecast_table.is_empty():
+        st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
         return None
-    selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
+    hubverse_table = (
         forecast_table
+        if not forecast_table.is_empty()
+        else observed_data_table
     )
-    single_loc_hub_table = forecast_table.filter(
+    selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
+        hubverse_table
+    )
+    single_loc_hub_table = hubverse_table.filter(
         pl.col("location") == two_letter_loc_abbr
     )
     selected_models, selected_target = model_and_target_selection_ui(
