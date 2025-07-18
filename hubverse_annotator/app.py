@@ -148,7 +148,7 @@ def reference_date_and_location_ui(
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=ref_dates,
-            format_func=lambda x: x.strftime("%Y-%m-%d"),
+            # format_func=lambda x: x.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
     with col2:
@@ -375,6 +375,15 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     else:
         st.error(f"Unsupported file type: {ext}")
         st.stop()
+    if (
+        "target_end_date" in hub_table.columns
+        and hub_table["target_end_date"].dtype == pl.Utf8
+    ):
+        hub_table = hub_table.with_columns(
+            pl.col("target_end_date")
+            .str.strptime(pl.Date, "%Y-%m-%d")
+            .alias("target_end_date")
+        )
     logger.info(f"Uploaded file:\n{hub_file.name}")
     n_rows, n_cols = hub_table.shape
     size_bytes = hub_table.estimated_size()
@@ -430,6 +439,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
     forecast_table = load_hubverse_table(forecast_file)
+    print(forecast_table)
     return observed_data_table, forecast_table
 
 
@@ -453,7 +463,7 @@ def get_available_locations(hubverse_table: pl.DataFrame) -> pl.DataFrame:
     """
     locs = hubverse_table["location"].unique().to_list()
     return forecasttools.location_lookup(
-        location_vector=locs, location_format="abbr"
+        location_vector=locs, location_format="hubverse"
     )
 
 
