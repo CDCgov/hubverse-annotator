@@ -86,14 +86,14 @@ def forecast_annotation_ui(
 
 
 def model_and_target_selection_ui(
-    single_loc_hub_table: pl.DataFrame,
+    filtered_hub_table: pl.DataFrame,
 ) -> tuple[list[str], str]:
     """
     Streamlit widget for model and target selection.
 
     Parameters
     ----------
-    single_loc_hub_table : pl.DataFrame
+    filtered_hub_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions or the observed
         data, filtered by location.
@@ -104,20 +104,17 @@ def model_and_target_selection_ui(
         Returns a list of selected model names and the
         selected target.
     """
-    if "model" in single_loc_hub_table.columns:
-        models = single_loc_hub_table["model"].unique().sort().to_list()
+    if "model" in filtered_hub_table.columns:
+        models = filtered_hub_table["model"].unique().sort().to_list()
         selected_models = st.multiselect(
             "Model(s)", options=models, default=models, key="model_selection"
         )
+        filtered_hub_table = filtered_hub_table.filter(
+            pl.col("model").is_in(selected_models)
+        )
     else:
         selected_models = []
-    targets = (
-        single_loc_hub_table.filter(pl.col("model").is_in(selected_models))
-        .get_column("target")
-        .unique()
-        .sort()
-        .to_list()
-    )
+    targets = filtered_hub_table.get_column("target").unique().sort().to_list()
     selected_target = st.selectbox(
         "Target(s)", options=targets, key="target_selection"
     )
@@ -434,7 +431,6 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
     forecast_table = load_hubverse_table(forecast_file)
-    print(forecast_table)
     return observed_data_table, forecast_table
 
 
@@ -485,7 +481,7 @@ def get_reference_dates(hubverse_table: pl.DataFrame) -> list[str]:
 
 
 def filter_for_plotting(
-    single_loc_hub_table: pl.DataFrame,
+    filtered_hub_table: pl.DataFrame,
     observed_data_table: pl.DataFrame,
     selected_models: list[str],
     selected_target: str,
@@ -497,7 +493,7 @@ def filter_for_plotting(
 
     Parameters
     ----------
-    single_loc_hub_table : pl.DataFrame
+    filtered_hub_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions, filtered by
         location.
@@ -520,11 +516,11 @@ def filter_for_plotting(
         target, and location, to be used for plotting.
     """
     forecasts_to_plot = (
-        single_loc_hub_table.filter(
+        filtered_hub_table.filter(
             pl.col("model").is_in(selected_models),
             pl.col("target") == selected_target,
         )
-        if not single_loc_hub_table.is_empty()
+        if not filtered_hub_table.is_empty()
         else pl.DataFrame()
     )
     data_to_plot = (
@@ -552,25 +548,22 @@ def main() -> None:
     if observed_data_table.is_empty() and forecast_table.is_empty():
         st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
         return None
-
-    # even if one dataframe is empty, proceed
     hubverse_table = (
         forecast_table
         if not forecast_table.is_empty()
         else observed_data_table
     )
-
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
         hubverse_table
     )
-    single_loc_hub_table = hubverse_table.filter(
+    filtered_hub_table = hubverse_table.filter(
         pl.col("location") == two_letter_loc_abbr
     )
     selected_models, selected_target = model_and_target_selection_ui(
-        single_loc_hub_table
+        filtered_hub_table
     )
     forecasts_to_plot, data_to_plot = filter_for_plotting(
-        single_loc_hub_table,
+        filtered_hub_table,
         observed_data_table,
         selected_models,
         selected_target,
