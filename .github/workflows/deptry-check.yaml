@@ -1,10 +1,8 @@
 ###############################################################################
 # OVERVIEW
 ###############################################################################
-# The following is a workflow inspired by
-# https://github.com/posit-dev/setup-air/blob/main/examples/format-check.yaml
-# and indicates if there are discrepancies between the dependencies grouped in
-# pyproject.toml and the Python dependencies actually in use.
+# The following indicates if there are discrepancies between the dependencies
+# grouped in pyproject.toml and the Python dependencies actually in use.
 #
 # Description:
 #
@@ -21,13 +19,13 @@ on:
     branches: [main, master]
   pull_request:
 
-name: format-deptry-check.yaml
+name: deptry-check.yaml
 
 permissions: read-all
 
 jobs:
-  format-check:
-    name: format-deptry-check
+  check:
+    name: deptry-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
