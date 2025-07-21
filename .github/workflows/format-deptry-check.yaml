@@ -8,9 +8,9 @@
 #
 # Description:
 #
-# This runs deptry hubverse_annotator on every push to main and on every pull
-# request. This action fails deptry finds problems with that dependencies are
-# improperly specified.
+# This runs deptry `hubverse_annotator` on every push to main and on every pull
+# request. This action fails if deptry finds problems with dependencies that
+# are improperly specified.
 #
 # Links:
 #
