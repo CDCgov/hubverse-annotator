@@ -40,10 +40,6 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
-      - name: Setup Annotator
-        run: uv sync --all-extras
-        shell: bash
-
       - name: Install & Run Deptry
         run: |
           uvx deptry hubverse_annotator
