@@ -15,8 +15,7 @@ classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "altair>=5.5.0",
     "forecasttools @ git+https://github.com/cdcgov/forecasttools-py",
-    "streamlit>=1.46.0",
-    "pyarrow>=19.0.1",
+    "streamlit>=1.47.0",
     "polars>=0.19.37",
 ]
 
