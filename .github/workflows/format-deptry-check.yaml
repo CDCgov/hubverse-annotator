@@ -1,0 +1,46 @@
+###############################################################################
+# OVERVIEW
+###############################################################################
+# The following is a workflow inspired by
+# https://github.com/posit-dev/setup-air/blob/main/examples/format-check.yaml
+# and indicates if there are discrepancies between the dependencies grouped in
+# pyproject.toml and the Python dependencies actually in use.
+#
+# Description:
+#
+# This runs deptry hubverse_annotator on every push to main and on every pull
+# request. This action fails deptry finds problems with that dependencies are
+# improperly specified.
+#
+# Links:
+#
+# Deptry: https://deptry.com/
+###############################################################################
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+name: format-deptry-check.yaml
+
+permissions: read-all
+
+jobs:
+  format-check:
+    name: format-deptry-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install deptry
+
+      - name: Check
+        run: deptry hubverse_annotator
