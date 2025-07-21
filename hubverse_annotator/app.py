@@ -95,8 +95,8 @@ def model_and_target_selection_ui(
     ----------
     single_loc_hub_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
-        visits and or hospital admissions, filtered by
-        location.
+        visits and or hospital admissions or the observed
+        data, filtered by location.
 
     Returns
     -------
@@ -104,10 +104,13 @@ def model_and_target_selection_ui(
         Returns a list of selected model names and the
         selected target.
     """
-    models = single_loc_hub_table["model"].unique().sort().to_list()
-    selected_models = st.multiselect(
-        "Model(s)", options=models, default=models, key="model_selection"
-    )
+    if "model" in single_loc_hub_table.columns:
+        models = single_loc_hub_table["model"].unique().sort().to_list()
+        selected_models = st.multiselect(
+            "Model(s)", options=models, default=models, key="model_selection"
+        )
+    else:
+        selected_models = []
     targets = (
         single_loc_hub_table.filter(pl.col("model").is_in(selected_models))
         .get_column("target")
@@ -122,7 +125,7 @@ def model_and_target_selection_ui(
 
 
 def reference_date_and_location_ui(
-    forecast_table: pl.DataFrame,
+    hubverse_table: pl.DataFrame,
 ) -> tuple[str, str]:
     """
     Streamlit widget for the reference date and location
@@ -130,9 +133,10 @@ def reference_date_and_location_ui(
 
     Parameters
     ----------
-    forecast_table : pl.DataFrame
+    hubverse_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
-        visits and or hospital admissions.
+        visits and or hospital admissions or the hubverse
+        table of observed data.
 
     Returns
     -------
@@ -140,15 +144,15 @@ def reference_date_and_location_ui(
         Returns a tuple of the selected reference date and
         the two letter location abbreviation.
     """
-    loc_lookup = get_available_locations(forecast_table)
+    loc_lookup = get_available_locations(hubverse_table)
     long_names = loc_lookup["long_name"].to_list()
-    ref_dates = get_reference_dates(forecast_table)
+    ref_dates = get_reference_dates(hubverse_table)
     col1, col2 = st.columns(2)
     with col1:
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=ref_dates,
-            # format_func=lambda x: x.strftime("%Y-%m-%d"),
+            format_func=lambda x: x.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
     with col2:
@@ -375,15 +379,6 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     else:
         st.error(f"Unsupported file type: {ext}")
         st.stop()
-    if (
-        "target_end_date" in hub_table.columns
-        and hub_table["target_end_date"].dtype == pl.Utf8
-    ):
-        hub_table = hub_table.with_columns(
-            pl.col("target_end_date")
-            .str.strptime(pl.Date, "%Y-%m-%d")
-            .alias("target_end_date")
-        )
     logger.info(f"Uploaded file:\n{hub_file.name}")
     n_rows, n_cols = hub_table.shape
     size_bytes = hub_table.estimated_size()
@@ -484,8 +479,9 @@ def get_reference_dates(hubverse_table: pl.DataFrame) -> list[str]:
     list[str]
         A list of available reference dates.
     """
-    ref_dates = hubverse_table["reference_date"].unique().sort().to_list()
-    return ref_dates
+    if "reference_date" not in hubverse_table.columns:
+        return []
+    return hubverse_table["reference_date"].unique().sort().to_list()
 
 
 def filter_for_plotting(
@@ -556,11 +552,14 @@ def main() -> None:
     if observed_data_table.is_empty() and forecast_table.is_empty():
         st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
         return None
+
+    # even if one dataframe is empty, proceed
     hubverse_table = (
         forecast_table
         if not forecast_table.is_empty()
         else observed_data_table
     )
+
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
         hubverse_table
     )
