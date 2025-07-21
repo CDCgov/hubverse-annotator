@@ -17,7 +17,6 @@ dependencies = [
     "forecasttools @ git+https://github.com/cdcgov/forecasttools-py",
     "streamlit>=1.47.0",
     "polars>=0.19.37",
-    "patsy>=1.0.1",
 ]
 
 [project.urls]
