@@ -268,7 +268,7 @@ requires-dist = [
     { name = "altair", specifier = ">=5.5.0" },
     { name = "forecasttools", git = "https://github.com/cdcgov/forecasttools-py" },
     { name = "polars", specifier = ">=0.19.37" },
-    { name = "streamlit", specifier = ">=1.46.0" },
+    { name = "streamlit", specifier = ">=1.47.0" },
 ]
 
 [[package]]
