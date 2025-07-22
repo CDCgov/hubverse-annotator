@@ -131,7 +131,8 @@ def model_and_target_selection_ui(
             forecast_table.filter(
                 pl.col("location") == loc_abbr,
                 pl.col("model_id").is_in(selected_models),
-            )["target"]
+            )
+            .get_column("target")
             .unique()
             .sort()
             .to_list()
