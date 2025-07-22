@@ -236,9 +236,7 @@ def reference_date_and_location_ui(
         the two letter location abbreviation.
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
-    print(loc_lookup)
     long_names = loc_lookup["long_name"].to_list()
-    print(long_names)
     ref_dates = get_reference_dates(observed_data_table, forecast_table)
     col1, col2 = st.columns(2)
     with col1:
