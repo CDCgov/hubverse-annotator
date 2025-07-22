@@ -38,7 +38,7 @@ def export_button() -> None:
 
 def forecast_annotation_ui(
     selected_models: list[str],
-    two_letter_loc_abbr: str,
+    loc_abbr: str,
     selected_ref_date: str,
 ) -> None:
     """
@@ -49,7 +49,7 @@ def forecast_annotation_ui(
     ----------
     selected_models : list[str]
         Selected models to annotate.
-    two_letter_loc_abbr : str
+    loc_abbr : str
         The selection location, typically a US jurisdiction.
     selected_ref_date : str
         The selected reference date.
@@ -62,7 +62,7 @@ def forecast_annotation_ui(
             annotations = json.load(f)
     else:
         annotations = {}
-    by_loc = annotations.setdefault(two_letter_loc_abbr, {})
+    by_loc = annotations.setdefault(loc_abbr, {})
     for m in selected_models:
         st.markdown(f"### {m}")
         prev = by_loc.get(m, {})
@@ -72,12 +72,12 @@ def forecast_annotation_ui(
             "Status",
             ["Preferred", "Omitted", "None"],
             index=["Preferred", "Omitted", "None"].index(default_status),
-            key=f"status_{two_letter_loc_abbr}_{m}",
+            key=f"status_{loc_abbr}_{m}",
         )
         comment = st.text_input(
             "Comments",
             default_comment,
-            key=f"comment_{two_letter_loc_abbr}_{m}",
+            key=f"comment_{loc_abbr}_{m}",
         )
         by_loc[m] = {"status": status, "comment": comment}
     with annotations_file.open("w") as f:
@@ -88,7 +88,7 @@ def forecast_annotation_ui(
 def model_and_target_selection_ui(
     observed_data_table: pl.DataFrame,
     forecast_table: pl.DataFrame,
-    two_letter_loc_abbr: str,
+    loc_abbr: str,
 ) -> tuple[list[str], str]:
     """
     Streamlit widget for model and target selection.
@@ -100,7 +100,7 @@ def model_and_target_selection_ui(
     forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions (possibly empty).
-    two_letter_loc_abbr : str
+    loc_abbr : str
         The selection location, typically a US jurisdiction.
 
     Returns
@@ -111,9 +111,7 @@ def model_and_target_selection_ui(
     """
     if not forecast_table.is_empty():
         models = (
-            forecast_table.filter(pl.col("location") == two_letter_loc_abbr)[
-                "model_id"
-            ]
+            forecast_table.filter(pl.col("location") == loc_abbr)["model_id"]
             .unique()
             .sort()
             .to_list()
@@ -130,7 +128,7 @@ def model_and_target_selection_ui(
     if not forecast_table.is_empty():
         forecast_targets = (
             forecast_table.filter(
-                pl.col("location") == two_letter_loc_abbr,
+                pl.col("location") == loc_abbr,
                 pl.col("model_id").is_in(selected_models),
             )["target"]
             .unique()
@@ -140,9 +138,9 @@ def model_and_target_selection_ui(
     observed_data_targets = []
     if not observed_data_table.is_empty():
         observed_data_targets = (
-            observed_data_table.filter(
-                pl.col("location") == two_letter_loc_abbr
-            )["target"]
+            observed_data_table.filter(pl.col("location") == loc_abbr)[
+                "target"
+            ]
             .unique()
             .sort()
             .to_list()
@@ -184,7 +182,7 @@ def get_available_locations(
     if "location" in forecast_table.columns:
         locs += forecast_table["location"].unique().to_list()
     return forecasttools.location_lookup(
-        location_vector=list(set(locs)), location_format="hubverse"
+        location_vector=list(set(locs)), location_format="abbr"
     )
 
 
@@ -238,7 +236,9 @@ def reference_date_and_location_ui(
         the two letter location abbreviation.
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
+    print(loc_lookup)
     long_names = loc_lookup["long_name"].to_list()
+    print(long_names)
     ref_dates = get_reference_dates(observed_data_table, forecast_table)
     col1, col2 = st.columns(2)
     with col1:
@@ -249,12 +249,12 @@ def reference_date_and_location_ui(
         )
     with col2:
         location = st.selectbox("Location", options=sorted(long_names))
-    two_letter = (
+    loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == location)
         .get_column("short_name")
         .item()
     )
-    return selected_ref_date, two_letter
+    return selected_ref_date, loc_abbr
 
 
 def target_data_chart(
@@ -389,7 +389,7 @@ def quantile_forecast_chart(
 def plotting_ui(
     data_to_plot: pl.DataFrame,
     forecasts_to_plot: pl.DataFrame,
-    two_letter_loc_abbr: str,
+    loc_abbr: str,
     selected_target: str,
     selected_ref_date: str,
 ) -> None:
@@ -406,7 +406,7 @@ def plotting_ui(
     forecasts_to_plot : pl.DataFrame
         The hubverse formatted forecast table, filtered
         to the requested location, target, and model.
-    two_letter_loc_abbr : str
+    loc_abbr : str
         The selection location, typically a US jurisdiction.
     selected_target : str
         The target for filtering in the forecast and or
@@ -431,13 +431,13 @@ def plotting_ui(
     if layer is None:
         st.info("No data to plot for that model/target/location.")
         return
-    title = f"{two_letter_loc_abbr}: {selected_target}, {selected_ref_date}"
+    title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
         layer.interactive()
         .properties(title=alt.TitleParams(text=title, anchor="middle"))
         .facet(row=alt.Row("model:N"), columns=1)
     )
-    chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
+    chart_key = f"forecast_{loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
 
 
@@ -490,7 +490,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     if "location" in hub_table.columns:
         codes = hub_table["location"].unique().to_list()
         lookup = forecasttools.location_lookup(
-            location_vector=codes, location_format="abbr"
+            location_vector=codes, location_format="hubverse"
         )
         code_to_abbr = dict(
             lookup.select(["location_code", "short_name"]).iter_rows()
@@ -541,7 +541,7 @@ def filter_for_plotting(
     forecast_table: pl.DataFrame,
     selected_models: list[str],
     selected_target: str,
-    two_letter_loc_abbr: str,
+    loc_abbr: str,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """
     Filter forecast and observed data tables for the
@@ -559,7 +559,7 @@ def filter_for_plotting(
     selected_target
         The target for filtering in the forecast and or
         observed hubverse tables.
-    two_letter_loc_abbr
+    loc_abbr
         The abbreviated US jurisdiction code.
 
     Returns
@@ -571,7 +571,7 @@ def filter_for_plotting(
     """
     if not forecast_table.is_empty():
         forecasts_to_plot = forecast_table.filter(
-            pl.col("location") == two_letter_loc_abbr,
+            pl.col("location") == loc_abbr,
             pl.col("target") == selected_target,
             pl.col("model_id").is_in(selected_models),
         )
@@ -579,7 +579,7 @@ def filter_for_plotting(
         forecasts_to_plot = pl.DataFrame()
     if not observed_data_table.is_empty():
         data_to_plot = observed_data_table.filter(
-            pl.col("location") == two_letter_loc_abbr,
+            pl.col("location") == loc_abbr,
             pl.col("target") == selected_target,
         )
     else:
@@ -597,29 +597,27 @@ def main() -> None:
     if observed_data_table.is_empty() and forecast_table.is_empty():
         st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
         return None
-    selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
+    selected_ref_date, loc_abbr = reference_date_and_location_ui(
         observed_data_table, forecast_table
     )
     selected_models, selected_target = model_and_target_selection_ui(
-        observed_data_table, forecast_table, two_letter_loc_abbr
+        observed_data_table, forecast_table, loc_abbr
     )
     forecasts_to_plot, data_to_plot = filter_for_plotting(
         observed_data_table,
         forecast_table,
         selected_models,
         selected_target,
-        two_letter_loc_abbr,
+        loc_abbr,
     )
     plotting_ui(
         data_to_plot,
         forecasts_to_plot,
-        two_letter_loc_abbr,
+        loc_abbr,
         selected_target,
         selected_ref_date,
     )
-    forecast_annotation_ui(
-        selected_models, two_letter_loc_abbr, selected_ref_date
-    )
+    forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
     duration = time.time() - start_time
     logger.info(f"Session lasted {duration:.1f}s")
 
