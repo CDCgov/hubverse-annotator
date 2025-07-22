@@ -435,7 +435,7 @@ def plotting_ui(
     chart = (
         layer.interactive()
         .properties(title=alt.TitleParams(text=title, anchor="middle"))
-        .facet(row=alt.Row("model:N"), columns=1)
+        .facet(row=alt.Row("model_id:N"), columns=1)
     )
     chart_key = f"forecast_{loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
