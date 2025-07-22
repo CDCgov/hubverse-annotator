@@ -210,9 +210,9 @@ def get_reference_dates(
     """
     refs_dates = []
     if "reference_date" in observed_data_table.columns:
-        refs_dates += observed_data_table["location"].unique().to_list()
+        refs_dates += observed_data_table["reference_date"].unique().to_list()
     if "reference_date" in forecast_table.columns:
-        refs_dates += forecast_table["location"].unique().to_list()
+        refs_dates += forecast_table["reference_date"].unique().to_list()
     return refs_dates
 
 
