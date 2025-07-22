@@ -112,7 +112,7 @@ def model_and_target_selection_ui(
     if not forecast_table.is_empty():
         models = (
             forecast_table.filter(pl.col("location") == two_letter_loc_abbr)[
-                "model"
+                "model_id"
             ]
             .unique()
             .sort()
@@ -121,7 +121,7 @@ def model_and_target_selection_ui(
         selected_models = st.multiselect(
             "Model(s)",
             options=models,
-            default=models,
+            default=None,
             key="model_selection",
         )
     else:
@@ -131,7 +131,7 @@ def model_and_target_selection_ui(
         forecast_targets = (
             forecast_table.filter(
                 pl.col("location") == two_letter_loc_abbr,
-                pl.col("model").is_in(selected_models),
+                pl.col("model_id").is_in(selected_models),
             )["target"]
             .unique()
             .sort()
@@ -244,8 +244,7 @@ def reference_date_and_location_ui(
     with col1:
         selected_ref_date = st.selectbox(
             "Reference Date",
-            options=sorted(ref_dates),
-            # format_func=lambda x: x.strftime("%Y-%m-%d"),
+            options=sorted(ref_dates, reverse=True),
             key="ref_date_selection",
         )
     with col2:
@@ -284,7 +283,7 @@ def target_data_chart(
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
     y_axis = alt.Axis(
-        title="Forecasted Value", grid=grid, ticks=True, labels=True
+        title=None, grid=grid, ticks=True, labels=True, orient="right"
     )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
@@ -355,7 +354,7 @@ def quantile_forecast_chart(
     band_95 = base.mark_errorband(
         extent="ci",
         opacity=0.1,
-        interpolate="step-after",
+        interpolate="step",
     ).encode(
         y=alt.Y("0.025:Q", axis=y_axis),
         y2="0.975:Q",
@@ -364,7 +363,7 @@ def quantile_forecast_chart(
     band_80 = base.mark_errorband(
         extent="ci",
         opacity=0.2,
-        interpolate="step-after",
+        interpolate="step",
     ).encode(
         y=alt.Y("0.10:Q", axis=y_axis),
         y2="0.90:Q",
@@ -373,7 +372,7 @@ def quantile_forecast_chart(
     band_50 = base.mark_errorband(
         extent="iqr",
         opacity=0.3,
-        interpolate="step-after",
+        interpolate="step",
     ).encode(
         y=alt.Y("0.25:Q", axis=y_axis),
         y2="0.75:Q",
@@ -381,7 +380,7 @@ def quantile_forecast_chart(
     )
     median = base.mark_line(
         strokeWidth=STROKE_WIDTH,
-        interpolate="step-after",
+        interpolate="step",
         color="navy",
     ).encode(alt.Y("median:Q", axis=y_axis))
     return alt.layer(band_95, band_80, band_50, median)
@@ -574,7 +573,7 @@ def filter_for_plotting(
         forecasts_to_plot = forecast_table.filter(
             pl.col("location") == two_letter_loc_abbr,
             pl.col("target") == selected_target,
-            pl.col("model").is_in(selected_models),
+            pl.col("model_id").is_in(selected_models),
         )
     else:
         forecasts_to_plot = pl.DataFrame()
