@@ -388,8 +388,8 @@ def quantile_forecast_chart(
 
 
 def plotting_ui(
-    forecasts_to_plot: pl.DataFrame,
     data_to_plot: pl.DataFrame,
+    forecasts_to_plot: pl.DataFrame,
     two_letter_loc_abbr: str,
     selected_target: str,
     selected_ref_date: str,
@@ -400,13 +400,13 @@ def plotting_ui(
 
     Parameters
     ----------
-    forecasts_to_plot : pl.DataFrame
-        The hubverse formatted forecast table, filtered
-        to the requested location, target, and model.
     data_to_plot : pl.DataFrame
         The hubverse formatted observations time-series,
         filtered to the requested location, target, and
         model(s).
+    forecasts_to_plot : pl.DataFrame
+        The hubverse formatted forecast table, filtered
+        to the requested location, target, and model.
     two_letter_loc_abbr : str
         The selection location, typically a US jurisdiction.
     selected_target : str
@@ -538,8 +538,8 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
 
 
 def filter_for_plotting(
-    forecast_table: pl.DataFrame,
     observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
     selected_models: list[str],
     selected_target: str,
     two_letter_loc_abbr: str,
@@ -611,8 +611,8 @@ def main() -> None:
     )
 
     forecasts_to_plot, data_to_plot = filter_for_plotting(
-        forecast_table,
         observed_data_table,
+        forecast_table,
         selected_models,
         selected_target,
         two_letter_loc_abbr,
