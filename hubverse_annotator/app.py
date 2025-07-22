@@ -184,7 +184,7 @@ def get_available_locations(
     if "location" in forecast_table.columns:
         locs += forecast_table["location"].unique().to_list()
     return forecasttools.location_lookup(
-        location_vector=locs, location_format="hubverse"
+        location_vector=list(set(locs)), location_format="hubverse"
     )
 
 
@@ -213,7 +213,7 @@ def get_reference_dates(
         refs_dates += observed_data_table["reference_date"].unique().to_list()
     if "reference_date" in forecast_table.columns:
         refs_dates += forecast_table["reference_date"].unique().to_list()
-    return refs_dates
+    return list(set(refs_dates))
 
 
 def reference_date_and_location_ui(
