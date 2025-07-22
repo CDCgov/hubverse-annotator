@@ -589,10 +589,6 @@ def filter_for_plotting(
     return forecasts_to_plot, data_to_plot
 
 
-def display_single_hubverse_table(hubverse_table):
-    pass
-
-
 def main() -> None:
     # record session start time
     start_time = time.time()
@@ -618,8 +614,8 @@ def main() -> None:
         two_letter_loc_abbr,
     )
     plotting_ui(
-        forecasts_to_plot,
         data_to_plot,
+        forecasts_to_plot,
         two_letter_loc_abbr,
         selected_target,
         selected_ref_date,
