@@ -244,12 +244,12 @@ def reference_date_and_location_ui(
     with col1:
         selected_ref_date = st.selectbox(
             "Reference Date",
-            options=ref_dates,
+            options=sorted(ref_dates),
             # format_func=lambda x: x.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
     with col2:
-        location = st.selectbox("Location", options=long_names)
+        location = st.selectbox("Location", options=sorted(long_names))
     two_letter = (
         loc_lookup.filter(pl.col("long_name") == location)
         .get_column("short_name")
