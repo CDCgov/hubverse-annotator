@@ -585,7 +585,6 @@ def filter_for_plotting(
         )
     else:
         data_to_plot = pl.DataFrame()
-
     return forecasts_to_plot, data_to_plot
 
 
@@ -605,7 +604,6 @@ def main() -> None:
     selected_models, selected_target = model_and_target_selection_ui(
         observed_data_table, forecast_table, two_letter_loc_abbr
     )
-
     forecasts_to_plot, data_to_plot = filter_for_plotting(
         observed_data_table,
         forecast_table,
