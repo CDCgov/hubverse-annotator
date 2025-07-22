@@ -560,7 +560,7 @@ def filter_for_plotting(
         The target for filtering in the forecast and or
         observed hubverse tables.
     loc_abbr
-        The abbreviated US jurisdiction code.
+        The abbreviated US jurisdiction abbreviation.
 
     Returns
     -------
