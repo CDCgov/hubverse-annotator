@@ -121,8 +121,54 @@ def model_and_target_selection_ui(
     return selected_models, selected_target
 
 
+@st.cache_data
+def get_available_locations(hubverse_table: pl.DataFrame) -> pl.DataFrame:
+    """
+    Retrieves a dataframe of locations from forecasttools
+    used for converting between location formats. The
+    dataframe is cached for streamlit via cache_data.
+
+    Parameters
+    ----------
+    hubverse_table : pl.DataFrame
+        A dataframe of forecasts or observed data in
+        hubverse format.
+
+    Returns
+    -------
+    pl.DataFrame
+        A dataframe of locations in different formats.
+    """
+    locs = hubverse_table["location"].unique().to_list()
+    return forecasttools.location_lookup(
+        location_vector=locs, location_format="hubverse"
+    )
+
+
+@st.cache_data
+def get_reference_dates(hubverse_table: pl.DataFrame) -> list[str]:
+    """
+    Retrieves a dataframe of forecast reference dates. The
+    dataframe is cached for streamlit via cache_data.
+
+    Parameters
+    ----------
+    hubverse_table : pl.DataFrame
+        A dataframe of forecasts or observed data in
+        hubverse format.
+
+    Returns
+    -------
+    list[str]
+        A list of available reference dates.
+    """
+    if "reference_date" not in hubverse_table.columns:
+        return []
+    return hubverse_table["reference_date"].unique().sort().to_list()
+
+
 def reference_date_and_location_ui(
-    hubverse_table: pl.DataFrame,
+    observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
 ) -> tuple[str, str]:
     """
     Streamlit widget for the reference date and location
@@ -130,10 +176,12 @@ def reference_date_and_location_ui(
 
     Parameters
     ----------
-    hubverse_table : pl.DataFrame
+    observed_data_table : pl.DataFrame
+        The loaded observed data table (filtered to
+        latest as_of date).
+    forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
-        visits and or hospital admissions or the hubverse
-        table of observed data.
+        visits and or hospital admissions.
 
     Returns
     -------
@@ -141,9 +189,9 @@ def reference_date_and_location_ui(
         Returns a tuple of the selected reference date and
         the two letter location abbreviation.
     """
-    loc_lookup = get_available_locations(hubverse_table)
+    loc_lookup = get_available_locations(observed_data_table, forecast_table)
     long_names = loc_lookup["long_name"].to_list()
-    ref_dates = get_reference_dates(hubverse_table)
+    ref_dates = get_reference_dates(forecast_table)
     col1, col2 = st.columns(2)
     with col1:
         selected_ref_date = st.selectbox(
@@ -434,52 +482,6 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     return observed_data_table, forecast_table
 
 
-@st.cache_data
-def get_available_locations(hubverse_table: pl.DataFrame) -> pl.DataFrame:
-    """
-    Retrieves a dataframe of locations from forecasttools
-    used for converting between location formats. The
-    dataframe is cached for streamlit via cache_data.
-
-    Parameters
-    ----------
-    hubverse_table : pl.DataFrame
-        A dataframe of forecasts or observed data in
-        hubverse format.
-
-    Returns
-    -------
-    pl.DataFrame
-        A dataframe of locations in different formats.
-    """
-    locs = hubverse_table["location"].unique().to_list()
-    return forecasttools.location_lookup(
-        location_vector=locs, location_format="hubverse"
-    )
-
-
-@st.cache_data
-def get_reference_dates(hubverse_table: pl.DataFrame) -> list[str]:
-    """
-    Retrieves a dataframe of forecast reference dates. The
-    dataframe is cached for streamlit via cache_data.
-
-    Parameters
-    ----------
-    hubverse_table : pl.DataFrame
-        A dataframe of forecasts or observed data in
-        hubverse format.
-
-    Returns
-    -------
-    list[str]
-        A list of available reference dates.
-    """
-    if "reference_date" not in hubverse_table.columns:
-        return []
-    return hubverse_table["reference_date"].unique().sort().to_list()
-
-
 def filter_for_plotting(
     filtered_hub_table: pl.DataFrame,
     observed_data_table: pl.DataFrame,
@@ -548,20 +550,16 @@ def main() -> None:
     if observed_data_table.is_empty() and forecast_table.is_empty():
         st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
         return None
-    hubverse_table = (
-        forecast_table
-        if not forecast_table.is_empty()
-        else observed_data_table
-    )
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
-        hubverse_table
+        observed_data_table, forecast_table
     )
-    filtered_hub_table = hubverse_table.filter(
+    filtered_hub_table = forecast_table.filter(
         pl.col("location") == two_letter_loc_abbr
     )
     selected_models, selected_target = model_and_target_selection_ui(
         filtered_hub_table
     )
+
     forecasts_to_plot, data_to_plot = filter_for_plotting(
         filtered_hub_table,
         observed_data_table,
