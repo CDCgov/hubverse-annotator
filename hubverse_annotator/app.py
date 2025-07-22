@@ -86,17 +86,22 @@ def forecast_annotation_ui(
 
 
 def model_and_target_selection_ui(
-    filtered_hub_table: pl.DataFrame,
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    two_letter_loc_abbr: str,
 ) -> tuple[list[str], str]:
     """
     Streamlit widget for model and target selection.
 
     Parameters
     ----------
-    filtered_hub_table : pl.DataFrame
+    observed_data_table : pl.DataFrame
+        A hubverse table of loaded data (possibly empty).
+    forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
-        visits and or hospital admissions or the observed
-        data, filtered by location.
+        visits and or hospital admissions (possibly empty).
+    two_letter_loc_abbr : str
+        The selection location, typically a US jurisdiction.
 
     Returns
     -------
@@ -104,24 +109,54 @@ def model_and_target_selection_ui(
         Returns a list of selected model names and the
         selected target.
     """
-    if "model" in filtered_hub_table.columns:
-        models = filtered_hub_table["model"].unique().sort().to_list()
-        selected_models = st.multiselect(
-            "Model(s)", options=models, default=models, key="model_selection"
+    if not forecast_table.is_empty():
+        models = (
+            forecast_table.filter(pl.col("location") == two_letter_loc_abbr)[
+                "model"
+            ]
+            .unique()
+            .sort()
+            .to_list()
         )
-        filtered_hub_table = filtered_hub_table.filter(
-            pl.col("model").is_in(selected_models)
+        selected_models = st.multiselect(
+            "Model(s)",
+            options=models,
+            default=models,
+            key="model_selection",
         )
     else:
         selected_models = []
-    targets = filtered_hub_table.get_column("target").unique().sort().to_list()
+    forecast_targets = []
+    if not forecast_table.is_empty():
+        forecast_targets = (
+            forecast_table.filter(
+                pl.col("location") == two_letter_loc_abbr,
+                pl.col("model").is_in(selected_models),
+            )["target"]
+            .unique()
+            .sort()
+            .to_list()
+        )
+    observed_data_targets = []
+    if not observed_data_table.is_empty():
+        observed_data_targets = (
+            observed_data_table.filter(
+                pl.col("location") == two_letter_loc_abbr
+            )["target"]
+            .unique()
+            .sort()
+            .to_list()
+        )
+
+    all_targets = sorted(set(forecast_targets + observed_data_targets))
     selected_target = st.selectbox(
-        "Target(s)", options=targets, key="target_selection"
+        "Target",
+        options=all_targets,
+        key="target_selection",
     )
     return selected_models, selected_target
 
 
-@st.cache_data
 def get_available_locations(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
 ) -> pl.DataFrame:
@@ -153,7 +188,6 @@ def get_available_locations(
     )
 
 
-@st.cache_data
 def get_reference_dates(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
 ) -> list[str]:
@@ -205,13 +239,13 @@ def reference_date_and_location_ui(
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
     long_names = loc_lookup["long_name"].to_list()
-    ref_dates = get_reference_dates(forecast_table)
+    ref_dates = get_reference_dates(observed_data_table, forecast_table)
     col1, col2 = st.columns(2)
     with col1:
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=ref_dates,
-            format_func=lambda x: x.strftime("%Y-%m-%d"),
+            # format_func=lambda x: x.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
     with col2:
@@ -386,15 +420,22 @@ def plotting_ui(
     base_chart = st.empty()
     scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
     grid = st.checkbox("Gridlines", value=True)
-    forecast_layers = quantile_forecast_chart(
-        forecasts_to_plot, scale=scale, grid=grid
-    )
-    observed_layers = target_data_chart(data_to_plot, scale=scale, grid=grid)
-    fc_title = f"Forecasts For {two_letter_loc_abbr} For {selected_ref_date}"
+    layer = None
+    if not forecasts_to_plot.is_empty():
+        forecast = quantile_forecast_chart(
+            forecasts_to_plot, scale=scale, grid=grid
+        )
+        layer = forecast if layer is None else layer + forecast
+    if not data_to_plot.is_empty():
+        observed = target_data_chart(data_to_plot, scale=scale, grid=grid)
+        layer = observed if layer is None else layer + observed
+    if layer is None:
+        st.info("No data to plot for that model/target/location.")
+        return
+    title = f"{two_letter_loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
-        (forecast_layers + observed_layers)
-        .interactive()
-        .properties(title=alt.TitleParams(text=fc_title, anchor="middle"))
+        layer.interactive()
+        .properties(title=alt.TitleParams(text=title, anchor="middle"))
         .facet(row=alt.Row("model:N"), columns=1)
     )
     chart_key = f"forecast_{two_letter_loc_abbr}_{selected_target}"
@@ -497,7 +538,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
 
 
 def filter_for_plotting(
-    filtered_hub_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
     observed_data_table: pl.DataFrame,
     selected_models: list[str],
     selected_target: str,
@@ -509,13 +550,11 @@ def filter_for_plotting(
 
     Parameters
     ----------
-    filtered_hub_table : pl.DataFrame
-        The hubverse formatted table of forecasted ED
-        visits and or hospital admissions, filtered by
-        location.
     observed_data_table : pl.DataFrame
-        The loaded observed data table (filtered to
-        latest as_of date).
+        A hubverse table of loaded data (possibly empty).
+    forecast_table : pl.DataFrame
+        The hubverse formatted table of forecasted ED
+        visits and or hospital admissions (possibly empty).
     selected_models : list[str]
         Selected models to annotate.
     selected_target
@@ -531,22 +570,22 @@ def filter_for_plotting(
         forecast_table (pl.DataFrame) filtered by model,
         target, and location, to be used for plotting.
     """
-    forecasts_to_plot = (
-        filtered_hub_table.filter(
-            pl.col("model").is_in(selected_models),
+    if not forecast_table.is_empty():
+        forecasts_to_plot = forecast_table.filter(
+            pl.col("location") == two_letter_loc_abbr,
             pl.col("target") == selected_target,
+            pl.col("model").is_in(selected_models),
         )
-        if not filtered_hub_table.is_empty()
-        else pl.DataFrame()
-    )
-    data_to_plot = (
-        observed_data_table.filter(
+    else:
+        forecasts_to_plot = pl.DataFrame()
+    if not observed_data_table.is_empty():
+        data_to_plot = observed_data_table.filter(
             pl.col("location") == two_letter_loc_abbr,
             pl.col("target") == selected_target,
         )
-        if not observed_data_table.is_empty()
-        else pl.DataFrame()
-    )
+    else:
+        data_to_plot = pl.DataFrame()
+
     return forecasts_to_plot, data_to_plot
 
 
@@ -567,15 +606,12 @@ def main() -> None:
     selected_ref_date, two_letter_loc_abbr = reference_date_and_location_ui(
         observed_data_table, forecast_table
     )
-    filtered_hub_table = forecast_table.filter(
-        pl.col("location") == two_letter_loc_abbr
-    )
     selected_models, selected_target = model_and_target_selection_ui(
-        filtered_hub_table
+        observed_data_table, forecast_table, two_letter_loc_abbr
     )
 
     forecasts_to_plot, data_to_plot = filter_for_plotting(
-        filtered_hub_table,
+        forecast_table,
         observed_data_table,
         selected_models,
         selected_target,
