@@ -139,9 +139,8 @@ def model_and_target_selection_ui(
     observed_data_targets = []
     if not observed_data_table.is_empty():
         observed_data_targets = (
-            observed_data_table.filter(pl.col("location") == loc_abbr)[
-                "target"
-            ]
+            observed_data_table.filter(pl.col("location") == loc_abbr)
+             .get_column("target")
             .unique()
             .sort()
             .to_list()
