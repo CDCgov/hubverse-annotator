@@ -111,7 +111,8 @@ def model_and_target_selection_ui(
     """
     if not forecast_table.is_empty():
         models = (
-            forecast_table.filter(pl.col("location") == loc_abbr)["model_id"]
+            forecast_table.filter(pl.col("location") == loc_abbr)
+            .get_column("model_id")
             .unique()
             .sort()
             .to_list()
