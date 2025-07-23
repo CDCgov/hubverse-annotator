@@ -180,17 +180,13 @@ def get_available_locations(
     )
 
 
-def get_reference_dates(
-    observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
-) -> list[str]:
+def get_reference_dates(forecast_table: pl.DataFrame) -> list[str]:
     """
     Retrieves a dataframe of forecast reference dates. The
     dataframe is cached for streamlit via cache_data.
 
     Parameters
     ----------
-    observed_data_table : pl.DataFrame
-        A hubverse table of loaded data (possibly empty).
     forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions (possibly empty).
@@ -229,7 +225,7 @@ def reference_date_and_location_ui(
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
     long_names = loc_lookup["long_name"].to_list()
-    ref_dates = get_reference_dates(observed_data_table, forecast_table)
+    ref_dates = get_reference_dates(forecast_table)
     col1, col2 = st.columns(2)
     with col1:
         selected_ref_date = st.selectbox(
