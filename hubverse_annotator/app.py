@@ -236,6 +236,7 @@ def reference_date_and_location_ui(
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=sorted(ref_dates, reverse=True),
+            format_func=lambda x: x.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
     with col2:
@@ -567,6 +568,7 @@ def filter_for_plotting(
     forecast_table: pl.DataFrame,
     selected_models: list[str],
     selected_target: str,
+    selected_ref_date: str,
     loc_abbr: str,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """
@@ -582,9 +584,11 @@ def filter_for_plotting(
         visits and or hospital admissions (possibly empty).
     selected_models : list[str]
         Selected models to annotate.
-    selected_target
+    selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    selected_ref_date : str
+        The selected reference date.
     loc_abbr
         The abbreviated US jurisdiction abbreviation.
 
@@ -603,6 +607,7 @@ def filter_for_plotting(
         pl.col("location") == loc_abbr,
         pl.col("target") == selected_target,
         pl.col("model_id").is_in(selected_models),
+        pl.col("reference_date") == selected_ref_date,
     )
     return data_to_plot, forecasts_to_plot
 
@@ -628,6 +633,7 @@ def main() -> None:
         forecast_table,
         selected_models,
         selected_target,
+        selected_ref_date,
         loc_abbr,
     )
     plotting_ui(
