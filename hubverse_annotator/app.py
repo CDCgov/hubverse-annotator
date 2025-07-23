@@ -204,7 +204,7 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[str]:
     list[str]
         A list of available reference dates.
     """
-    return forecast_table["reference_date"].unique().to_list()
+    return forecast_table.get_column("reference_date").unique().to_list()
 
 
 def reference_date_and_location_ui(
@@ -492,7 +492,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     )
     # ensure hub table loc column is two letter abbrs
     if "location" in hub_table.columns:
-        codes = hub_table["location"].unique().to_list()
+        codes = hub_table.get_column("location").unique().to_list()
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
