@@ -173,11 +173,16 @@ def get_available_locations(
     pl.DataFrame
         A dataframe of locations in different formats.
     """
-    locs = []
-    if "location" in observed_data_table.columns:
-        locs += observed_data_table["location"].unique().to_list()
-    if "location" in forecast_table.columns:
-        locs += forecast_table["location"].unique().to_list()
+    locs = (
+        pl.concat(
+            [
+                observed_data_table.get_column("location"),
+                forecast_table.get_column("location"),
+            ]
+        )
+        .unique()
+        .to_list()
+    )
     return forecasttools.location_lookup(
         location_vector=list(set(locs)), location_format="abbr"
     )
@@ -432,9 +437,6 @@ def plotting_ui(
         forecasts_to_plot, scale=scale, grid=grid
     )
     layer = observed_sub_layer + forecast_sub_layer
-    if is_empty_chart(layer):
-        st.info("No data to plot for that model/target/location.")
-        return
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
         layer.interactive()
