@@ -515,9 +515,8 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     if observed_data_file:
         observed_data_table = load_hubverse_table(observed_data_file)
         if "as_of" in observed_data_table.columns:
-            latest = observed_data_table.select(pl.col("as_of").max()).item()
             observed_data_table = observed_data_table.filter(
-                pl.col("as_of") == latest
+                pl.col("as_of") == pl.col("as_of").max()
             )
     else:
         observed_data_table = pl.DataFrame(
