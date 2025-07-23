@@ -10,6 +10,7 @@ import json
 import logging
 import pathlib
 import time
+from typing import Literal
 
 import altair as alt
 import forecasttools
@@ -17,6 +18,8 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+
+type ScaleType = Literal["linear", "log"]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -244,7 +247,9 @@ def reference_date_and_location_ui(
 
 
 def target_data_chart(
-    observed_data_table: pl.DataFrame, scale: str = "log", grid: bool = True
+    observed_data_table: pl.DataFrame,
+    scale: ScaleType = "log",
+    grid: bool = True,
 ) -> alt.Chart:
     """
     Layers target hubverse data onto `altair` plot.
@@ -287,8 +292,8 @@ def target_data_chart(
 
 
 def quantile_forecast_chart(
-    hubverse_table: pl.DataFrame, scale: str = "log", grid: bool = True
-) -> alt.Chart:
+    hubverse_table: pl.DataFrame, scale: ScaleType = "log", grid: bool = True
+) -> alt.LayerChart:
     """
     Uses a hubverse table (polars) and a reference date to
     display quantile forecasts faceted by model. The
@@ -308,7 +313,7 @@ def quantile_forecast_chart(
 
     Returns
     -------
-    alt.Chart
+    alt.LayerChart
         An altair chart object with plotted forecasts.
     """
     value_col = "value"
