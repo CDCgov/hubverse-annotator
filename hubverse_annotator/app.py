@@ -126,7 +126,6 @@ def model_and_target_selection_ui(
         default=None,
         key="model_selection",
     )
-
     forecast_targets = (
         forecast_table.filter(
             pl.col("location") == loc_abbr,
@@ -202,7 +201,7 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
 
     Returns
     -------
-    list[str]
+    list[datetime.date]
         A list of available reference dates.
     """
     return forecast_table.get_column("reference_date").unique().to_list()
@@ -248,17 +247,6 @@ def reference_date_and_location_ui(
         .item()
     )
     return selected_ref_date, loc_abbr
-
-
-def is_empty_chart(chart: alt.Chart | alt.LayerChart) -> bool:
-    spec = chart.to_dict()
-    if "layer" not in spec:
-        return not (
-            spec.get("data") or spec.get("mark") or spec.get("encoding")
-        )
-    return all(
-        is_empty_chart(alt.Chart.from_dict(sub)) for sub in spec["layer"]
-    )
 
 
 def target_data_chart(
@@ -429,13 +417,18 @@ def plotting_ui(
     base_chart = st.empty()
     scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
     grid = st.checkbox("Gridlines", value=True)
-    observed_sub_layer = target_data_chart(
-        data_to_plot, scale=scale, grid=grid
-    )
-    forecast_sub_layer = quantile_forecast_chart(
-        forecasts_to_plot, scale=scale, grid=grid
-    )
-    layer = observed_sub_layer + forecast_sub_layer
+    layer = None
+    if not forecasts_to_plot.is_empty():
+        forecast = quantile_forecast_chart(
+            forecasts_to_plot, scale=scale, grid=grid
+        )
+        layer = forecast if layer is None else layer + forecast
+    if not data_to_plot.is_empty():
+        observed = target_data_chart(data_to_plot, scale=scale, grid=grid)
+        layer = observed if layer is None else layer + observed
+    if layer is None:
+        st.info("No data to plot for that model/target/location.")
+        return
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
         layer.interactive()
