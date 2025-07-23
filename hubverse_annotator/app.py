@@ -431,7 +431,7 @@ def plotting_ui(
     forecast_sub_layer = quantile_forecast_chart(
         forecasts_to_plot, scale=scale, grid=grid
     )
-    layer = alt.layer(observed_sub_layer, forecast_sub_layer)
+    layer = observed_sub_layer + forecast_sub_layer
     if is_empty_chart(layer):
         st.info("No data to plot for that model/target/location.")
         return
@@ -522,7 +522,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         forecast table or an empty DataFrame.
     """
     observed_data_file = st.file_uploader(
-        "(Optional) Upload Hubverse Target Data", type=["parquet"]
+        "Upload Hubverse Target Data", type=["parquet"]
     )
     if observed_data_file:
         observed_data_table = load_hubverse_table(observed_data_file)
@@ -624,7 +624,7 @@ def main() -> None:
     selected_models, selected_target = model_and_target_selection_ui(
         observed_data_table, forecast_table, loc_abbr
     )
-    forecasts_to_plot, data_to_plot = filter_for_plotting(
+    data_to_plot, forecasts_to_plot = filter_for_plotting(
         observed_data_table,
         forecast_table,
         selected_models,
