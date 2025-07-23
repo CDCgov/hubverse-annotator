@@ -604,7 +604,6 @@ def filter_for_plotting(
         pl.col("location") == loc_abbr,
         pl.col("target") == selected_target,
     )
-    print(loc_abbr)
     forecasts_to_plot = forecast_table.filter(
         pl.col("location") == loc_abbr,
         pl.col("target") == selected_target,
