@@ -246,6 +246,17 @@ def reference_date_and_location_ui(
     return selected_ref_date, loc_abbr
 
 
+def is_empty_chart(chart: alt.Chart | alt.LayerChart) -> bool:
+    spec = chart.to_dict()
+    if "layer" not in spec:
+        return not (
+            spec.get("data") or spec.get("mark") or spec.get("encoding")
+        )
+    return all(
+        is_empty_chart(alt.Chart.from_dict(sub)) for sub in spec["layer"]
+    )
+
+
 def target_data_chart(
     observed_data_table: pl.DataFrame,
     scale: ScaleType = "log",
@@ -271,6 +282,8 @@ def target_data_chart(
     alt.Chart
         An `altair` chart with the target hubverse data.
     """
+    if observed_data_table.is_empty():
+        return alt.layer()
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
     y_axis = alt.Axis(
@@ -292,7 +305,7 @@ def target_data_chart(
 
 
 def quantile_forecast_chart(
-    hubverse_table: pl.DataFrame, scale: ScaleType = "log", grid: bool = True
+    forecast_table: pl.DataFrame, scale: ScaleType = "log", grid: bool = True
 ) -> alt.LayerChart:
     """
     Uses a hubverse table (polars) and a reference date to
@@ -302,7 +315,7 @@ def quantile_forecast_chart(
 
     Parameters
     ----------
-    hubverse_table : pl.DataFrame
+    forecast_table : pl.DataFrame
         The hubverse-formatted forecast table.
     scale : str
         The scale to use for the Y axis during plotting.
@@ -316,6 +329,8 @@ def quantile_forecast_chart(
     alt.LayerChart
         An altair chart object with plotted forecasts.
     """
+    if forecast_table.is_empty():
+        return alt.layer()
     value_col = "value"
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
@@ -330,7 +345,7 @@ def quantile_forecast_chart(
     # are str for pivot; also, pivot to wide, so quantiles
     # ids are columns
     df_wide = (
-        hubverse_table.filter(pl.col("output_type") == "quantile")
+        forecast_table.filter(pl.col("output_type") == "quantile")
         .pivot(
             on="output_type_id",
             index=cs.exclude("output_type_id", value_col),
@@ -410,22 +425,14 @@ def plotting_ui(
     base_chart = st.empty()
     scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
     grid = st.checkbox("Gridlines", value=True)
-    layer = None
-    if not forecasts_to_plot.is_empty():
-        forecast_sub_layer = quantile_forecast_chart(
-            forecasts_to_plot, scale=scale, grid=grid
-        )
-        layer = (
-            forecast_sub_layer if layer is None else layer + forecast_sub_layer
-        )
-    if not data_to_plot.is_empty():
-        observed_sub_layer = target_data_chart(
-            data_to_plot, scale=scale, grid=grid
-        )
-        layer = (
-            observed_sub_layer if layer is None else layer + observed_sub_layer
-        )
-    if layer is None:
+    observed_sub_layer = target_data_chart(
+        data_to_plot, scale=scale, grid=grid
+    )
+    forecast_sub_layer = quantile_forecast_chart(
+        forecasts_to_plot, scale=scale, grid=grid
+    )
+    layer = alt.layer(observed_sub_layer, forecast_sub_layer)
+    if is_empty_chart(layer):
         st.info("No data to plot for that model/target/location.")
         return
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
@@ -589,16 +596,16 @@ def filter_for_plotting(
         forecast_table (pl.DataFrame) filtered by model,
         target, and location, to be used for plotting.
     """
+    data_to_plot = observed_data_table.filter(
+        pl.col("location") == loc_abbr,
+        pl.col("target") == selected_target,
+    )
     forecasts_to_plot = forecast_table.filter(
         pl.col("location") == loc_abbr,
         pl.col("target") == selected_target,
         pl.col("model_id").is_in(selected_models),
     )
-    data_to_plot = observed_data_table.filter(
-        pl.col("location") == loc_abbr,
-        pl.col("target") == selected_target,
-    )
-    return forecasts_to_plot, data_to_plot
+    return data_to_plot, forecasts_to_plot
 
 
 def main() -> None:
