@@ -411,13 +411,19 @@ def plotting_ui(
     grid = st.checkbox("Gridlines", value=True)
     layer = None
     if not forecasts_to_plot.is_empty():
-        forecast = quantile_forecast_chart(
+        forecast_sub_layer = quantile_forecast_chart(
             forecasts_to_plot, scale=scale, grid=grid
         )
-        layer = forecast if layer is None else layer + forecast
+        layer = (
+            forecast_sub_layer if layer is None else layer + forecast_sub_layer
+        )
     if not data_to_plot.is_empty():
-        observed = target_data_chart(data_to_plot, scale=scale, grid=grid)
-        layer = observed if layer is None else layer + observed
+        observed_sub_layer = target_data_chart(
+            data_to_plot, scale=scale, grid=grid
+        )
+        layer = (
+            observed_sub_layer if layer is None else layer + observed_sub_layer
+        )
     if layer is None:
         st.info("No data to plot for that model/target/location.")
         return
