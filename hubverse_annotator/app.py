@@ -43,7 +43,7 @@ def export_button() -> None:
 def forecast_annotation_ui(
     selected_models: list[str],
     loc_abbr: str,
-    selected_ref_date: str,
+    selected_ref_date: datetime.date,
 ) -> None:
     """
     Streamlit widget for status/comments UI per model and
@@ -93,7 +93,7 @@ def model_and_target_selection_ui(
     observed_data_table: pl.DataFrame,
     forecast_table: pl.DataFrame,
     loc_abbr: str,
-) -> tuple[list[str], str]:
+) -> tuple[list[str], str | None]:
     """
     Streamlit widget for model and target selection.
 
@@ -209,7 +209,7 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
 
 def reference_date_and_location_ui(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
-) -> tuple[str, str]:
+) -> tuple[datetime.date, str]:
     """
     Streamlit widget for the reference date and location
     selection.
@@ -253,7 +253,7 @@ def target_data_chart(
     observed_data_table: pl.DataFrame,
     scale: ScaleType = "log",
     grid: bool = True,
-) -> alt.Chart:
+) -> alt.Chart | alt.LayerChart:
     """
     Layers target hubverse data onto `altair` plot.
 
@@ -278,9 +278,7 @@ def target_data_chart(
         return alt.layer()
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
-    y_axis = alt.Axis(
-        title=None, grid=grid, ticks=True, labels=True, orient="right"
-    )
+    y_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True, orient="right")
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
@@ -388,8 +386,8 @@ def plotting_ui(
     data_to_plot: pl.DataFrame,
     forecasts_to_plot: pl.DataFrame,
     loc_abbr: str,
-    selected_target: str,
-    selected_ref_date: str,
+    selected_target: str | None,
+    selected_ref_date: datetime.date,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -419,9 +417,7 @@ def plotting_ui(
     grid = st.checkbox("Gridlines", value=True)
     layer = None
     if not forecasts_to_plot.is_empty():
-        forecast = quantile_forecast_chart(
-            forecasts_to_plot, scale=scale, grid=grid
-        )
+        forecast = quantile_forecast_chart(forecasts_to_plot, scale=scale, grid=grid)
         layer = forecast if layer is None else layer + forecast
     if not data_to_plot.is_empty():
         observed = target_data_chart(data_to_plot, scale=scale, grid=grid)
@@ -490,9 +486,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(
-            lookup.select(["location_code", "short_name"]).iter_rows()
-        )
+        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
@@ -563,8 +557,8 @@ def filter_for_plotting(
     observed_data_table: pl.DataFrame,
     forecast_table: pl.DataFrame,
     selected_models: list[str],
-    selected_target: str,
-    selected_ref_date: str,
+    selected_target: str | None,
+    selected_ref_date: datetime.date,
     loc_abbr: str,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """
