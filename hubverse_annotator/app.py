@@ -109,44 +109,37 @@ def model_and_target_selection_ui(
         Returns a list of selected model names and the
         selected target.
     """
-    if not forecast_table.is_empty():
-        models = (
-            forecast_table.filter(pl.col("location") == loc_abbr)
-            .get_column("model_id")
-            .unique()
-            .sort()
-            .to_list()
-        )
-        selected_models = st.multiselect(
-            "Model(s)",
-            options=models,
-            default=None,
-            key="model_selection",
-        )
-    else:
-        selected_models = []
-    forecast_targets = []
-    if not forecast_table.is_empty():
-        forecast_targets = (
-            forecast_table.filter(
-                pl.col("location") == loc_abbr,
-                pl.col("model_id").is_in(selected_models),
-            )
-            .get_column("target")
-            .unique()
-            .sort()
-            .to_list()
-        )
-    observed_data_targets = []
-    if not observed_data_table.is_empty():
-        observed_data_targets = (
-            observed_data_table.filter(pl.col("location") == loc_abbr)
-            .get_column("target")
-            .unique()
-            .sort()
-            .to_list()
-        )
+    models = (
+        forecast_table.filter(pl.col("location") == loc_abbr)
+        .get_column("model_id")
+        .unique()
+        .sort()
+        .to_list()
+    )
+    selected_models = st.multiselect(
+        "Model(s)",
+        options=models,
+        default=None,
+        key="model_selection",
+    )
 
+    forecast_targets = (
+        forecast_table.filter(
+            pl.col("location") == loc_abbr,
+            pl.col("model_id").is_in(selected_models),
+        )
+        .get_column("target")
+        .unique()
+        .sort()
+        .to_list()
+    )
+    observed_data_targets = (
+        observed_data_table.filter(pl.col("location") == loc_abbr)
+        .get_column("target")
+        .unique()
+        .sort()
+        .to_list()
+    )
     all_targets = sorted(set(forecast_targets + observed_data_targets))
     selected_target = st.selectbox(
         "Target",
@@ -519,19 +512,43 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     observed_data_file = st.file_uploader(
         "(Optional) Upload Hubverse Target Data", type=["parquet"]
     )
-    observed_data_table = load_hubverse_table(observed_data_file)
-    if (
-        not observed_data_table.is_empty()
-        and "as_of" in observed_data_table.columns
-    ):
-        latest = observed_data_table.select(pl.col("as_of").max()).item()
-        observed_data_table = observed_data_table.filter(
-            pl.col("as_of") == latest
+    if observed_data_file:
+        observed_data_table = load_hubverse_table(observed_data_file)
+        if "as_of" in observed_data_table.columns:
+            latest = observed_data_table.select(pl.col("as_of").max()).item()
+            observed_data_table = observed_data_table.filter(
+                pl.col("as_of") == latest
+            )
+    else:
+        observed_data_table = pl.DataFrame(
+            schema={
+                "date": pl.Date,
+                "state": pl.Utf8,
+                "observation": pl.Float64,
+                "location": pl.Utf8,
+                "as_of": pl.Date,
+                "target": pl.Utf8,
+            }
         )
     forecast_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
-    forecast_table = load_hubverse_table(forecast_file)
+    if forecast_file:
+        forecast_table = load_hubverse_table(forecast_file)
+    else:
+        forecast_table = pl.DataFrame(
+            schema={
+                "model_id": pl.Utf8,
+                "reference_date": pl.Date,
+                "target": pl.Utf8,
+                "horizon": pl.Int32,
+                "target_end_date": pl.Date,
+                "location": pl.Utf8,
+                "output_type": pl.Utf8,
+                "output_type_id": pl.Utf8,
+                "value": pl.Float64,
+            }
+        )
     return observed_data_table, forecast_table
 
 
@@ -568,21 +585,15 @@ def filter_for_plotting(
         forecast_table (pl.DataFrame) filtered by model,
         target, and location, to be used for plotting.
     """
-    if not forecast_table.is_empty():
-        forecasts_to_plot = forecast_table.filter(
-            pl.col("location") == loc_abbr,
-            pl.col("target") == selected_target,
-            pl.col("model_id").is_in(selected_models),
-        )
-    else:
-        forecasts_to_plot = pl.DataFrame()
-    if not observed_data_table.is_empty():
-        data_to_plot = observed_data_table.filter(
-            pl.col("location") == loc_abbr,
-            pl.col("target") == selected_target,
-        )
-    else:
-        data_to_plot = pl.DataFrame()
+    forecasts_to_plot = forecast_table.filter(
+        pl.col("location") == loc_abbr,
+        pl.col("target") == selected_target,
+        pl.col("model_id").is_in(selected_models),
+    )
+    data_to_plot = observed_data_table.filter(
+        pl.col("location") == loc_abbr,
+        pl.col("target") == selected_target,
+    )
     return forecasts_to_plot, data_to_plot
 
 
