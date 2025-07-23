@@ -204,10 +204,7 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[str]:
     list[str]
         A list of available reference dates.
     """
-    refs_dates = []
-    if "reference_date" in forecast_table.columns:
-        refs_dates += forecast_table["reference_date"].unique().to_list()
-    return list(set(refs_dates))
+    return forecast_table["reference_date"].unique().to_list()
 
 
 def reference_date_and_location_ui(
