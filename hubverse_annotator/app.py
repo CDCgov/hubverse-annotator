@@ -6,6 +6,7 @@ and annotate models.
 To run: uv run streamlit run ./hubverse_annotator/app.py
 """
 
+import datetime
 import json
 import logging
 import pathlib
@@ -188,7 +189,7 @@ def get_available_locations(
     )
 
 
-def get_reference_dates(forecast_table: pl.DataFrame) -> list[str]:
+def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
     """
     Retrieves a dataframe of forecast reference dates. The
     dataframe is cached for streamlit via cache_data.
@@ -603,6 +604,7 @@ def filter_for_plotting(
         pl.col("location") == loc_abbr,
         pl.col("target") == selected_target,
     )
+    print(loc_abbr)
     forecasts_to_plot = forecast_table.filter(
         pl.col("location") == loc_abbr,
         pl.col("target") == selected_target,
