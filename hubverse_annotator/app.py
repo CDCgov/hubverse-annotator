@@ -114,7 +114,7 @@ def model_and_target_selection_ui(
         selected target.
     """
     models = (
-        forecast_table.filter(pl.col("location") == loc_abbr)
+        forecast_table.filter(pl.col("loc_abbr") == loc_abbr)
         .get_column("model_id")
         .unique()
         .sort()
@@ -128,7 +128,7 @@ def model_and_target_selection_ui(
     )
     forecast_targets = (
         forecast_table.filter(
-            pl.col("location") == loc_abbr,
+            pl.col("loc_abbr") == loc_abbr,
             pl.col("model_id").is_in(selected_models),
         )
         .get_column("target")
@@ -137,7 +137,7 @@ def model_and_target_selection_ui(
         .to_list()
     )
     observed_data_targets = (
-        observed_data_table.filter(pl.col("location") == loc_abbr)
+        observed_data_table.filter(pl.col("loc_abbr") == loc_abbr)
         .get_column("target")
         .unique()
         .sort()
@@ -176,8 +176,8 @@ def get_available_locations(
     locs = (
         pl.concat(
             [
-                observed_data_table.get_column("location"),
-                forecast_table.get_column("location"),
+                observed_data_table.get_column("loc_abbr"),
+                forecast_table.get_column("loc_abbr"),
             ]
         )
         .unique()
@@ -494,7 +494,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
             lookup.select(["location_code", "short_name"]).iter_rows()
         )
         hub_table = hub_table.with_columns(
-            pl.col("location").replace(code_to_abbr)
+            pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
     return hub_table
 
@@ -533,6 +533,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
                 "location": pl.Utf8,
                 "as_of": pl.Date,
                 "target": pl.Utf8,
+                "loc_abbr": pl.Utf8,
             }
         )
     forecast_file = st.file_uploader(
@@ -552,6 +553,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
                 "output_type": pl.Utf8,
                 "output_type_id": pl.Utf8,
                 "value": pl.Float64,
+                "loc_abbr": pl.Utf8,
             }
         )
     return observed_data_table, forecast_table
@@ -594,11 +596,11 @@ def filter_for_plotting(
         target, and location, to be used for plotting.
     """
     data_to_plot = observed_data_table.filter(
-        pl.col("location") == loc_abbr,
+        pl.col("loc_abbr") == loc_abbr,
         pl.col("target") == selected_target,
     )
     forecasts_to_plot = forecast_table.filter(
-        pl.col("location") == loc_abbr,
+        pl.col("loc_abbr") == loc_abbr,
         pl.col("target") == selected_target,
         pl.col("model_id").is_in(selected_models),
         pl.col("reference_date") == selected_ref_date,
