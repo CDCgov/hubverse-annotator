@@ -278,7 +278,9 @@ def target_data_chart(
         return alt.layer()
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
-    y_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True, orient="right")
+    y_axis = alt.Axis(
+        title=None, grid=grid, ticks=True, labels=True, orient="right"
+    )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
@@ -417,7 +419,9 @@ def plotting_ui(
     grid = st.checkbox("Gridlines", value=True)
     layer = None
     if not forecasts_to_plot.is_empty():
-        forecast = quantile_forecast_chart(forecasts_to_plot, scale=scale, grid=grid)
+        forecast = quantile_forecast_chart(
+            forecasts_to_plot, scale=scale, grid=grid
+        )
         layer = forecast if layer is None else layer + forecast
     if not data_to_plot.is_empty():
         observed = target_data_chart(data_to_plot, scale=scale, grid=grid)
@@ -486,7 +490,9 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
+        code_to_abbr = dict(
+            lookup.select(["location_code", "short_name"]).iter_rows()
+        )
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
