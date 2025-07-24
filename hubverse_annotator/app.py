@@ -233,7 +233,7 @@ def reference_date_and_location_ui(
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
     long_names = loc_lookup["long_name"].to_list()
     if "locations_list" not in st.session_state:
-        st.session_state.locations_list = long_names
+        st.session_state.locations_list = sorted(long_names)
     if "location_selection" not in st.session_state:
         st.session_state.location_selection = long_names[0]
     ref_dates = get_reference_dates(forecast_table)
@@ -246,9 +246,11 @@ def reference_date_and_location_ui(
             key="ref_date_selection",
         )
     with col2:
-        location = st.selectbox("Location", options=sorted(long_names))
+        selected_location = st.selectbox(
+            "Location", options=st.session_state.locations_list
+        )
     loc_abbr = (
-        loc_lookup.filter(pl.col("long_name") == location)
+        loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
         .item()
     )
