@@ -152,6 +152,7 @@ def model_and_target_selection_ui(
     return selected_models, selected_target
 
 
+@st.cache_data
 def get_available_locations(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
 ) -> pl.DataFrame:
