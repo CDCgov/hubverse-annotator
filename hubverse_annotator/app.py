@@ -251,7 +251,7 @@ def reference_date_and_location_ui(
     return selected_ref_date, loc_abbr
 
 
-def is_empty_chart(chart: alt.LayerChart):
+def is_empty_chart(chart: alt.LayerChart) -> bool:
     """
     Checks if an altair layer is empty. Primarily used for
     resolving forecast and observed data layering when
