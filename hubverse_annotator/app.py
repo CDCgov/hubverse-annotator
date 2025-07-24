@@ -55,7 +55,7 @@ def forecast_annotation_ui(
         Selected models to annotate.
     loc_abbr : str
         The selection location, typically a US jurisdiction.
-    selected_ref_date : str
+    selected_ref_date : datetime.date
         The selected reference date.
     """
     output_dir = pathlib.Path("../output")
@@ -583,7 +583,7 @@ def filter_for_plotting(
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
-    selected_ref_date : str
+    selected_ref_date : datetime.date
         The selected reference date.
     loc_abbr
         The abbreviated US jurisdiction abbreviation.
