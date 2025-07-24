@@ -231,20 +231,70 @@ def reference_date_and_location_ui(
         the two letter location abbreviation.
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
-    long_names = loc_lookup["long_name"].to_list()
-    ref_dates = get_reference_dates(forecast_table)
+    if "locations_list" not in st.session_state:
+        st.session_state.locations_list = (
+            loc_lookup.get_column("long_name").sort().to_list()
+        )
+    if "location_selection" not in st.session_state:
+        st.session_state.location_selection = st.session_state.locations_list[
+            0
+        ]
+
+    def go_to_prev_loc():
+        current_loc = st.session_state.locations_list.index(
+            st.session_state.location_selection
+        )
+        if current_loc > 0:
+            st.session_state.location_selection = (
+                st.session_state.locations_list[current_loc - 1]
+            )
+
+    def go_to_next_loc():
+        current_loc = st.session_state.locations_list.index(
+            st.session_state.location_selection
+        )
+        if current_loc < len(st.session_state.locations_list) - 1:
+            st.session_state.location_selection = (
+                st.session_state.locations_list[current_loc + 1]
+            )
+
+    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
     col1, col2 = st.columns(2)
     with col1:
         selected_ref_date = st.selectbox(
             "Reference Date",
-            options=sorted(ref_dates, reverse=True),
-            format_func=lambda x: x.strftime("%Y-%m-%d"),
+            options=ref_dates,
+            format_func=lambda d: d.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
+    current_loc = st.session_state.locations_list.index(
+        st.session_state.location_selection
+    )
+    first_loc_is_selected = current_loc == 0
+    last_loc_is_selected = (
+        current_loc == len(st.session_state.locations_list) - 1
+    )
     with col2:
-        location = st.selectbox("Location", options=sorted(long_names))
+        location_select_box, previous_button, next_button = st.columns(
+            [3, 1, 1]
+        )
+        with location_select_box:
+            st.selectbox(
+                "Location",
+                options=st.session_state.locations_list,
+                key="location_selection",
+            )
+        with previous_button:
+            st.button(
+                "⏮️", on_click=go_to_prev_loc, disabled=first_loc_is_selected
+            )
+        with next_button:
+            st.button(
+                "⏭️", on_click=go_to_next_loc, disabled=last_loc_is_selected
+            )
+    selected_location = st.session_state.location_selection
     loc_abbr = (
-        loc_lookup.filter(pl.col("long_name") == location)
+        loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
         .item()
     )
