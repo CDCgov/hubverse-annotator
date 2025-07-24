@@ -35,7 +35,9 @@ def is_empty_chart(ch):
     spec = ch.to_dict()
     # unit chart: no data, no mark, no encoding
     if "layer" not in spec:
-        return not (spec.get("data") or spec.get("mark") or spec.get("encoding"))
+        return not (
+            spec.get("data") or spec.get("mark") or spec.get("encoding")
+        )
     # LayerChart: check each sub-layer recursively
     # check if the layer list is empty or all sub-layers are empty
     if not spec["layer"]:
@@ -298,7 +300,9 @@ def target_data_chart(
         return alt.layer()
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
-    y_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True, orient="right")
+    y_axis = alt.Axis(
+        title=None, grid=grid, ticks=True, labels=True, orient="right"
+    )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
@@ -435,11 +439,15 @@ def plotting_ui(
     base_chart = st.empty()
     scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
     grid = st.checkbox("Gridlines", value=True)
-    forecast_layer = quantile_forecast_chart(forecasts_to_plot, scale=scale, grid=grid)
+    forecast_layer = quantile_forecast_chart(
+        forecasts_to_plot, scale=scale, grid=grid
+    )
     observed_layer = target_data_chart(data_to_plot, scale=scale, grid=grid)
 
     sub_layers = [
-        layer for layer in [forecast_layer, observed_layer] if not is_empty_chart(layer)
+        layer
+        for layer in [forecast_layer, observed_layer]
+        if not is_empty_chart(layer)
     ]
 
     if sub_layers:
@@ -510,7 +518,9 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
+        code_to_abbr = dict(
+            lookup.select(["location_code", "short_name"]).iter_rows()
+        )
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
