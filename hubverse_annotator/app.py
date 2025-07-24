@@ -238,21 +238,21 @@ def reference_date_and_location_ui(
         st.session_state.location_selection = long_names[0]
 
     def prev_loc():
-        loc = st.session_state.locations_list.index(
+        current_loc = st.session_state.locations_list.index(
             st.session_state.location_selection
         )
-        if loc > 0:
+        if current_loc > 0:
             st.session_state.location_selection = (
-                st.session_state.locations_list[loc - 1]
+                st.session_state.locations_list[current_loc - 1]
             )
 
     def next_loc():
-        loc = st.session_state.locations_list.index(
+        current_loc = st.session_state.locations_list.index(
             st.session_state.location_selection
         )
-        if loc < len(st.session_state.locations_list) - 1:
+        if current_loc < len(st.session_state.locations_list) - 1:
             st.session_state.location_selection = (
-                st.session_state.locations_list[loc + 1]
+                st.session_state.locations_list[current_loc + 1]
             )
 
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
