@@ -240,7 +240,7 @@ def reference_date_and_location_ui(
             0
         ]
 
-    def prev_loc():
+    def go_to_prev_loc():
         current_loc = st.session_state.locations_list.index(
             st.session_state.location_selection
         )
@@ -249,7 +249,7 @@ def reference_date_and_location_ui(
                 st.session_state.locations_list[current_loc - 1]
             )
 
-    def next_loc():
+    def go_to_next_loc():
         current_loc = st.session_state.locations_list.index(
             st.session_state.location_selection
         )
@@ -285,9 +285,13 @@ def reference_date_and_location_ui(
                 key="location_selection",
             )
         with previous_button:
-            st.button("⏮️", on_click=prev_loc, disabled=first_loc_is_selected)
+            st.button(
+                "⏮️", on_click=go_to_prev_loc, disabled=first_loc_is_selected
+            )
         with next_button:
-            st.button("⏭️", on_click=next_loc, disabled=last_loc_is_selected)
+            st.button(
+                "⏭️", on_click=go_to_next_loc, disabled=last_loc_is_selected
+            )
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
