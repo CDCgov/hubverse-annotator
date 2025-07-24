@@ -33,17 +33,18 @@ MARKER_SIZE = 25
 
 def is_empty_chart(ch):
     spec = ch.to_dict()
-    # Unit chart: no data, no mark, no encoding
+    # unit chart: no data, no mark, no encoding
     if "layer" not in spec:
         return not (
             spec.get("data") or spec.get("mark") or spec.get("encoding")
         )
     # LayerChart: check each sub-layer recursively
-    # Check if the layer list is empty or all sub-layers are empty
+    # check if the layer list is empty or all sub-layers are empty
     if not spec["layer"]:
         return True
-    # For each sub-layer, check if it's empty by examining its dict directly
-    # instead of converting back to Chart object (which can cause validation errors)
+    # for each sub-layer, check if it's empty by examining its dict directly
+    # instead of converting back to Chart object (which can cause validation
+    # errors)
     return all(
         not (sub.get("data") or sub.get("mark") or sub.get("encoding"))
         for sub in spec["layer"]
