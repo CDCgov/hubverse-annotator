@@ -241,31 +241,38 @@ def reference_date_and_location_ui(
         loc = st.session_state.locations_list.index(
             st.session_state.location_selection
         )
-        st.session_state.location_selection = st.session_state.locations_list[
-            loc - 1
-        ]
+        if loc > 0:
+            st.session_state.location_selection = (
+                st.session_state.locations_list[loc - 1]
+            )
 
     def next_loc():
         loc = st.session_state.locations_list.index(
             st.session_state.location_selection
         )
-        st.session_state.location_selection = st.session_state.locations_list[
-            (loc + 1) % len(st.session_state.locations_list)
-        ]
+        if loc < len(st.session_state.locations_list) - 1:
+            st.session_state.location_selection = (
+                st.session_state.locations_list[loc + 1]
+            )
 
     ref_dates = get_reference_dates(forecast_table)
-    c1, c2 = st.columns(2)
-    with c1:
+    col1, col2 = st.columns(2)
+    with col1:
         selected_ref_date = st.selectbox(
             "Reference Date",
             options=sorted(ref_dates, reverse=True),
             format_func=lambda d: d.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
-    with c2:
+    current_loc = st.session_state.locations_list.index(
+        st.session_state.location_selection
+    )
+    at_first = current_loc == 0
+    at_last = current_loc == len(st.session_state.locations_list) - 1
+    with col2:
         previous_button, location, next_button = st.columns([1, 3, 1])
         with previous_button:
-            st.button("⏮️", on_click=prev_loc)
+            st.button("⏮️", on_click=prev_loc, disabled=at_first)
         with location:
             st.selectbox(
                 "Location",
@@ -273,7 +280,7 @@ def reference_date_and_location_ui(
                 key="location_selection",
             )
         with next_button:
-            st.button("⏭️", on_click=next_loc)
+            st.button("⏭️", on_click=next_loc, disabled=at_last)
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
