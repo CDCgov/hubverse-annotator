@@ -274,8 +274,10 @@ def reference_date_and_location_ui(
         current_loc == len(st.session_state.locations_list) - 1
     )
     with col2:
-        location, previous_button, next_button = st.columns([3, 1, 1])
-        with location:
+        location_select_box, previous_button, next_button = st.columns(
+            [3, 1, 1]
+        )
+        with location_select_box:
             st.selectbox(
                 "Location",
                 options=st.session_state.locations_list,
