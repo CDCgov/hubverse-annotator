@@ -235,7 +235,7 @@ def reference_date_and_location_ui(
     if "locations_list" not in st.session_state:
         st.session_state.locations_list = sorted(long_names)
     if "location_selection" not in st.session_state:
-        st.session_state.location_selection = long_names[0]
+        st.session_state.location_selection = sorted(long_names)[0]
 
     def prev_loc():
         loc = st.session_state.locations_list.index(
