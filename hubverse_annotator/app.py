@@ -231,9 +231,10 @@ def reference_date_and_location_ui(
         the two letter location abbreviation.
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
-    long_names = loc_lookup.get_column("long_name").sort().to_list()
     if "locations_list" not in st.session_state:
-        st.session_state.locations_list = long_names
+        st.session_state.locations_list = (
+            loc_lookup.get_column("long_name").sort().to_list()
+        )
     if "location_selection" not in st.session_state:
         st.session_state.location_selection = st.session_state.locations_list[
             0
