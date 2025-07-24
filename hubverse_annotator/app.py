@@ -231,11 +231,11 @@ def reference_date_and_location_ui(
         the two letter location abbreviation.
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
-    long_names = loc_lookup.get_column("long_name").to_list()
+    long_names = sorted(loc_lookup.get_column("long_name").to_list())
     if "locations_list" not in st.session_state:
-        st.session_state.locations_list = sorted(long_names)
+        st.session_state.locations_list = long_names
     if "location_selection" not in st.session_state:
-        st.session_state.location_selection = sorted(long_names)[0]
+        st.session_state.location_selection = long_names[0]
 
     def prev_loc():
         loc = st.session_state.locations_list.index(
@@ -255,24 +255,26 @@ def reference_date_and_location_ui(
                 st.session_state.locations_list[loc + 1]
             )
 
-    ref_dates = get_reference_dates(forecast_table)
+    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
     col1, col2 = st.columns(2)
     with col1:
         selected_ref_date = st.selectbox(
             "Reference Date",
-            options=sorted(ref_dates, reverse=True),
+            options=ref_dates,
             format_func=lambda d: d.strftime("%Y-%m-%d"),
             key="ref_date_selection",
         )
     current_loc = st.session_state.locations_list.index(
         st.session_state.location_selection
     )
-    at_first = current_loc == 0
-    at_last = current_loc == len(st.session_state.locations_list) - 1
+    first_loc_is_selected = current_loc == 0
+    last_loc_is_selected = (
+        current_loc == len(st.session_state.locations_list) - 1
+    )
     with col2:
         previous_button, location, next_button = st.columns([1, 3, 1])
         with previous_button:
-            st.button("⏮️", on_click=prev_loc, disabled=at_first)
+            st.button("⏮️", on_click=prev_loc, disabled=first_loc_is_selected)
         with location:
             st.selectbox(
                 "Location",
@@ -280,7 +282,7 @@ def reference_date_and_location_ui(
                 key="location_selection",
             )
         with next_button:
-            st.button("⏭️", on_click=next_loc, disabled=at_last)
+            st.button("⏭️", on_click=next_loc, disabled=last_loc_is_selected)
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
