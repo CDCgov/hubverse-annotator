@@ -19,6 +19,7 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from functools import reduce
 
 type ScaleType = Literal["linear", "log"]
 
@@ -28,6 +29,23 @@ logger = logging.getLogger(__name__)
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 25
+
+
+def is_empty_chart(ch):
+    spec = ch.to_dict()
+    # Unit chart: no data, no mark, no encoding
+    if "layer" not in spec:
+        return not (spec.get("data") or spec.get("mark") or spec.get("encoding"))
+    # LayerChart: check each sub-layer recursively
+    # Check if the layer list is empty or all sub-layers are empty
+    if not spec["layer"]:
+        return True
+    # For each sub-layer, check if it's empty by examining its dict directly
+    # instead of converting back to Chart object (which can cause validation errors)
+    return all(
+        not (sub.get("data") or sub.get("mark") or sub.get("encoding"))
+        for sub in spec["layer"]
+    )
 
 
 def export_button() -> None:
@@ -279,9 +297,7 @@ def target_data_chart(
         return alt.layer()
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
-    y_axis = alt.Axis(
-        title=None, grid=grid, ticks=True, labels=True, orient="right"
-    )
+    y_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True, orient="right")
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
@@ -418,18 +434,16 @@ def plotting_ui(
     base_chart = st.empty()
     scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
     grid = st.checkbox("Gridlines", value=True)
-    layer = None
-    if not forecasts_to_plot.is_empty():
-        forecast_layer = quantile_forecast_chart(
-            forecasts_to_plot, scale=scale, grid=grid
-        )
-        layer = forecast_layer if layer is None else layer + forecast_layer
-    if not data_to_plot.is_empty():
-        observed_layer = target_data_chart(
-            data_to_plot, scale=scale, grid=grid
-        )
-        layer = observed_layer if layer is None else layer + observed_layer
-    if layer is None:
+    forecast_layer = quantile_forecast_chart(forecasts_to_plot, scale=scale, grid=grid)
+    observed_layer = target_data_chart(data_to_plot, scale=scale, grid=grid)
+
+    sub_layers = [
+        layer for layer in [forecast_layer, observed_layer] if not is_empty_chart(layer)
+    ]
+
+    if sub_layers:
+        layer = reduce(lambda x, y: x + y, sub_layers)
+    else:
         st.info("No data to plot for that model/target/location.")
         return
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
@@ -493,9 +507,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(
-            lookup.select(["location_code", "short_name"]).iter_rows()
-        )
+        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
