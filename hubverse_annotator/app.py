@@ -232,6 +232,10 @@ def reference_date_and_location_ui(
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
     long_names = loc_lookup["long_name"].to_list()
+    if "locations_list" not in st.session_state:
+        st.session_state.locations_list = long_names
+    if "location_selection" not in st.session_state:
+        st.session_state.location_selection = long_names[0]
     ref_dates = get_reference_dates(forecast_table)
     col1, col2 = st.columns(2)
     with col1:
