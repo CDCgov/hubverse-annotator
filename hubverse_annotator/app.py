@@ -31,6 +31,30 @@ STROKE_WIDTH = 2
 MARKER_SIZE = 25
 
 
+OBSERVED_SCHEMA: dict[str, pl.DataType] = {
+    "date": pl.Date,
+    "state": pl.Utf8,
+    "observation": pl.Float64,
+    "location": pl.Utf8,
+    "as_of": pl.Date,
+    "target": pl.Utf8,
+    "loc_abbr": pl.Utf8,
+}
+
+FORECAST_SCHEMA: dict[str, pl.DataType] = {
+    "model_id": pl.Utf8,
+    "reference_date": pl.Date,
+    "target": pl.Utf8,
+    "horizon": pl.Int32,
+    "target_end_date": pl.Date,
+    "location": pl.Utf8,
+    "output_type": pl.Utf8,
+    "output_type_id": pl.Utf8,
+    "value": pl.Float64,
+    "loc_abbr": pl.Utf8,
+}
+
+
 def export_button() -> None:
     """
     Streamlit widget for exporting annotated forecasts.
@@ -531,6 +555,39 @@ def plotting_ui(
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
 
 
+def validate_schema(
+    df: pl.DataFrame, expected_schema: dict[str, pl.DataType], name: str
+) -> None:
+    """
+    Stop the app if received dataframe does not adhere to
+    the provided schema.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        An ingested dataframe expected to be either
+        hubverse formatted observed data or forecasts.
+    """
+    actual = df.schema
+    missing = set(expected_schema) - actual.keys()
+    extra = actual.keys() - expected_schema.keys()
+    mismatches = {
+        col: (expected_schema[col], actual[col])
+        for col in expected_schema.keys() & actual.keys()
+        if expected_schema[col] != actual[col]
+    }
+    if missing or extra or mismatches:
+        parts: list[str] = []
+        if missing:
+            parts.append(f"missing cols {sorted(missing)}")
+        if extra:
+            parts.append(f"unexpected cols {sorted(extra)}")
+        for col, (exp, act) in mismatches.items():
+            parts.append(f"'{col}' expected {exp}, got {act}")
+        st.error(f"{name} schema problems: " + "; ".join(parts))
+        st.stop()
+
+
 @st.cache_data
 def load_hubverse_table(hub_file: UploadedFile | None):
     """
@@ -616,38 +673,17 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
             observed_data_table = observed_data_table.filter(
                 pl.col("as_of") == pl.col("as_of").max()
             )
+        validate_schema(observed_data_table, OBSERVED_SCHEMA, "Observed Data")
     else:
-        observed_data_table = pl.DataFrame(
-            schema={
-                "date": pl.Date,
-                "state": pl.Utf8,
-                "observation": pl.Float64,
-                "location": pl.Utf8,
-                "as_of": pl.Date,
-                "target": pl.Utf8,
-                "loc_abbr": pl.Utf8,
-            }
-        )
+        observed_data_table = pl.DataFrame(schema=OBSERVED_SCHEMA)
     forecast_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
     if forecast_file:
         forecast_table = load_hubverse_table(forecast_file)
+        validate_schema(forecast_table, FORECAST_SCHEMA, "Forecast Data")
     else:
-        forecast_table = pl.DataFrame(
-            schema={
-                "model_id": pl.Utf8,
-                "reference_date": pl.Date,
-                "target": pl.Utf8,
-                "horizon": pl.Int32,
-                "target_end_date": pl.Date,
-                "location": pl.Utf8,
-                "output_type": pl.Utf8,
-                "output_type_id": pl.Utf8,
-                "value": pl.Float64,
-                "loc_abbr": pl.Utf8,
-            }
-        )
+        forecast_table = pl.DataFrame(schema=FORECAST_SCHEMA)
     return observed_data_table, forecast_table
 
 
