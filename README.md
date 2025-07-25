@@ -1,10 +1,42 @@
 # Hubverse Annotator
 
-_Local web application that loads hubverse formatted tables and plots model forecasts, enabling the end user to compare and annotate models._
+> [!IMPORTANT]
+> This project is currently IN PROGRESS. As such, there may be parts of this repository that do not make much sense or that are broken!
 
-This repository is a work in progress.
+## Background
 
-More information on the Why, What, and How of this repository will be provided in subsequent PRs.
+The `hubverse-annotator` (hereafter, annotator) is a Python `streamlit` application desired to aid CFA's Short Term Forecasts (STF) team with forecast reviews.
+
+The annotator is designed for:
+
+* Visualization of model forecasts and data across location, reference date, and model.
+* Selection and exportation of data points for exclusion or comment.
+* Selection and exportation of model forecasts for submission to forecast hubs.
+
+## Usage
+
+The annotator can be run by:
+
+* `git clone https://github.com/CDCgov/hubverse-annotator`
+* `cd hubverse-annotator`
+* `uv run streamlit run ./hubverse_annotator/app.py`
+
+The annotator is designed to work with [hubverse](https://hubverse.io/) data. Examples of this data are available in the [COVID-19 Forecast Hub](https://github.com/CDCgov/covid19-forecast-hub/).
+
+* Observed Data File: see <https://github.com/CDCgov/covid19-forecast-hub/blob/main/target-data/time-series.parquet>
+* COVID-19 Hubverse Forecasts File: see <https://github.com/CDCgov/covid19-forecast-hub/tree/main/model-output>
+
+The following is a showcasing of the annotator:
+
+<details markdown=1>
+
+<summary> Demonstration </summary>
+
+
+https://github.com/user-attachments/assets/fc8d06c0-fd9d-41f7-8fe8-e8069e15af05
+
+</details>
+
 
 ## CDCgov GitHub Organization Protocols
 
