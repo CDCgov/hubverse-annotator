@@ -5,7 +5,7 @@
 
 ## Background
 
-The `hubverse-annotator` (hereafter, annotator) is a Python `streamlit` application desired to aid the Short Term Forecasts (STF) team with weekly `pyrenew` HEW forecast production reviews.
+The `hubverse-annotator` (hereafter, annotator) is a Python `streamlit` application desired to aid CFA's Short Term Forecasts (STF) team with forecast reviews.
 
 The annotator is designed for:
 
