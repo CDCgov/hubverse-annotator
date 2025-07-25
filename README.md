@@ -1,8 +1,9 @@
 # Hubverse Annotator
 
-_Local web application that loads hubverse formatted tables and plots model forecasts, enabling the end user to compare and annotate models._
+_Local web application that loads hubverse formatted tables and plots observed data and model forecasts, enabling the end user to compare and annotate models._
 
-This repository is a work in progress.
+> [!IMPORTANT]
+> This project is currently IN PROGRESS. As such, there may be parts of this repository that do not make much sense or that are broken!
 
 More information on the Why, What, and How of this repository will be provided in subsequent PRs.
 
