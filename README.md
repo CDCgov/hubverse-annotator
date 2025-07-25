@@ -1,7 +1,5 @@
 # Hubverse Annotator
 
-_Locally-hosted web application for visualization of hubverse formatted observations and model forecasts and for annotation of data and models._
-
 > [!IMPORTANT]
 > This project is currently IN PROGRESS. As such, there may be parts of this repository that do not make much sense or that are broken!
 
