@@ -7,9 +7,27 @@ _Locally-hosted web application for visualization of hubverse formatted observat
 
 ## Background
 
-The `hubverse-annotator` is a Python `streamlit` application desired to aid the Short Term Forecasts (STF) team in
+The `hubverse-annotator` (hereafter, annotator) is a Python `streamlit` application desired to aid the Short Term Forecasts (STF) team with weekly `pyrenew` HEW forecast production reviews.
+
+The annotator is designed for:
+
+* Visualization of model forecasts and data across location, reference date, and model.
+* Selection and exportation of data points for exclusion or comment.
+* Selection and exportation of model forecasts for submission to forecast hubs.
 
 ## Usage
+
+The annotator can be run by:
+
+* `git clone https://github.com/CDCgov/hubverse-annotator`
+* `uv run streamlit run ./hubverse_annotator/app.py`
+
+The data files can be found via:
+
+* Observed Data File: see <https://github.com/CDCgov/covid19-forecast-hub/blob/main/target-data/time-series.parquet>
+* COVID-19 Hubverse Forecasts File: see <https://github.com/CDCgov/covid19-forecast-hub/tree/main/model-output>
+
+The following is a showcasing of the annotator:
 
 
 
