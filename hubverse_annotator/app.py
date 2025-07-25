@@ -31,7 +31,7 @@ STROKE_WIDTH = 2
 MARKER_SIZE = 25
 
 
-OBSERVED_SCHEMA: dict[str, pl.DataType] = {
+OBSERVED_SCHEMA = {
     "date": pl.Date,
     "state": pl.Utf8,
     "observation": pl.Float64,
@@ -41,7 +41,7 @@ OBSERVED_SCHEMA: dict[str, pl.DataType] = {
     "loc_abbr": pl.Utf8,
 }
 
-FORECAST_SCHEMA: dict[str, pl.DataType] = {
+FORECAST_SCHEMA = {
     "model_id": pl.Utf8,
     "reference_date": pl.Date,
     "target": pl.Utf8,
