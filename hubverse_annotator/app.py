@@ -27,8 +27,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 PLOT_WIDTH = 625
+VIEW_HEIGHT = 50
 STROKE_WIDTH = 2
-MARKER_SIZE = 25
+MARKER_SIZE = 55
 
 
 def export_button() -> None:
@@ -522,13 +523,28 @@ def plotting_ui(
         st.info("No data to plot for that model/target/location.")
         return
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
+    data_point_selector = alt.selection_multi()
+    layer = layer.encode(
+        color=alt.condition(
+            data_point_selector,  # press shift to select multiple points
+            alt.value("limegreen"),
+            alt.value("lightgray"),
+        ),
+    )
     chart = (
         layer.interactive()
+        .add_selection(data_point_selector)
         .properties(title=alt.TitleParams(text=title, anchor="middle"))
         .facet(row=alt.Row("model_id:N"), columns=1)
     )
+    selection_interval = alt.selection_interval(encodings=["x"])
+    view = layer.add_selection(selection_interval).properties(
+        width=PLOT_WIDTH,
+        height=VIEW_HEIGHT,
+    )
+    final = chart & view
     chart_key = f"forecast_{loc_abbr}_{selected_target}"
-    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
+    base_chart.altair_chart(final, use_container_width=False, key=chart_key)
 
 
 @st.cache_data
