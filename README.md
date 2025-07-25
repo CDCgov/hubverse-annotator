@@ -1,11 +1,17 @@
 # Hubverse Annotator
 
-_Local web application that loads hubverse formatted tables and plots observed data and model forecasts, enabling the end user to compare and annotate models._
+_Locally-hosted web application for visualization of hubverse formatted observations and model forecasts and for annotation of data and models._
 
 > [!IMPORTANT]
 > This project is currently IN PROGRESS. As such, there may be parts of this repository that do not make much sense or that are broken!
 
-More information on the Why, What, and How of this repository will be provided in subsequent PRs.
+## Background
+
+The `hubverse-annotator` is a Python `streamlit` application desired to aid the Short Term Forecasts (STF) team in
+
+## Usage
+
+
 
 ## CDCgov GitHub Organization Protocols
 
