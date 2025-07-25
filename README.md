@@ -29,10 +29,14 @@ The data files can be found via:
 
 The following is a showcasing of the annotator:
 
+<details markdown=1>
+
+<summary> Demonstration </summary>
 
 
 https://github.com/user-attachments/assets/fc8d06c0-fd9d-41f7-8fe8-e8069e15af05
 
+</details>
 
 
 ## CDCgov GitHub Organization Protocols
