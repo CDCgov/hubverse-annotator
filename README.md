@@ -21,7 +21,7 @@ The annotator can be run by:
 * `cd hubverse-annotator`
 * `uv run streamlit run ./hubverse_annotator/app.py`
 
-The data files can be found via:
+The annotator is designed to work with [hubverse](https://hubverse.io/) data. Examples of this data are available in the [COVID-19 Forecast Hub](https://github.com/CDCgov/covid19-forecast-hub/).
 
 * Observed Data File: see <https://github.com/CDCgov/covid19-forecast-hub/blob/main/target-data/time-series.parquet>
 * COVID-19 Hubverse Forecasts File: see <https://github.com/CDCgov/covid19-forecast-hub/tree/main/model-output>
