@@ -20,6 +20,7 @@ The annotator is designed for:
 The annotator can be run by:
 
 * `git clone https://github.com/CDCgov/hubverse-annotator`
+* `cd hubverse-annotator`
 * `uv run streamlit run ./hubverse_annotator/app.py`
 
 The data files can be found via:
