@@ -272,7 +272,7 @@ def reference_date_and_location_ui(
     last_loc_is_selected = (
         current_loc == len(st.session_state.locations_list) - 1
     )
-    previous_button, next_button = st.columns([1, 1])
+    previous_button, next_button, loc_select_button = st.columns([1, 1, 6])
     with previous_button:
         if shortcut_button(
             "⏮️",
@@ -289,12 +289,14 @@ def reference_date_and_location_ui(
             hint=False,
         ):
             go_to_next_loc()
-    st.selectbox(
-        "Location",
-        options=st.session_state.locations_list,
-        index=get_current_loc_id(),
-        key="location_select_box",
-    )
+    with loc_select_button:
+        selected_location = st.selectbox(
+            "Location",
+            options=st.session_state.locations_list,
+            index=get_current_loc_id(),
+            key="location_select_box",
+        )
+        st.session_state.location_selection = selected_location
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
