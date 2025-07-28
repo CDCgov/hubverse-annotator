@@ -280,20 +280,19 @@ def reference_date_and_location_ui(
             [3, 1, 1]
         )
         with location_select_box:
-            # st.session_state["location_select_box"] =
-            # #st.session_state.location_selection
-            st.selectbox(
+            selected_location = st.select_slider(
                 "Location",
                 options=st.session_state.locations_list,
-                # key="location_select_box"
+                value=st.session_state.location_selection,
+                key="location_slider",
             )
+            st.session_state.location_selection = selected_location
         with previous_button:
             if shortcut_button(
                 "⏮️",
                 "arrowleft",
                 disabled=first_loc_is_selected,
                 hint=False,
-                key="previous_button_location",
             ):
                 go_to_prev_loc()
         with next_button:
@@ -302,7 +301,6 @@ def reference_date_and_location_ui(
                 "arrowright",
                 disabled=last_loc_is_selected,
                 hint=False,
-                key="next_button_location",
             ):
                 go_to_next_loc()
     selected_location = st.session_state.location_selection
