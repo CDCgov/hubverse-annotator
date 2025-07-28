@@ -241,50 +241,38 @@ def reference_date_and_location_ui(
             0
         ]
 
-    def go_to_prev_loc():
-        current_loc = st.session_state.locations_list.index(
+    def get_current_loc_id():
+        return st.session_state.locations_list.index(
             st.session_state.location_selection
         )
+
+    def go_to_prev_loc():
+        current_loc = get_current_loc_id()
         if current_loc > 0:
             st.session_state.location_selection = (
                 st.session_state.locations_list[current_loc - 1]
             )
 
     def go_to_next_loc():
-        current_loc = st.session_state.locations_list.index(
-            st.session_state.location_selection
-        )
+        current_loc = get_current_loc_id()
         if current_loc < len(st.session_state.locations_list) - 1:
             st.session_state.location_selection = (
                 st.session_state.locations_list[current_loc + 1]
             )
 
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
-
     selected_ref_date = st.selectbox(
         "Reference Date",
         options=ref_dates,
         format_func=lambda d: d.strftime("%Y-%m-%d"),
         key="ref_date_selection",
     )
-    current_loc = st.session_state.locations_list.index(
-        st.session_state.location_selection
-    )
+    current_loc = get_current_loc_id()
     first_loc_is_selected = current_loc == 0
     last_loc_is_selected = (
         current_loc == len(st.session_state.locations_list) - 1
     )
-    location_select_box, previous_button, next_button = st.columns([1, 1, 3])
-    with location_select_box:
-        current_loc_id = st.session_state.locations_list.index(
-            st.session_state.location_selection
-        )
-        st.selectbox(
-            "Location",
-            options=st.session_state.locations_list,
-            index=current_loc_id,
-            key="location_slider",
-        )
+    previous_button, next_button = st.columns([1, 1])
     with previous_button:
         if shortcut_button(
             "⏮️",
@@ -301,6 +289,12 @@ def reference_date_and_location_ui(
             hint=False,
         ):
             go_to_next_loc()
+    st.selectbox(
+        "Location",
+        options=st.session_state.locations_list,
+        index=get_current_loc_id(),
+        key="location_select_box",
+    )
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
