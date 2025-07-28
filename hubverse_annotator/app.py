@@ -19,8 +19,8 @@ import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
-import streamlit.components.v1 as components
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from streamlit_shortcuts import shortcut_button
 
 type ScaleType = Literal["linear", "log"]
 
@@ -286,32 +286,18 @@ def reference_date_and_location_ui(
                 key="location_selection",
             )
         with previous_button:
-            st.button(
-                "⏮️", on_click=go_to_prev_loc, disabled=first_loc_is_selected
-            )
+            if shortcut_button(
+                "⏮️", "arrowleft", disabled=first_loc_is_selected, hint=False
+            ):
+                go_to_prev_loc()
         with next_button:
-            st.button(
-                "⏭️", on_click=go_to_next_loc, disabled=last_loc_is_selected
-            )
-    components.html(
-        """
-        <script>
-        document.addEventListener('keydown', function(e) {
-            // left arrow
-            if (e.key === 'ArrowLeft') {
-                const prev = document.getElementById('prev-btn');
-                if (prev) prev.click();
-            }
-            // right arrow
-            else if (e.key === 'ArrowRight') {
-                const nxt = document.getElementById('next-btn');
-                if (nxt) nxt.click();
-            }
-        });
-        </script>
-        """,
-        height=0,
-    )
+            if shortcut_button(
+                "⏭️",
+                "arrowright",
+                disabled=last_loc_is_selected,
+                hint=False,
+            ):
+                go_to_next_loc()
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
