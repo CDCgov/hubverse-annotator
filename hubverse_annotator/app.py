@@ -532,8 +532,7 @@ def plotting_ui(
         ),
     )
     chart = (
-        layer.interactive()
-        .add_selection(data_point_selector)
+        layer.add_selection(data_point_selector)
         .properties(title=alt.TitleParams(text=title, anchor="middle"))
         .facet(row=alt.Row("model_id:N"), columns=1)
     )
