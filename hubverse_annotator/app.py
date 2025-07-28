@@ -259,14 +259,13 @@ def reference_date_and_location_ui(
             )
 
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        selected_ref_date = st.selectbox(
-            "Reference Date",
-            options=ref_dates,
-            format_func=lambda d: d.strftime("%Y-%m-%d"),
-            key="ref_date_selection",
-        )
+
+    selected_ref_date = st.selectbox(
+        "Reference Date",
+        options=ref_dates,
+        format_func=lambda d: d.strftime("%Y-%m-%d"),
+        key="ref_date_selection",
+    )
     current_loc = st.session_state.locations_list.index(
         st.session_state.location_selection
     )
@@ -274,24 +273,17 @@ def reference_date_and_location_ui(
     last_loc_is_selected = (
         current_loc == len(st.session_state.locations_list) - 1
     )
-    with col2:
-        location_select_box, previous_button, next_button = st.columns(
-            [3, 1, 1]
+    location_select_box, previous_button, next_button = st.columns([3, 1, 1])
+    with location_select_box:
+        st.selectbox(
+            "Location",
+            options=st.session_state.locations_list,
+            key="location_selection",
         )
-        with location_select_box:
-            st.selectbox(
-                "Location",
-                options=st.session_state.locations_list,
-                key="location_selection",
-            )
-        with previous_button:
-            st.button(
-                "⏮️", on_click=go_to_prev_loc, disabled=first_loc_is_selected
-            )
-        with next_button:
-            st.button(
-                "⏭️", on_click=go_to_next_loc, disabled=last_loc_is_selected
-            )
+    with previous_button:
+        st.button("⏮️", on_click=go_to_prev_loc, disabled=first_loc_is_selected)
+    with next_button:
+        st.button("⏭️", on_click=go_to_next_loc, disabled=last_loc_is_selected)
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
@@ -724,7 +716,6 @@ def main() -> None:
         scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
         grid = st.checkbox("Gridlines", value=True)
         forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
-        # export_button()
     data_to_plot, forecasts_to_plot = filter_for_plotting(
         observed_data_table,
         forecast_table,
