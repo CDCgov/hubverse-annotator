@@ -655,6 +655,78 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     return hub_table
 
 
+def load_observed_data(
+    observed_data_file: UploadedFile | None,
+    expected_schema: dict[str, pl.DataType],
+) -> pl.DataFrame:
+    """
+    Loads and validates the observed data table from a
+    Hubverse formatted file. Returns an empty DataFrame
+    with the given schema if no file is provided.
+    Otherwise, read via `load_hubverse_table`, filter to
+    the latest `as_of` date, then validate against
+    `expected_schema` (stopping on failure).
+
+    Parameters
+    ----------
+    observed_data_file : UploadedFile | None
+        Streamlit-uploaded file containing observed data,
+        or None.
+    expected_schema : dict[str, pl.DataType]
+        Mapping of column names to expected Polars dtypes
+        for observed data.
+
+    Returns
+    -------
+    pl.DataFrame
+        The loaded and validated observed data table, or
+        an empty DataFrame conforming to `expected_schema`
+        if no file was uploaded.
+    """
+    if not observed_data_file:
+        return pl.DataFrame(schema=expected_schema)
+    table = load_hubverse_table(observed_data_file)
+    if "as_of" in table.columns:
+        table = table.filter(pl.col("as_of") == pl.col("as_of").max())
+    validate_schema(table, expected_schema, "Observed Data")
+    return table
+
+
+def load_forecast_data(
+    forecast_file: UploadedFile | None,
+    expected_schema: dict[str, pl.DataType],
+) -> pl.DataFrame:
+    """
+    Loads and validates the forecast data table from a
+    Hubverse formatted file. Returns an empty DataFrame
+    with the given schema if no file is provided.
+    Otherwise, read via `load_hubverse_table` and
+    validate against `expected_schema` (stopping on
+    failure).
+
+    Parameters
+    ----------
+    forecast_file : UploadedFile | None
+        Streamlit-uploaded file containing forecast data,
+        or None.
+    expected_schema : dict[str, pl.DataType]
+        Mapping of column names to expected Polars dtypes
+        for forecast data.
+
+    Returns
+    -------
+    pl.DataFrame
+        The loaded and validated forecast table, or an
+        empty DataFrame conforming to `expected_schema`
+        if no file was uploaded.
+    """
+    if not forecast_file:
+        return pl.DataFrame(schema=expected_schema)
+    table = load_hubverse_table(forecast_file)
+    validate_schema(table, expected_schema, "Forecast Data")
+    return table
+
+
 def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     """
     Streamlit widget for the upload of the hubverse
@@ -671,26 +743,20 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         forecast_table (pl.DataFrame), i.e. the loaded
         forecast table or an empty DataFrame.
     """
-    observed_data_file = st.file_uploader(
+    observed_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
     )
-    if observed_data_file:
-        observed_data_table = load_hubverse_table(observed_data_file)
-        if "as_of" in observed_data_table.columns:
-            observed_data_table = observed_data_table.filter(
-                pl.col("as_of") == pl.col("as_of").max()
-            )
-        validate_schema(observed_data_table, OBSERVED_SCHEMA, "Observed Data")
-    else:
-        observed_data_table = pl.DataFrame(schema=OBSERVED_SCHEMA)
     forecast_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
-    if forecast_file:
-        forecast_table = load_hubverse_table(forecast_file)
-        validate_schema(forecast_table, FORECAST_SCHEMA, "Forecast Data")
-    else:
-        forecast_table = pl.DataFrame(schema=FORECAST_SCHEMA)
+    observed_data_table = load_observed_data(
+        observed_file,
+        OBSERVED_SCHEMA,
+    )
+    forecast_table = load_forecast_data(
+        forecast_file,
+        FORECAST_SCHEMA,
+    )
     return observed_data_table, forecast_table
 
 
