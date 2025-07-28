@@ -556,7 +556,10 @@ def plotting_ui(
 
 
 def validate_schema(
-    df: pl.DataFrame, expected_schema: dict[str, pl.DataType], name: str
+    df: pl.DataFrame,
+    expected_schema: dict[str, pl.DataType],
+    name: str,
+    strict: bool = False,
 ) -> None:
     """
     Stop the app if received dataframe does not adhere to
@@ -567,10 +570,19 @@ def validate_schema(
     df : pl.DataFrame
         An ingested dataframe expected to be either
         hubverse formatted observed data or forecasts.
+    expected_schema : dict[str, pl.DataType]
+        Mapping of column name to expected Polars dtype.
+    name : str
+        Name for the dataframe (used in error messages).
+    strict : bool
+        If True, extra columns beyond those in
+        `expected_schema` will also trigger an error.
+        If False, extra columns are ignored. Defaults to
+        False.
     """
     actual = df.schema
     missing = set(expected_schema) - actual.keys()
-    extra = actual.keys() - expected_schema.keys()
+    extra = set(actual.keys()) - expected_schema.keys() if strict else set()
     mismatches = {
         col: (expected_schema[col], actual[col])
         for col in expected_schema.keys() & actual.keys()
@@ -580,10 +592,11 @@ def validate_schema(
         parts: list[str] = []
         if missing:
             parts.append(f"missing cols {sorted(missing)}")
-        if extra:
+        if strict and extra:
             parts.append(f"unexpected cols {sorted(extra)}")
         for col, (exp, act) in mismatches.items():
             parts.append(f"'{col}' expected {exp}, got {act}")
+
         st.error(f"{name} schema problems: " + "; ".join(parts))
         st.stop()
 
