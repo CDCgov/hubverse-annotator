@@ -586,7 +586,7 @@ def validate_schema(
         parts: list[str] = []
         if missing:
             parts.append(f"missing cols {sorted(missing)}")
-        if strict and extra:
+        if extra:
             parts.append(f"unexpected cols {sorted(extra)}")
         for col, (exp, act) in mismatches.items():
             parts.append(f"'{col}' expected {exp}, got {act}")
