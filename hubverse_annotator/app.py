@@ -19,6 +19,7 @@ import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 type ScaleType = Literal["linear", "log"]
@@ -292,6 +293,25 @@ def reference_date_and_location_ui(
             st.button(
                 "⏭️", on_click=go_to_next_loc, disabled=last_loc_is_selected
             )
+    components.html(
+        """
+        <script>
+        document.addEventListener('keydown', function(e) {
+            // left arrow
+            if (e.key === 'ArrowLeft') {
+                const prev = document.getElementById('prev-btn');
+                if (prev) prev.click();
+            }
+            // right arrow
+            else if (e.key === 'ArrowRight') {
+                const nxt = document.getElementById('next-btn');
+                if (nxt) nxt.click();
+            }
+        });
+        </script>
+        """,
+        height=0,
+    )
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
