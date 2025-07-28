@@ -260,14 +260,13 @@ def reference_date_and_location_ui(
             )
 
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        selected_ref_date = st.selectbox(
-            "Reference Date",
-            options=ref_dates,
-            format_func=lambda d: d.strftime("%Y-%m-%d"),
-            key="ref_date_selection",
-        )
+
+    selected_ref_date = st.selectbox(
+        "Reference Date",
+        options=ref_dates,
+        format_func=lambda d: d.strftime("%Y-%m-%d"),
+        key="ref_date_selection",
+    )
     current_loc = st.session_state.locations_list.index(
         st.session_state.location_selection
     )
@@ -275,36 +274,33 @@ def reference_date_and_location_ui(
     last_loc_is_selected = (
         current_loc == len(st.session_state.locations_list) - 1
     )
-    with col2:
-        previous_button, next_button, location_select_box = st.columns(
-            [1, 1, 3]
+    location_select_box, previous_button, next_button = st.columns([1, 1, 3])
+    with location_select_box:
+        current_loc_id = st.session_state.locations_list.index(
+            st.session_state.location_selection
         )
-        with previous_button:
-            if shortcut_button(
-                "⏮️",
-                "arrowleft",
-                disabled=first_loc_is_selected,
-                hint=False,
-            ):
-                go_to_prev_loc()
-        with next_button:
-            if shortcut_button(
-                "⏭️",
-                "arrowright",
-                disabled=last_loc_is_selected,
-                hint=False,
-            ):
-                go_to_next_loc()
-        with location_select_box:
-            current_loc_id = st.session_state.locations_list.index(
-                st.session_state.location_selection
-            )
-            st.selectbox(
-                "Location",
-                options=st.session_state.locations_list,
-                index=current_loc_id,
-                key="location_slider",
-            )
+        st.selectbox(
+            "Location",
+            options=st.session_state.locations_list,
+            index=current_loc_id,
+            key="location_slider",
+        )
+    with previous_button:
+        if shortcut_button(
+            "⏮️",
+            "arrowleft",
+            disabled=first_loc_is_selected,
+            hint=False,
+        ):
+            go_to_prev_loc()
+    with next_button:
+        if shortcut_button(
+            "⏭️",
+            "arrowright",
+            disabled=last_loc_is_selected,
+            hint=False,
+        ):
+            go_to_next_loc()
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
@@ -492,6 +488,8 @@ def plotting_ui(
     loc_abbr: str,
     selected_target: str | None,
     selected_ref_date: datetime.date,
+    scale,
+    grid,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -517,8 +515,8 @@ def plotting_ui(
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
-    scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
-    grid = st.checkbox("Gridlines", value=True)
+    # scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
+    # grid = st.checkbox("Gridlines", value=True)
     forecast_layer = quantile_forecast_chart(
         forecasts_to_plot, scale=scale, grid=grid
     )
@@ -717,18 +715,24 @@ def main() -> None:
     # record session start time
     start_time = time.time()
     # streamlit application begins
-    st.title("Forecast Annotator")
-    observed_data_table, forecast_table = load_data_ui()
-    # at least one of the tables must be non-empty
-    if observed_data_table.is_empty() and forecast_table.is_empty():
-        st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
-        return None
-    selected_ref_date, loc_abbr = reference_date_and_location_ui(
-        observed_data_table, forecast_table
-    )
-    selected_models, selected_target = model_and_target_selection_ui(
-        observed_data_table, forecast_table, loc_abbr
-    )
+    with st.sidebar:
+        st.title("Forecast Annotator")
+        observed_data_table, forecast_table = load_data_ui()
+        # at least one of the tables must be non-empty
+        if observed_data_table.is_empty() and forecast_table.is_empty():
+            st.info(
+                "Please upload Observed Data or Hubverse Forecasts to begin."
+            )
+            return None
+        selected_ref_date, loc_abbr = reference_date_and_location_ui(
+            observed_data_table, forecast_table
+        )
+        selected_models, selected_target = model_and_target_selection_ui(
+            observed_data_table, forecast_table, loc_abbr
+        )
+        scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
+        grid = st.checkbox("Gridlines", value=True)
+        forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
     data_to_plot, forecasts_to_plot = filter_for_plotting(
         observed_data_table,
         forecast_table,
@@ -743,8 +747,9 @@ def main() -> None:
         loc_abbr,
         selected_target,
         selected_ref_date,
+        scale=scale,
+        grid=grid,
     )
-    forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
     duration = time.time() - start_time
     logger.info(f"Session lasted {duration:.1f}s")
 
