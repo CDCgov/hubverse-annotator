@@ -296,13 +296,15 @@ def reference_date_and_location_ui(
             ):
                 go_to_next_loc()
         with location_select_box:
-            selected_location = st.select_slider(
+            current_loc_id = st.session_state.locations_list.index(
+                st.session_state.location_selection
+            )
+            st.selectbox(
                 "Location",
                 options=st.session_state.locations_list,
-                value=st.session_state.location_selection,
+                index=current_loc_id,
                 key="location_slider",
             )
-            st.session_state.location_selection = selected_location
     selected_location = st.session_state.location_selection
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
