@@ -197,21 +197,26 @@ def get_available_locations(
         A dataframe of locations in different formats.
     """
     if selected_models:
-        forecast_table = forecast_table.filter(
-            pl.col("model_id").is_in(selected_models)
+        locs = (
+            forecast_table.filter(pl.col("model_id").is_in(selected_models))
+            .get_column("loc_abbr")
+            .unique()
+            .to_list()
         )
-    locs = (
-        pl.concat(
-            [
-                observed_data_table.get_column("loc_abbr"),
-                forecast_table.get_column("loc_abbr"),
-            ]
+    else:
+        locs = (
+            pl.concat(
+                [
+                    observed_data_table.get_column("loc_abbr"),
+                    forecast_table.get_column("loc_abbr"),
+                ]
+            )
+            .unique()
+            .to_list()
         )
-        .unique()
-        .to_list()
-    )
     return forecasttools.location_lookup(
-        location_vector=list(set(locs)), location_format="abbr"
+        location_vector=locs,
+        location_format="abbr",
     )
 
 
@@ -832,7 +837,6 @@ def main() -> None:
             observed_data_table, forecast_table
         )
         selected_models = model_selection_ui(forecast_table, loc_abbr)
-
         selected_target = target_selection_ui(
             observed_data_table, forecast_table, loc_abbr
         )
