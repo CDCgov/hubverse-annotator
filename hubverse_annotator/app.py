@@ -31,6 +31,8 @@ PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 25
 
+add_shortcuts(prev_button="arrowleft", next_button="arrowright")
+
 
 def export_button() -> None:
     """
@@ -267,7 +269,6 @@ def location_and_reference_data_ui(
             on_click=go_to_next_loc,
             key="next_button",
         )
-    add_shortcuts(prev_button="arrowleft", next_button="arrowright")
     loc_id = st.session_state.current_loc_id
     selected_location = st.session_state.locations_list[loc_id]
     loc_abbr = (
