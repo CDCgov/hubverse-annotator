@@ -241,19 +241,20 @@ def reference_date_and_location_ui(
             0
         ]
 
-    def go_to_prev_loc():
-        loc_id = st.session_state.locations_list.index(
+    def get_current_loc_id():
+        return st.session_state.locations_list.index(
             st.session_state.location_selection
         )
+
+    def go_to_prev_loc():
+        loc_id = get_current_loc_id()
         if loc_id > 0:
             st.session_state.location_selection = (
                 st.session_state.locations_list[loc_id - 1]
             )
 
     def go_to_next_loc():
-        loc_id = st.session_state.locations_list.index(
-            st.session_state.location_selection
-        )
+        loc_id = get_current_loc_id()
         if loc_id < len(st.session_state.locations_list) - 1:
             st.session_state.location_selection = (
                 st.session_state.locations_list[loc_id + 1]
@@ -267,12 +268,9 @@ def reference_date_and_location_ui(
         key="ref_date_selection",
     )
     loc_placeholder = st.empty()
-    current_loc = st.session_state.locations_list.index(
-        st.session_state.location_selection
-    )
-    first_loc_is_selected = current_loc == 0
+    first_loc_is_selected = get_current_loc_id() == 0
     last_loc_is_selected = (
-        current_loc == len(st.session_state.locations_list) - 1
+        get_current_loc_id() == len(st.session_state.locations_list) - 1
     )
     previous_button, next_button = st.columns([1, 1])
     with previous_button:
@@ -281,6 +279,7 @@ def reference_date_and_location_ui(
             "arrowleft",
             disabled=first_loc_is_selected,
             hint=False,
+            key="previous_button",
         ):
             go_to_prev_loc()
     with next_button:
@@ -289,11 +288,13 @@ def reference_date_and_location_ui(
             "arrowright",
             disabled=last_loc_is_selected,
             hint=False,
+            key="next_button",
         ):
             go_to_next_loc()
     selected_location = loc_placeholder.selectbox(
         "Location",
         options=st.session_state.locations_list,
+        index=get_current_loc_id(),
         key="location_selection",
     )
     loc_abbr = (
