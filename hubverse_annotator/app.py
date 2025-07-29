@@ -20,6 +20,7 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from streamlit_shortcuts import add_shortcuts
 
 type ScaleType = Literal["linear", "log"]
 
@@ -209,9 +210,9 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
     return forecast_table.get_column("reference_date").unique().to_list()
 
 
-def reference_date_and_location_ui(
+def location_and_reference_data_ui(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
-) -> tuple[datetime.date, str]:
+) -> tuple[str, datetime.date]:
     """
     Streamlit widget for the reference date and location
     selection.
@@ -227,70 +228,61 @@ def reference_date_and_location_ui(
     Returns
     -------
     tuple
-        Returns a tuple of the selected reference date and
-        the two letter location abbreviation.
+        Returns a tuple of the two letter location
+        abbreviation and the selected reference date.
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
     if "locations_list" not in st.session_state:
         st.session_state.locations_list = (
             loc_lookup.get_column("long_name").sort().to_list()
         )
-    if "location_selection" not in st.session_state:
-        st.session_state.location_selection = st.session_state.locations_list[
-            0
-        ]
+    st.selectbox(
+        "Location",
+        options=list(range(len(st.session_state.locations_list))),
+        key="current_loc_id",
+        format_func=lambda i: st.session_state.locations_list[i],
+    )
 
     def go_to_prev_loc():
-        current_loc = st.session_state.locations_list.index(
-            st.session_state.location_selection
-        )
-        if current_loc > 0:
-            st.session_state.location_selection = (
-                st.session_state.locations_list[current_loc - 1]
-            )
+        st.session_state.current_loc_id -= 1
 
     def go_to_next_loc():
-        current_loc = st.session_state.locations_list.index(
-            st.session_state.location_selection
+        st.session_state.current_loc_id += 1
+
+    prev_col, next_col = st.columns([1, 1])
+    with prev_col:
+        st.button(
+            "⏮️",
+            disabled=(st.session_state.current_loc_id == 0),
+            on_click=go_to_prev_loc,
+            key="prev_button",
         )
-        if current_loc < len(st.session_state.locations_list) - 1:
-            st.session_state.location_selection = (
-                st.session_state.locations_list[current_loc + 1]
-            )
-
+    with next_col:
+        st.button(
+            "⏭️",
+            disabled=(
+                st.session_state.current_loc_id
+                == len(st.session_state.locations_list) - 1
+            ),
+            on_click=go_to_next_loc,
+            key="next_button",
+        )
+    add_shortcuts(prev_button="arrowleft", next_button="arrowright")
+    loc_id = st.session_state.current_loc_id
+    selected_location = st.session_state.locations_list[loc_id]
+    loc_abbr = (
+        loc_lookup.filter(pl.col("long_name") == selected_location)
+        .get_column("short_name")
+        .item()
+    )
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
-
     selected_ref_date = st.selectbox(
         "Reference Date",
         options=ref_dates,
         format_func=lambda d: d.strftime("%Y-%m-%d"),
         key="ref_date_selection",
     )
-    current_loc = st.session_state.locations_list.index(
-        st.session_state.location_selection
-    )
-    first_loc_is_selected = current_loc == 0
-    last_loc_is_selected = (
-        current_loc == len(st.session_state.locations_list) - 1
-    )
-    location_select_box, previous_button, next_button = st.columns([3, 1, 1])
-    with location_select_box:
-        st.selectbox(
-            "Location",
-            options=st.session_state.locations_list,
-            key="location_selection",
-        )
-    with previous_button:
-        st.button("⏮️", on_click=go_to_prev_loc, disabled=first_loc_is_selected)
-    with next_button:
-        st.button("⏭️", on_click=go_to_next_loc, disabled=last_loc_is_selected)
-    selected_location = st.session_state.location_selection
-    loc_abbr = (
-        loc_lookup.filter(pl.col("long_name") == selected_location)
-        .get_column("short_name")
-        .item()
-    )
-    return selected_ref_date, loc_abbr
+    return loc_abbr, selected_ref_date
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:
@@ -807,7 +799,7 @@ def main() -> None:
                 "Please upload Observed Data or Hubverse Forecasts to begin."
             )
             return None
-        selected_ref_date, loc_abbr = reference_date_and_location_ui(
+        loc_abbr, selected_ref_date = location_and_reference_data_ui(
             observed_data_table, forecast_table
         )
         selected_models, selected_target = model_and_target_selection_ui(
