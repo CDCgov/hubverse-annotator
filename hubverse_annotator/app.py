@@ -156,7 +156,9 @@ def model_and_target_selection_ui(
 
 @st.cache_data
 def get_available_locations(
-    observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    selected_models: list[str] | None = None,
 ) -> pl.DataFrame:
     """
     Retrieves a dataframe of locations from forecasttools
@@ -170,12 +172,20 @@ def get_available_locations(
     forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions (possibly empty).
+    selected_models : list[str] | None
+        Model(s) selected for viewing in the annotator.
+        Only non-empty once forecast file has been
+        uploaded. Defaults to None.
 
     Returns
     -------
     pl.DataFrame
         A dataframe of locations in different formats.
     """
+    if selected_models:
+        forecast_table = forecast_table.filter(
+            pl.col("model_id").is_in(selected_models)
+        )
     locs = (
         pl.concat(
             [
@@ -211,7 +221,9 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
 
 
 def location_and_reference_data_ui(
-    observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    selected_models: list[str] | None = None,
 ) -> tuple[str, datetime.date]:
     """
     Streamlit widget for the reference date and location
@@ -231,7 +243,9 @@ def location_and_reference_data_ui(
         Returns a tuple of the two letter location
         abbreviation and the selected reference date.
     """
-    loc_lookup = get_available_locations(observed_data_table, forecast_table)
+    loc_lookup = get_available_locations(
+        observed_data_table, forecast_table, selected_models
+    )
     if "locations_list" not in st.session_state:
         st.session_state.locations_list = (
             loc_lookup.get_column("long_name").sort().to_list()
@@ -803,8 +817,11 @@ def main() -> None:
             observed_data_table, forecast_table, loc_abbr=None
         )
         loc_abbr, selected_ref_date = location_and_reference_data_ui(
-            observed_data_table, forecast_table
+            observed_data_table, forecast_table, selected_models or None
         )
+        # selected_models, selected_target = model_and_target_selection_ui(
+        #     observed_data_table, forecast_table
+        # )
         scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
         grid = st.checkbox("Gridlines", value=True)
         forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
