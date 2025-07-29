@@ -656,7 +656,6 @@ def load_hubverse_table(hub_file: UploadedFile | None):
 
 def load_observed_data(
     observed_data_file: UploadedFile | None,
-    expected_schema: dict[str, pl.DataType] = OBSERVED_SCHEMA,
 ) -> pl.DataFrame:
     """
     Loads and validates the observed data table from a
@@ -671,9 +670,6 @@ def load_observed_data(
     observed_data_file : UploadedFile | None
         Streamlit-uploaded file containing observed data,
         or None.
-    expected_schema : dict[str, pl.DataType]
-        Mapping of column names to expected Polars dtypes
-        for observed data.
 
     Returns
     -------
@@ -682,17 +678,25 @@ def load_observed_data(
         an empty DataFrame conforming to `expected_schema`
         if no file was uploaded.
     """
+    observed_schema = {
+        "date": pl.Date,
+        "state": pl.Utf8,
+        "observation": pl.Float64,
+        "location": pl.Utf8,
+        "as_of": pl.Date,
+        "target": pl.Utf8,
+        "loc_abbr": pl.Utf8,
+    }
     if not observed_data_file:
-        return pl.DataFrame(schema=expected_schema)
+        return pl.DataFrame(schema=observed_schema)
     table = load_hubverse_table(observed_data_file)
-    validate_schema(table, expected_schema, "Observed Data")
+    validate_schema(table, observed_schema, "Observed Data")
     table = table.filter(pl.col("as_of") == pl.col("as_of").max())
     return table
 
 
 def load_forecast_data(
     forecast_file: UploadedFile | None,
-    expected_schema: dict[str, pl.DataType] = FORECAST_SCHEMA,
 ) -> pl.DataFrame:
     """
     Loads and validates the forecast data table from a
@@ -707,9 +711,6 @@ def load_forecast_data(
     forecast_file : UploadedFile | None
         Streamlit-uploaded file containing forecast data,
         or None.
-    expected_schema : dict[str, pl.DataType]
-        Mapping of column names to expected Polars dtypes
-        for forecast data.
 
     Returns
     -------
@@ -718,10 +719,22 @@ def load_forecast_data(
         empty DataFrame conforming to `expected_schema`
         if no file was uploaded.
     """
+    forecast_schema = {
+        "model_id": pl.Utf8,
+        "reference_date": pl.Date,
+        "target": pl.Utf8,
+        "horizon": pl.Int32,
+        "target_end_date": pl.Date,
+        "location": pl.Utf8,
+        "output_type": pl.Utf8,
+        "output_type_id": pl.Utf8,
+        "value": pl.Float64,
+        "loc_abbr": pl.Utf8,
+    }
     if not forecast_file:
-        return pl.DataFrame(schema=expected_schema)
+        return pl.DataFrame(schema=forecast_schema)
     table = load_hubverse_table(forecast_file)
-    validate_schema(table, expected_schema, "Forecast Data")
+    validate_schema(table, forecast_schema, "Forecast Data")
     return table
 
 
