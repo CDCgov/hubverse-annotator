@@ -20,7 +20,6 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
-from streamlit_shortcuts import shortcut_button
 
 type ScaleType = Literal["linear", "log"]
 
@@ -236,29 +235,14 @@ def reference_date_and_location_ui(
         st.session_state.locations_list = (
             loc_lookup.get_column("long_name").sort().to_list()
         )
-    if "location_selection" not in st.session_state:
-        st.session_state.location_selection = st.session_state.locations_list[
-            0
-        ]
+    if "current_loc_id" not in st.session_state:
+        st.session_state.current_loc_id = 0
 
-    def get_current_loc_id():
-        return st.session_state.locations_list.index(
-            st.session_state.location_selection
-        )
+    def go_prev():
+        st.session_state.current_loc_id -= 1
 
-    def go_to_prev_loc():
-        loc_id = get_current_loc_id()
-        if loc_id > 0:
-            st.session_state.location_selection = (
-                st.session_state.locations_list[loc_id - 1]
-            )
-
-    def go_to_next_loc():
-        loc_id = get_current_loc_id()
-        if loc_id < len(st.session_state.locations_list) - 1:
-            st.session_state.location_selection = (
-                st.session_state.locations_list[loc_id + 1]
-            )
+    def go_next():
+        st.session_state.current_loc_id += 1
 
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
     selected_ref_date = st.selectbox(
@@ -267,36 +251,31 @@ def reference_date_and_location_ui(
         format_func=lambda d: d.strftime("%Y-%m-%d"),
         key="ref_date_selection",
     )
-    loc_placeholder = st.empty()
-    first_loc_is_selected = get_current_loc_id() == 0
-    last_loc_is_selected = (
-        get_current_loc_id() == len(st.session_state.locations_list) - 1
-    )
-    previous_button, next_button = st.columns([1, 1])
-    with previous_button:
-        if shortcut_button(
-            "⏮️",
-            "arrowleft",
-            disabled=first_loc_is_selected,
-            hint=False,
-            key="previous_button",
-        ):
-            go_to_prev_loc()
-    with next_button:
-        if shortcut_button(
-            "⏭️",
-            "arrowright",
-            disabled=last_loc_is_selected,
-            hint=False,
-            key="next_button",
-        ):
-            go_to_next_loc()
-    selected_location = loc_placeholder.selectbox(
+    st.selectbox(
         "Location",
-        options=st.session_state.locations_list,
-        index=get_current_loc_id(),
-        key="location_selection",
+        options=list(range(len(st.session_state.locations_list))),
+        index=st.session_state.current_loc_id,
+        key="current_loc_id",
+        format_func=lambda i: st.session_state.locations_list[i],
     )
+    prev_col, next_col = st.columns([1, 1])
+    with prev_col:
+        st.button(
+            "⏮️",
+            on_click=go_prev,
+            disabled=(st.session_state.current_loc_id == 0),
+        )
+    with next_col:
+        st.button(
+            "⏭️",
+            on_click=go_next,
+            disabled=(
+                st.session_state.current_loc_id
+                == len(st.session_state.locations_list) - 1
+            ),
+        )
+    loc_id = st.session_state.current_loc_id
+    selected_location = st.session_state.locations_list[loc_id]
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
