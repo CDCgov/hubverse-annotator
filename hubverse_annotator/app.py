@@ -31,6 +31,8 @@ PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 25
 
+add_shortcuts(prev_button="arrowleft", next_button="arrowright")
+
 
 def export_button() -> None:
     """
@@ -262,6 +264,7 @@ def location_and_reference_data_ui(
         Returns a tuple of the two letter location
         abbreviation and the selected reference date.
     """
+
     selected_models = st.session_state.get("model_selection", None)
     loc_lookup = get_available_locations(
         observed_data_table, forecast_table, selected_models
@@ -301,9 +304,10 @@ def location_and_reference_data_ui(
             on_click=go_to_next_loc,
             key="next_button",
         )
-    add_shortcuts(prev_button="arrowleft", next_button="arrowright")
-    loc_id = st.session_state.current_loc_id
-    selected_location = st.session_state.locations_list[loc_id]
+
+    selected_location = st.session_state.locations_list[
+        st.session_state.current_loc_id
+    ]
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
@@ -316,6 +320,7 @@ def location_and_reference_data_ui(
         format_func=lambda d: d.strftime("%Y-%m-%d"),
         key="ref_date_selection",
     )
+
     return loc_abbr, selected_ref_date
 
 
