@@ -262,7 +262,7 @@ def reference_date_and_location_ui(
     prev_col, next_col = st.columns([1, 1])
     with prev_col:
         st.button(
-            "⏭️",
+            "⏮️",
             disabled=(st.session_state.current_loc_id == 0),
             on_click=go_to_prev_loc,
             key="prev_button",
