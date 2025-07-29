@@ -210,9 +210,9 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
     return forecast_table.get_column("reference_date").unique().to_list()
 
 
-def reference_date_and_location_ui(
+def location_and_reference_data_ui(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
-) -> tuple[datetime.date, str]:
+) -> tuple[str, datetime.date]:
     """
     Streamlit widget for the reference date and location
     selection.
@@ -228,8 +228,8 @@ def reference_date_and_location_ui(
     Returns
     -------
     tuple
-        Returns a tuple of the selected reference date and
-        the two letter location abbreviation.
+        Returns a tuple of the two letter location
+        abbreviation and the selected reference date.
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
     if "locations_list" not in st.session_state:
@@ -248,14 +248,6 @@ def reference_date_and_location_ui(
 
     def go_to_next_loc():
         st.session_state.current_loc_id += 1
-
-    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
-    selected_ref_date = st.selectbox(
-        "Reference Date",
-        options=ref_dates,
-        format_func=lambda d: d.strftime("%Y-%m-%d"),
-        key="ref_date_selection",
-    )
 
     prev_col, next_col = st.columns([1, 1])
     with prev_col:
@@ -283,7 +275,14 @@ def reference_date_and_location_ui(
         .get_column("short_name")
         .item()
     )
-    return selected_ref_date, loc_abbr
+    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
+    selected_ref_date = st.selectbox(
+        "Reference Date",
+        options=ref_dates,
+        format_func=lambda d: d.strftime("%Y-%m-%d"),
+        key="ref_date_selection",
+    )
+    return loc_abbr, selected_ref_date
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:
@@ -800,7 +799,7 @@ def main() -> None:
                 "Please upload Observed Data or Hubverse Forecasts to begin."
             )
             return None
-        selected_ref_date, loc_abbr = reference_date_and_location_ui(
+        loc_abbr, selected_ref_date = location_and_reference_data_ui(
             observed_data_table, forecast_table
         )
         selected_models, selected_target = model_and_target_selection_ui(
