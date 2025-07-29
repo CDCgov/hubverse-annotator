@@ -657,7 +657,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
 
 def load_observed_data(
     observed_data_file: UploadedFile | None,
-    expected_schema: dict[str, pl.DataType],
+    expected_schema: dict[str, pl.DataType] = OBSERVED_SCHEMA,
 ) -> pl.DataFrame:
     """
     Loads and validates the observed data table from a
@@ -694,7 +694,7 @@ def load_observed_data(
 
 def load_forecast_data(
     forecast_file: UploadedFile | None,
-    expected_schema: dict[str, pl.DataType],
+    expected_schema: dict[str, pl.DataType] = FORECAST_SCHEMA,
 ) -> pl.DataFrame:
     """
     Loads and validates the forecast data table from a
