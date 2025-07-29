@@ -241,23 +241,22 @@ def reference_date_and_location_ui(
             0
         ]
 
-    def get_current_loc_id():
-        return st.session_state.locations_list.index(
+    def go_to_prev_loc():
+        loc_id = st.session_state.locations_list.index(
             st.session_state.location_selection
         )
-
-    def go_to_prev_loc():
-        current_loc = get_current_loc_id()
-        if current_loc > 0:
+        if loc_id > 0:
             st.session_state.location_selection = (
-                st.session_state.locations_list[current_loc - 1]
+                st.session_state.locations_list[loc_id - 1]
             )
 
     def go_to_next_loc():
-        current_loc = get_current_loc_id()
-        if current_loc < len(st.session_state.locations_list) - 1:
+        loc_id = st.session_state.locations_list.index(
+            st.session_state.location_selection
+        )
+        if loc_id < len(st.session_state.locations_list) - 1:
             st.session_state.location_selection = (
-                st.session_state.locations_list[current_loc + 1]
+                st.session_state.locations_list[loc_id + 1]
             )
 
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
@@ -267,12 +266,15 @@ def reference_date_and_location_ui(
         format_func=lambda d: d.strftime("%Y-%m-%d"),
         key="ref_date_selection",
     )
-    current_loc = get_current_loc_id()
+    loc_placeholder = st.empty()
+    current_loc = st.session_state.locations_list.index(
+        st.session_state.location_selection
+    )
     first_loc_is_selected = current_loc == 0
     last_loc_is_selected = (
         current_loc == len(st.session_state.locations_list) - 1
     )
-    previous_button, next_button, loc_select_button = st.columns([1, 1, 6])
+    previous_button, next_button = st.columns([1, 1])
     with previous_button:
         if shortcut_button(
             "⏮️",
@@ -289,15 +291,11 @@ def reference_date_and_location_ui(
             hint=False,
         ):
             go_to_next_loc()
-    with loc_select_button:
-        selected_location = st.selectbox(
-            "Location",
-            options=st.session_state.locations_list,
-            index=get_current_loc_id(),
-            key="location_select_box",
-        )
-        st.session_state.location_selection = selected_location
-    selected_location = st.session_state.location_selection
+    selected_location = loc_placeholder.selectbox(
+        "Location",
+        options=st.session_state.locations_list,
+        key="location_selection",
+    )
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
