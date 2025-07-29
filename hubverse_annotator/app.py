@@ -799,11 +799,11 @@ def main() -> None:
                 "Please upload Observed Data or Hubverse Forecasts to begin."
             )
             return None
+        selected_models, selected_target = model_and_target_selection_ui(
+            observed_data_table, forecast_table, loc_abbr=None
+        )
         loc_abbr, selected_ref_date = location_and_reference_data_ui(
             observed_data_table, forecast_table
-        )
-        selected_models, selected_target = model_and_target_selection_ui(
-            observed_data_table, forecast_table, loc_abbr
         )
         scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
         grid = st.checkbox("Gridlines", value=True)
