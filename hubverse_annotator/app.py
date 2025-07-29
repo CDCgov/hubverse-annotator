@@ -91,29 +91,21 @@ def forecast_annotation_ui(
     export_button()
 
 
-def model_and_target_selection_ui(
-    observed_data_table: pl.DataFrame,
-    forecast_table: pl.DataFrame,
-    loc_abbr: str,
-) -> tuple[list[str], str | None]:
+def model_selection_ui(
+    forecast_table: pl.DataFrame, loc_abbr: str
+) -> list[str]:
     """
-    Streamlit widget for model and target selection.
-
-    Parameters
-    ----------
-    observed_data_table : pl.DataFrame
-        A hubverse table of loaded data (possibly empty).
-    forecast_table : pl.DataFrame
-        The hubverse formatted table of forecasted ED
-        visits and or hospital admissions (possibly empty).
-    loc_abbr : str
-        The selection location, typically a US jurisdiction.
+    Streamlit widget for picking one or more models at a
+    given location.
 
     Returns
     -------
-    tuple
-        Returns a list of selected model names and the
-        selected target.
+    selected_models : list[str]
+        The list of model IDs the user selected (may be
+        empty).
+    loc_abbr : str
+        The selection location, typically a US
+        jurisdiction.
     """
     models = (
         forecast_table.filter(pl.col("loc_abbr") == loc_abbr)
@@ -122,12 +114,34 @@ def model_and_target_selection_ui(
         .sort()
         .to_list()
     )
-    selected_models = st.multiselect(
+    return st.multiselect(
         "Model(s)",
         options=models,
-        default=None,
+        default=[],
         key="model_selection",
     )
+
+
+def target_selection_ui(
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    loc_abbr: str,
+) -> str | None:
+    """
+    Streamlit widget for picking the forecasting target,
+    based on the chosen location and any selected models.
+
+    Returns
+    -------
+    observed_data_table : pl.DataFrame
+        A hubverse table of loaded data (possibly empty).
+    forecast_table : pl.DataFrame
+        The hubverse formatted table of forecasted ED
+        visits and or hospital admissions (possibly empty).
+    selected_target : str | None
+        The target name or None if no options.
+    """
+    selected_models = st.session_state.get("model_selection", [])
     forecast_targets = (
         forecast_table.filter(
             pl.col("loc_abbr") == loc_abbr,
@@ -138,20 +152,19 @@ def model_and_target_selection_ui(
         .sort()
         .to_list()
     )
-    observed_data_targets = (
+    observed_targets = (
         observed_data_table.filter(pl.col("loc_abbr") == loc_abbr)
         .get_column("target")
         .unique()
         .sort()
         .to_list()
     )
-    all_targets = sorted(set(forecast_targets + observed_data_targets))
-    selected_target = st.selectbox(
+    all_targets = sorted(set(forecast_targets + observed_targets))
+    return st.selectbox(
         "Target",
         options=all_targets,
         key="target_selection",
     )
-    return selected_models, selected_target
 
 
 @st.cache_data
@@ -175,7 +188,8 @@ def get_available_locations(
     selected_models : list[str] | None
         Model(s) selected for viewing in the annotator.
         Only non-empty once forecast file has been
-        uploaded. Defaults to None.
+        uploaded and models have been selected. Defaults
+        to None.
 
     Returns
     -------
@@ -243,6 +257,7 @@ def location_and_reference_data_ui(
         Returns a tuple of the two letter location
         abbreviation and the selected reference date.
     """
+    selected_models = st.session_state.get("model_selection", None)
     loc_lookup = get_available_locations(
         observed_data_table, forecast_table, selected_models
     )
@@ -813,15 +828,14 @@ def main() -> None:
                 "Please upload Observed Data or Hubverse Forecasts to begin."
             )
             return None
-        selected_models, selected_target = model_and_target_selection_ui(
-            observed_data_table, forecast_table, loc_abbr=None
-        )
         loc_abbr, selected_ref_date = location_and_reference_data_ui(
-            observed_data_table, forecast_table, selected_models or None
+            observed_data_table, forecast_table
         )
-        # selected_models, selected_target = model_and_target_selection_ui(
-        #     observed_data_table, forecast_table
-        # )
+        selected_models = model_selection_ui(forecast_table, loc_abbr)
+
+        selected_target = target_selection_ui(
+            observed_data_table, forecast_table, loc_abbr
+        )
         scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
         grid = st.checkbox("Gridlines", value=True)
         forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
