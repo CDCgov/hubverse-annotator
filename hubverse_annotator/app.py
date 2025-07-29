@@ -236,12 +236,6 @@ def location_and_reference_data_ui(
         st.session_state.locations_list = (
             loc_lookup.get_column("long_name").sort().to_list()
         )
-    st.selectbox(
-        "Location",
-        options=list(range(len(st.session_state.locations_list))),
-        key="current_loc_id",
-        format_func=lambda i: st.session_state.locations_list[i],
-    )
 
     def go_to_prev_loc():
         st.session_state.current_loc_id -= 1
@@ -249,13 +243,23 @@ def location_and_reference_data_ui(
     def go_to_next_loc():
         st.session_state.current_loc_id += 1
 
-    prev_col, next_col = st.columns([1, 1])
+    location_col, prev_col, next_col = st.columns(
+        [6, 1, 1], vertical_alignment="bottom"
+    )
+    with location_col:
+        st.selectbox(
+            "Location",
+            options=list(range(len(st.session_state.locations_list))),
+            key="current_loc_id",
+            format_func=lambda i: st.session_state.locations_list[i],
+        )
     with prev_col:
         st.button(
             "⏮️",
             disabled=(st.session_state.current_loc_id == 0),
             on_click=go_to_prev_loc,
             key="prev_button",
+            use_container_width=True,
         )
     with next_col:
         st.button(
@@ -266,6 +270,7 @@ def location_and_reference_data_ui(
             ),
             on_click=go_to_next_loc,
             key="next_button",
+            use_container_width=True,
         )
     add_shortcuts(prev_button="arrowleft", next_button="arrowright")
     loc_id = st.session_state.current_loc_id
