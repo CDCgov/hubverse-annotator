@@ -31,30 +31,6 @@ STROKE_WIDTH = 2
 MARKER_SIZE = 25
 
 
-OBSERVED_SCHEMA = {
-    "date": pl.Date,
-    "state": pl.Utf8,
-    "observation": pl.Float64,
-    "location": pl.Utf8,
-    "as_of": pl.Date,
-    "target": pl.Utf8,
-    "loc_abbr": pl.Utf8,
-}
-
-FORECAST_SCHEMA = {
-    "model_id": pl.Utf8,
-    "reference_date": pl.Date,
-    "target": pl.Utf8,
-    "horizon": pl.Int32,
-    "target_end_date": pl.Date,
-    "location": pl.Utf8,
-    "output_type": pl.Utf8,
-    "output_type_id": pl.Utf8,
-    "value": pl.Float64,
-    "loc_abbr": pl.Utf8,
-}
-
-
 def export_button() -> None:
     """
     Streamlit widget for exporting annotated forecasts.
@@ -762,11 +738,9 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     )
     observed_data_table = load_observed_data(
         observed_file,
-        OBSERVED_SCHEMA,
     )
     forecast_table = load_forecast_data(
         forecast_file,
-        FORECAST_SCHEMA,
     )
     return observed_data_table, forecast_table
 
