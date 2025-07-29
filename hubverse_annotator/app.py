@@ -236,8 +236,12 @@ def reference_date_and_location_ui(
         st.session_state.locations_list = (
             loc_lookup.get_column("long_name").sort().to_list()
         )
-    if "current_loc_id" not in st.session_state:
-        st.session_state.current_loc_id = 0
+    st.selectbox(
+        "Location",
+        options=list(range(len(st.session_state.locations_list))),
+        key="current_loc_id",
+        format_func=lambda i: st.session_state.locations_list[i],
+    )
 
     def go_to_prev_loc():
         st.session_state.current_loc_id -= 1
@@ -252,13 +256,7 @@ def reference_date_and_location_ui(
         format_func=lambda d: d.strftime("%Y-%m-%d"),
         key="ref_date_selection",
     )
-    st.selectbox(
-        "Location",
-        options=list(range(len(st.session_state.locations_list))),
-        index=st.session_state.current_loc_id,
-        key="current_loc_id",
-        format_func=lambda i: st.session_state.locations_list[i],
-    )
+
     prev_col, next_col = st.columns([1, 1])
     with prev_col:
         st.button(
@@ -308,9 +306,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
     spec = chart.to_dict()
     # unit chart: no data, no mark, no encoding
     if "layer" not in spec:
-        return not (
-            spec.get("data") or spec.get("mark") or spec.get("encoding")
-        )
+        return not (spec.get("data") or spec.get("mark") or spec.get("encoding"))
     # LayerChart: check each sub-layer recursively
     # check if the layer list is empty or all sub-layers
     # are empty
@@ -354,9 +350,7 @@ def target_data_chart(
         return alt.layer()
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
-    y_axis = alt.Axis(
-        title=None, grid=grid, ticks=True, labels=True, orient="right"
-    )
+    y_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True, orient="right")
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
@@ -495,14 +489,10 @@ def plotting_ui(
     base_chart = st.empty()
     # scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
     # grid = st.checkbox("Gridlines", value=True)
-    forecast_layer = quantile_forecast_chart(
-        forecasts_to_plot, scale=scale, grid=grid
-    )
+    forecast_layer = quantile_forecast_chart(forecasts_to_plot, scale=scale, grid=grid)
     observed_layer = target_data_chart(data_to_plot, scale=scale, grid=grid)
     sub_layers = [
-        layer
-        for layer in [forecast_layer, observed_layer]
-        if not is_empty_chart(layer)
+        layer for layer in [forecast_layer, observed_layer] if not is_empty_chart(layer)
     ]
     if sub_layers:
         # for some reason alt.layer(*sub_layers) does not work
@@ -616,9 +606,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(
-            lookup.select(["location_code", "short_name"]).iter_rows()
-        )
+        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
@@ -725,9 +713,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         forecast_table (pl.DataFrame), i.e. the loaded
         forecast table or an empty DataFrame.
     """
-    observed_file = st.file_uploader(
-        "Upload Hubverse Target Data", type=["parquet"]
-    )
+    observed_file = st.file_uploader("Upload Hubverse Target Data", type=["parquet"])
     forecast_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
@@ -798,9 +784,7 @@ def main() -> None:
         observed_data_table, forecast_table = load_data_ui()
         # at least one of the tables must be non-empty
         if observed_data_table.is_empty() and forecast_table.is_empty():
-            st.info(
-                "Please upload Observed Data or Hubverse Forecasts to begin."
-            )
+            st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
             return None
         selected_ref_date, loc_abbr = reference_date_and_location_ui(
             observed_data_table, forecast_table
