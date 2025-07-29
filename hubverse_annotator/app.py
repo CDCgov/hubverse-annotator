@@ -590,7 +590,6 @@ def validate_schema(
             parts.append(f"unexpected cols {sorted(extra)}")
         for col, (exp, act) in mismatches.items():
             parts.append(f"'{col}' expected {exp}, got {act}")
-
         st.error(f"{name} schema problems: " + "; ".join(parts))
         st.stop()
 
@@ -686,9 +685,8 @@ def load_observed_data(
     if not observed_data_file:
         return pl.DataFrame(schema=expected_schema)
     table = load_hubverse_table(observed_data_file)
-    if "as_of" in table.columns:
-        table = table.filter(pl.col("as_of") == pl.col("as_of").max())
     validate_schema(table, expected_schema, "Observed Data")
+    table = table.filter(pl.col("as_of") == pl.col("as_of").max())
     return table
 
 
