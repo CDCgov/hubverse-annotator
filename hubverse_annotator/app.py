@@ -20,6 +20,7 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from streamlit_shortcuts import add_shortcuts
 
 type ScaleType = Literal["linear", "log"]
 
@@ -238,10 +239,10 @@ def reference_date_and_location_ui(
     if "current_loc_id" not in st.session_state:
         st.session_state.current_loc_id = 0
 
-    def go_prev():
+    def go_to_prev_loc():
         st.session_state.current_loc_id -= 1
 
-    def go_next():
+    def go_to_next_loc():
         st.session_state.current_loc_id += 1
 
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
@@ -261,19 +262,22 @@ def reference_date_and_location_ui(
     prev_col, next_col = st.columns([1, 1])
     with prev_col:
         st.button(
-            "⏮️",
-            on_click=go_prev,
+            "⏭️",
             disabled=(st.session_state.current_loc_id == 0),
+            on_click=go_to_prev_loc,
+            key="prev_button",
         )
     with next_col:
         st.button(
             "⏭️",
-            on_click=go_next,
             disabled=(
                 st.session_state.current_loc_id
                 == len(st.session_state.locations_list) - 1
             ),
+            on_click=go_to_next_loc,
+            key="next_button",
         )
+    add_shortcuts(prev_button="arrowleft", next_button="arrowright")
     loc_id = st.session_state.current_loc_id
     selected_location = st.session_state.locations_list[loc_id]
     loc_abbr = (
