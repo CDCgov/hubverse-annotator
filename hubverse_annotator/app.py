@@ -124,7 +124,6 @@ def model_selection_ui(
         .sort()
         .to_list()
     )
-
     if "model_selection" not in st.session_state:
         st.session_state.model_selection = models.copy()
 
@@ -513,6 +512,55 @@ def quantile_forecast_chart(
     return alt.layer(band_95, band_80, band_50, median)
 
 
+def _cut_observed_to_forecast(
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    observed_date_col: str = "date",
+    forecast_date_col: str = "target_end_date",
+    extra_weeks: int = 1,
+) -> pl.DataFrame:
+    """
+    Crops the observed data table so that its dates do not
+    extend more than `extra_weeks` beyond the latest
+    forecast date.
+
+    Parameters
+    ----------
+    observed_data_table : pl.DataFrame
+        A hubverse table of loaded data (possibly empty).
+    forecast_table : pl.DataFrame
+        The hubverse formatted table of forecasted ED
+        visits and or hospital admissions (possibly empty).
+    observed_date_col
+        Name of the date column in `observed_data_table`.
+    forecast_date_col
+        Name of the date column in `forecast_table`.
+    extra_weeks
+        Number of weeks beyond the min forecast date to
+        retain in the `observed_data_table`.
+
+    Returns
+    -------
+    pl.DataFrame
+        Filtered `observed_data_table` where
+        `obs_date_col` is GEQ min(forecast_table
+        [forecast_date_col]) plus `extra_weeks`.
+    """
+    observed = observed_data_table.with_columns(
+        pl.col(observed_date_col).cast(pl.Date)
+    )
+    forecasts = forecast_table.with_columns(
+        pl.col(forecast_date_col).cast(pl.Date)
+    )
+
+    min_date_forecast = forecasts.select(
+        pl.col(forecast_date_col).min()
+    ).item()
+    cutoff = min_date_forecast - datetime.timedelta(weeks=extra_weeks)
+
+    return observed.filter(pl.col(observed_date_col) >= cutoff)
+
+
 def plotting_ui(
     data_to_plot: pl.DataFrame,
     forecasts_to_plot: pl.DataFrame,
@@ -619,6 +667,14 @@ def filter_for_plotting(
         pl.col("model_id").is_in(selected_models),
         pl.col("reference_date") == selected_ref_date,
     )
+    if not data_to_plot.is_empty() and not forecasts_to_plot.is_empty():
+        data_to_plot = _cut_observed_to_forecast(
+            observed_data_table=data_to_plot,
+            forecast_table=forecasts_to_plot,
+            observed_date_col="date",
+            forecast_date_col="target_end_date",
+            extra_weeks=4,
+        )
     return data_to_plot, forecasts_to_plot
 
 
