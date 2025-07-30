@@ -1,3 +1,13 @@
+"""
+A utils module, for support of the application and UI
+components. The utilities include: data loading & schema
+validation, location/date lookup, plotting helpers
+(altair layers, empty chart check), and filtering helper
+for observed vs. forecast tables.
+
+To run: uv run streamlit run ./hubverse_annotator/app.py
+"""
+
 import datetime
 import logging
 import pathlib

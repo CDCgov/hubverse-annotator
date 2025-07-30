@@ -1,3 +1,12 @@
+"""
+A user-inference (UI) components module. These streamlit
+components for the Hubverse Annotator application include:
+file upload widgets, location & date selectors, model &
+target selectors, and annotation & export controls.
+
+To run: uv run streamlit run ./hubverse_annotator/app.py
+"""
+
 import datetime
 import json
 import pathlib
