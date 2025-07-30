@@ -535,6 +535,55 @@ def plotting_ui(
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
 
 
+def filter_for_plotting(
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    selected_models: list[str],
+    selected_target: str | None,
+    selected_ref_date: datetime.date,
+    loc_abbr: str,
+) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """
+    Filter forecast and observed data tables for the
+    selected models and target.
+
+    Parameters
+    ----------
+    observed_data_table : pl.DataFrame
+        A hubverse table of loaded data (possibly empty).
+    forecast_table : pl.DataFrame
+        The hubverse formatted table of forecasted ED
+        visits and or hospital admissions (possibly empty).
+    selected_models : list[str]
+        Selected models to annotate.
+    selected_target : str
+        The target for filtering in the forecast and or
+        observed hubverse tables.
+    selected_ref_date : datetime.date
+        The selected reference date.
+    loc_abbr
+        The abbreviated US jurisdiction abbreviation.
+
+    Returns
+    -------
+    tuple
+        A tuple of observed_data_table (pl.DataFrame) and
+        forecast_table (pl.DataFrame) filtered by model,
+        target, and location, to be used for plotting.
+    """
+    data_to_plot = observed_data_table.filter(
+        pl.col("loc_abbr") == loc_abbr,
+        pl.col("target") == selected_target,
+    )
+    forecasts_to_plot = forecast_table.filter(
+        pl.col("loc_abbr") == loc_abbr,
+        pl.col("target") == selected_target,
+        pl.col("model_id").is_in(selected_models),
+        pl.col("reference_date") == selected_ref_date,
+    )
+    return data_to_plot, forecasts_to_plot
+
+
 def validate_schema(
     df: pl.DataFrame,
     expected_schema: dict[str, pl.DataType],
@@ -753,55 +802,6 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         forecast_file,
     )
     return observed_data_table, forecast_table
-
-
-def filter_for_plotting(
-    observed_data_table: pl.DataFrame,
-    forecast_table: pl.DataFrame,
-    selected_models: list[str],
-    selected_target: str | None,
-    selected_ref_date: datetime.date,
-    loc_abbr: str,
-) -> tuple[pl.DataFrame, pl.DataFrame]:
-    """
-    Filter forecast and observed data tables for the
-    selected models and target.
-
-    Parameters
-    ----------
-    observed_data_table : pl.DataFrame
-        A hubverse table of loaded data (possibly empty).
-    forecast_table : pl.DataFrame
-        The hubverse formatted table of forecasted ED
-        visits and or hospital admissions (possibly empty).
-    selected_models : list[str]
-        Selected models to annotate.
-    selected_target : str
-        The target for filtering in the forecast and or
-        observed hubverse tables.
-    selected_ref_date : datetime.date
-        The selected reference date.
-    loc_abbr
-        The abbreviated US jurisdiction abbreviation.
-
-    Returns
-    -------
-    tuple
-        A tuple of observed_data_table (pl.DataFrame) and
-        forecast_table (pl.DataFrame) filtered by model,
-        target, and location, to be used for plotting.
-    """
-    data_to_plot = observed_data_table.filter(
-        pl.col("loc_abbr") == loc_abbr,
-        pl.col("target") == selected_target,
-    )
-    forecasts_to_plot = forecast_table.filter(
-        pl.col("loc_abbr") == loc_abbr,
-        pl.col("target") == selected_target,
-        pl.col("model_id").is_in(selected_models),
-        pl.col("reference_date") == selected_ref_date,
-    )
-    return data_to_plot, forecasts_to_plot
 
 
 def main() -> None:
