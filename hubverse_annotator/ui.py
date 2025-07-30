@@ -1,0 +1,397 @@
+import datetime
+import json
+import logging
+import pathlib
+from functools import reduce
+
+import altair as alt
+import polars as pl
+import streamlit as st
+from streamlit_shortcuts import add_shortcuts
+from utils import (
+    get_available_locations,
+    get_reference_dates,
+    is_empty_chart,
+    load_forecast_data,
+    load_observed_data,
+    quantile_forecast_chart,
+    target_data_chart,
+)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+add_shortcuts(prev_button="arrowleft", next_button="arrowright")
+
+
+def annotation_export_ui() -> None:
+    """
+    Streamlit widget for exporting annotated forecasts.
+    """
+    if st.button("Export forecasts"):
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            st.success("Export functionality not yet implemented.")
+
+
+def forecast_annotation_ui(
+    selected_models: list[str],
+    loc_abbr: str,
+    selected_ref_date: datetime.date,
+) -> None:
+    """
+    Streamlit widget for status/comments UI per model and
+    saving to JSON.
+
+    Parameters
+    ----------
+    selected_models : list[str]
+        Selected models to annotate.
+    loc_abbr : str
+        The selection location, typically a US jurisdiction.
+    selected_ref_date : datetime.date
+        The selected reference date.
+    """
+    output_dir = pathlib.Path("../output")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    annotations_file = output_dir / f"anno_{selected_ref_date}.json"
+    if annotations_file.exists():
+        with annotations_file.open("r") as f:
+            annotations = json.load(f)
+    else:
+        annotations = {}
+    by_loc = annotations.setdefault(loc_abbr, {})
+    for m in selected_models:
+        st.markdown(f"### {m}")
+        prev = by_loc.get(m, {})
+        default_status = prev.get("status", "None")
+        default_comment = prev.get("comment", "")
+        status = st.selectbox(
+            "Status",
+            ["Preferred", "Omitted", "None"],
+            index=["Preferred", "Omitted", "None"].index(default_status),
+            key=f"status_{loc_abbr}_{m}",
+        )
+        comment = st.text_input(
+            "Comments",
+            default_comment,
+            key=f"comment_{loc_abbr}_{m}",
+        )
+        by_loc[m] = {"status": status, "comment": comment}
+    with annotations_file.open("w") as f:
+        json.dump(annotations, f, indent=2)
+    annotation_export_ui()
+
+
+def model_selection_ui(
+    forecast_table: pl.DataFrame,
+    loc_abbr: str,
+) -> list[str]:
+    """
+    Renders a Streamlit multiselect widget for choosing
+    models, with "All" and "None" buttons. Defaults to all
+    models being selected.
+
+    Parameters
+    ----------
+    forecast_table : pl.DataFrame
+        Hubverse-formatted forecasts (must include
+        "loc_abbr" and "model_id" columns; possibly empty).
+    loc_abbr : str
+        The selection location, typically a US
+        jurisdiction.
+
+    Returns
+    -------
+    list[str]
+        The list of currently selected model_ids.
+    """
+
+    models = (
+        forecast_table.filter(pl.col("loc_abbr") == loc_abbr)
+        .get_column("model_id")
+        .unique()
+        .sort()
+        .to_list()
+    )
+    if not models:
+        st.info("Upload forecasts for this location to pick models.")
+        return []
+    if "model_selection" not in st.session_state:
+        st.session_state.model_selection = models.copy()
+
+    def _select_all():
+        st.session_state.model_selection = models.copy()
+
+    def _select_none():
+        st.session_state.model_selection = []
+
+    all_button, none_button = st.columns(2)
+    all_button.button("All", on_click=_select_all)
+    none_button.button("None", on_click=_select_none)
+    selected_models = st.multiselect(
+        "Model(s)",
+        options=models,
+        key="model_selection",
+    )
+
+    return selected_models
+
+
+def target_selection_ui(
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    loc_abbr: str,
+    selected_models: list[str],
+) -> str | None:
+    """
+    Renders a Streamlit selectbox for choosing a
+    target. Always defaults to the first alphabetical
+    target whenever the set of models changes.
+
+    Parameters
+    ----------
+    observed_data_table : pl.DataFrame
+        Hubverse formatted observed data table (must
+        include "loc_abbr", "target"; possibly empty).
+    forecast_table : pl.DataFrame
+        Hubverse formatted forecast table (must include
+        "loc_abbr", "model_id", "target"; possibly empty).
+    loc_abbr : str
+        The selection location, typically a US
+        jurisdiction.
+    selected_models : list[str]
+        Models currently selected.
+
+    Returns
+    -------
+    str | None
+        The selected target, or None if there are no
+        targets.
+    """
+    forecast_targets = (
+        forecast_table.filter(
+            pl.col("loc_abbr") == loc_abbr,
+            pl.col("model_id").is_in(selected_models),
+        )
+        .get_column("target")
+        .unique()
+        .sort()
+        .to_list()
+    )
+    observed_data_targets = (
+        observed_data_table.filter(pl.col("loc_abbr") == loc_abbr)
+        .get_column("target")
+        .unique()
+        .sort()
+        .to_list()
+    )
+    suffix = "_".join(selected_models) if selected_models else "none"
+    target_selection_key = f"target_selection_{suffix}"
+    all_targets = sorted(set(forecast_targets + observed_data_targets))
+    selected_target = st.selectbox(
+        "Target",
+        options=all_targets,
+        index=0,
+        key=target_selection_key,
+    )
+    return selected_target
+
+
+def location_selection_ui(
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+) -> str:
+    """
+    Streamlit widget for the selection of a location (two
+    letter abbreviation for US jurisdiction).
+
+    Parameters
+    ----------
+    observed_data_table : pl.DataFrame
+        A hubverse table of loaded data (possibly empty).
+    forecast_table : pl.DataFrame
+        The hubverse formatted table of forecasted ED
+        visits and or hospital admissions (possibly empty).
+
+    Returns
+    -------
+    str
+        The selected two-letter location abbreviation.
+
+    """
+    loc_lookup = get_available_locations(observed_data_table, forecast_table)
+    if "locations_list" not in st.session_state:
+        st.session_state.locations_list = (
+            loc_lookup.get_column("long_name").sort().to_list()
+        )
+
+    def _go_to_prev_loc():
+        st.session_state.current_loc_id -= 1
+
+    def _go_to_next_loc():
+        st.session_state.current_loc_id += 1
+
+    location_col, prev_col, next_col = st.columns(
+        [6, 1, 1], vertical_alignment="bottom"
+    )
+    with location_col:
+        st.selectbox(
+            "Location",
+            options=list(range(len(st.session_state.locations_list))),
+            key="current_loc_id",
+            format_func=lambda i: st.session_state.locations_list[i],
+        )
+    with prev_col:
+        st.button(
+            "⏮️",
+            disabled=(st.session_state.current_loc_id == 0),
+            on_click=_go_to_prev_loc,
+            key="prev_button",
+            use_container_width=True,
+        )
+    with next_col:
+        st.button(
+            "⏭️",
+            disabled=(
+                st.session_state.current_loc_id
+                == len(st.session_state.locations_list) - 1
+            ),
+            on_click=_go_to_next_loc,
+            key="next_button",
+            use_container_width=True,
+        )
+    loc_id = st.session_state.current_loc_id
+    selected_location = st.session_state.locations_list[loc_id]
+    loc_abbr = (
+        loc_lookup.filter(pl.col("long_name") == selected_location)
+        .get_column("short_name")
+        .item()
+    )
+    return loc_abbr
+
+
+def reference_date_selection_ui(
+    forecast_table: pl.DataFrame,
+) -> datetime.date | None:
+    """
+    Streamlit widget for the selection of forecast
+    reference date.
+
+    Parameters
+    ----------
+    forecast_table : pl.DataFrame
+        The hubverse formatted table of forecasted ED
+        visits and or hospital admissions (possibly empty).
+
+    Returns
+    -------
+    datetime.date | None
+        The selected reference date, or None if no dates
+        are available.
+    """
+    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
+    if not ref_dates:
+        st.info("Upload a forecast file to select a reference date.")
+        return None
+    if ref_dates and "ref_date_selection" not in st.session_state:
+        st.session_state.ref_date_selection = ref_dates[0]
+    selected_ref_date = st.selectbox(
+        "Reference Date",
+        options=ref_dates,
+        format_func=lambda d: d.strftime("%Y-%m-%d"),
+        key="ref_date_selection",
+    )
+    return selected_ref_date
+
+
+def plotting_ui(
+    data_to_plot: pl.DataFrame,
+    forecasts_to_plot: pl.DataFrame,
+    loc_abbr: str,
+    selected_target: str | None,
+    selected_ref_date: datetime.date,
+    scale,
+    grid,
+) -> None:
+    """
+    Altair chart of the forecasts, with observed data
+    overlaid where possible.
+
+    Parameters
+    ----------
+    data_to_plot : pl.DataFrame
+        The hubverse formatted observations time-series,
+        filtered to the requested location, target, and
+        model(s).
+    forecasts_to_plot : pl.DataFrame
+        The hubverse formatted forecast table, filtered
+        to the requested location, target, and model.
+    loc_abbr : str
+        The selection location, typically a US jurisdiction.
+    selected_target : str
+        The target for filtering in the forecast and or
+        observed hubverse tables.
+    selected_ref_date : str
+        The selected reference date.
+    """
+    # empty streamlit object (DeltaGenerator) needed for
+    # plots to reload successfully with new data.
+    base_chart = st.empty()
+    # scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
+    # grid = st.checkbox("Gridlines", value=True)
+    forecast_layer = quantile_forecast_chart(
+        forecasts_to_plot, scale=scale, grid=grid
+    )
+    observed_layer = target_data_chart(data_to_plot, scale=scale, grid=grid)
+    sub_layers = [
+        layer
+        for layer in [forecast_layer, observed_layer]
+        if not is_empty_chart(layer)
+    ]
+    if sub_layers:
+        # for some reason alt.layer(*sub_layers) does not work
+        layer = reduce(lambda x, y: x + y, sub_layers)
+    else:
+        st.info("No data to plot for that model/target/location.")
+        return
+    title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
+    chart = (
+        layer.interactive()
+        .properties(title=alt.TitleParams(text=title, anchor="middle"))
+        .facet(row=alt.Row("model_id:N"), columns=1)
+    )
+    chart_key = f"forecast_{loc_abbr}_{selected_target}"
+    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
+
+
+def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
+    """
+    Streamlit widget for the upload of the hubverse
+    formatted influenza and COVID-19 ED visits and hospital
+    admissions observations time-series and hubverse
+    formatted forecast table.
+
+    Returns
+    -------
+    tuple
+        A tuple of observed_data_table (pl.DataFrame), i.e.
+        the loaded observed data table (filtered to latest
+        as_of date) or an empty DataFrame and
+        forecast_table (pl.DataFrame), i.e. the loaded
+        forecast table or an empty DataFrame.
+    """
+    observed_file = st.file_uploader(
+        "Upload Hubverse Target Data", type=["parquet"]
+    )
+    forecast_file = st.file_uploader(
+        "Upload Hubverse Forecasts", type=["csv", "parquet"]
+    )
+    observed_data_table = load_observed_data(
+        observed_file,
+    )
+    forecast_table = load_forecast_data(
+        forecast_file,
+    )
+    return observed_data_table, forecast_table
