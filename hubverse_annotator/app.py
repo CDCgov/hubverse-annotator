@@ -10,6 +10,7 @@ import logging
 import time
 
 import streamlit as st
+from streamlit_shortcuts import add_shortcuts
 from ui import (
     forecast_annotation_ui,
     load_data_ui,
@@ -20,6 +21,8 @@ from ui import (
     target_selection_ui,
 )
 from utils import filter_for_plotting
+
+add_shortcuts(prev_button="arrowleft", next_button="arrowright")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
