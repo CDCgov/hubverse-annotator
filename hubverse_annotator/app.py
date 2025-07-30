@@ -261,12 +261,13 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
     return forecast_table.get_column("reference_date").unique().to_list()
 
 
-def location_and_reference_data_ui(
-    observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
-) -> tuple[str, datetime.date]:
+def location_selection_ui(
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+) -> str:
     """
-    Streamlit widget for the reference date and location
-    selection.
+    Streamlit widget for the selection of a location (two
+    letter abbreviation for US jurisdiction).
 
     Parameters
     ----------
@@ -278,9 +279,9 @@ def location_and_reference_data_ui(
 
     Returns
     -------
-    tuple
-        Returns a tuple of the two letter location
-        abbreviation and the selected reference date.
+    str
+        The selected two-letter location abbreviation.
+
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
     if "locations_list" not in st.session_state:
@@ -330,6 +331,28 @@ def location_and_reference_data_ui(
         .get_column("short_name")
         .item()
     )
+    return loc_abbr
+
+
+def reference_date_selection_ui(
+    forecast_table: pl.DataFrame,
+) -> datetime.date | None:
+    """
+    Streamlit widget for the selection of forecast
+    reference date.
+
+    Parameters
+    ----------
+    forecast_table : pl.DataFrame
+        The hubverse formatted table of forecasted ED
+        visits and or hospital admissions (possibly empty).
+
+    Returns
+    -------
+    datetime.date | None
+        The selected reference date, or None if no dates
+        are available.
+    """
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
     if ref_dates and "ref_date_selection" not in st.session_state:
         st.session_state.ref_date_selection = ref_dates[0]
@@ -339,7 +362,7 @@ def location_and_reference_data_ui(
         format_func=lambda d: d.strftime("%Y-%m-%d"),
         key="ref_date_selection",
     )
-    return loc_abbr, selected_ref_date
+    return selected_ref_date
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:
@@ -913,9 +936,8 @@ def main() -> None:
                 "Please upload Observed Data or Hubverse Forecasts to begin."
             )
             return None
-        loc_abbr, selected_ref_date = location_and_reference_data_ui(
-            observed_data_table, forecast_table
-        )
+        loc_abbr = location_selection_ui(observed_data_table, forecast_table)
+        selected_ref_date = reference_date_selection_ui(forecast_table)
         selected_models = model_selection_ui(forecast_table, loc_abbr)
         selected_target = target_selection_ui(
             observed_data_table,
