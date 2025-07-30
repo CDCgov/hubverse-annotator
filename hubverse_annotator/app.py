@@ -20,6 +20,7 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
+from streamlit_shortcuts import add_shortcuts
 
 type ScaleType = Literal["linear", "log"]
 
@@ -30,6 +31,8 @@ PLOT_WIDTH = 625
 VIEW_HEIGHT = 50
 STROKE_WIDTH = 2
 MARKER_SIZE = 55
+
+add_shortcuts(prev_button="arrowleft", next_button="arrowright")
 
 
 def export_button() -> None:
@@ -210,9 +213,9 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
     return forecast_table.get_column("reference_date").unique().to_list()
 
 
-def reference_date_and_location_ui(
+def location_and_reference_data_ui(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
-) -> tuple[datetime.date, str]:
+) -> tuple[str, datetime.date]:
     """
     Streamlit widget for the reference date and location
     selection.
@@ -228,78 +231,65 @@ def reference_date_and_location_ui(
     Returns
     -------
     tuple
-        Returns a tuple of the selected reference date and
-        the two letter location abbreviation.
+        Returns a tuple of the two letter location
+        abbreviation and the selected reference date.
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
     if "locations_list" not in st.session_state:
         st.session_state.locations_list = (
             loc_lookup.get_column("long_name").sort().to_list()
         )
-    if "location_selection" not in st.session_state:
-        st.session_state.location_selection = st.session_state.locations_list[
-            0
-        ]
 
     def go_to_prev_loc():
-        current_loc = st.session_state.locations_list.index(
-            st.session_state.location_selection
-        )
-        if current_loc > 0:
-            st.session_state.location_selection = (
-                st.session_state.locations_list[current_loc - 1]
-            )
+        st.session_state.current_loc_id -= 1
 
     def go_to_next_loc():
-        current_loc = st.session_state.locations_list.index(
-            st.session_state.location_selection
-        )
-        if current_loc < len(st.session_state.locations_list) - 1:
-            st.session_state.location_selection = (
-                st.session_state.locations_list[current_loc + 1]
-            )
+        st.session_state.current_loc_id += 1
 
-    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
-    col1, col2 = st.columns(2)
-    with col1:
-        selected_ref_date = st.selectbox(
-            "Reference Date",
-            options=ref_dates,
-            format_func=lambda d: d.strftime("%Y-%m-%d"),
-            key="ref_date_selection",
-        )
-    current_loc = st.session_state.locations_list.index(
-        st.session_state.location_selection
+    location_col, prev_col, next_col = st.columns(
+        [6, 1, 1], vertical_alignment="bottom"
     )
-    first_loc_is_selected = current_loc == 0
-    last_loc_is_selected = (
-        current_loc == len(st.session_state.locations_list) - 1
-    )
-    with col2:
-        location_select_box, previous_button, next_button = st.columns(
-            [3, 1, 1]
+    with location_col:
+        st.selectbox(
+            "Location",
+            options=list(range(len(st.session_state.locations_list))),
+            key="current_loc_id",
+            format_func=lambda i: st.session_state.locations_list[i],
         )
-        with location_select_box:
-            st.selectbox(
-                "Location",
-                options=st.session_state.locations_list,
-                key="location_selection",
-            )
-        with previous_button:
-            st.button(
-                "⏮️", on_click=go_to_prev_loc, disabled=first_loc_is_selected
-            )
-        with next_button:
-            st.button(
-                "⏭️", on_click=go_to_next_loc, disabled=last_loc_is_selected
-            )
-    selected_location = st.session_state.location_selection
+    with prev_col:
+        st.button(
+            "⏮️",
+            disabled=(st.session_state.current_loc_id == 0),
+            on_click=go_to_prev_loc,
+            key="prev_button",
+            use_container_width=True,
+        )
+    with next_col:
+        st.button(
+            "⏭️",
+            disabled=(
+                st.session_state.current_loc_id
+                == len(st.session_state.locations_list) - 1
+            ),
+            on_click=go_to_next_loc,
+            key="next_button",
+            use_container_width=True,
+        )
+    loc_id = st.session_state.current_loc_id
+    selected_location = st.session_state.locations_list[loc_id]
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
         .item()
     )
-    return selected_ref_date, loc_abbr
+    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
+    selected_ref_date = st.selectbox(
+        "Reference Date",
+        options=ref_dates,
+        format_func=lambda d: d.strftime("%Y-%m-%d"),
+        key="ref_date_selection",
+    )
+    return loc_abbr, selected_ref_date
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:
@@ -480,6 +470,8 @@ def plotting_ui(
     loc_abbr: str,
     selected_target: str | None,
     selected_ref_date: datetime.date,
+    scale,
+    grid,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -505,8 +497,8 @@ def plotting_ui(
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
-    scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
-    grid = st.checkbox("Gridlines", value=True)
+    # scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
+    # grid = st.checkbox("Gridlines", value=True)
     forecast_layer = quantile_forecast_chart(
         forecasts_to_plot, scale=scale, grid=grid
     )
@@ -544,6 +536,51 @@ def plotting_ui(
     final = chart & view
     chart_key = f"forecast_{loc_abbr}_{selected_target}"
     base_chart.altair_chart(final, use_container_width=False, key=chart_key)
+
+
+def validate_schema(
+    df: pl.DataFrame,
+    expected_schema: dict[str, pl.DataType],
+    name: str,
+    strict: bool = False,
+) -> None:
+    """
+    Stop the app if received dataframe does not adhere to
+    the provided schema.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        An ingested dataframe expected to be either
+        hubverse formatted observed data or forecasts.
+    expected_schema : dict[str, pl.DataType]
+        Mapping of column name to expected Polars dtype.
+    name : str
+        Name for the dataframe (used in error messages).
+    strict : bool
+        If True, extra columns beyond those in
+        `expected_schema` will also trigger an error.
+        If False, extra columns are ignored. Defaults to
+        False.
+    """
+    actual = df.schema
+    missing = set(expected_schema) - actual.keys()
+    extra = set(actual.keys()) - expected_schema.keys() if strict else set()
+    mismatches = {
+        col: (expected_schema[col], actual[col])
+        for col in expected_schema.keys() & actual.keys()
+        if expected_schema[col] != actual[col]
+    }
+    if missing or extra or mismatches:
+        parts: list[str] = []
+        if missing:
+            parts.append(f"missing cols {sorted(missing)}")
+        if extra:
+            parts.append(f"unexpected cols {sorted(extra)}")
+        for col, (exp, act) in mismatches.items():
+            parts.append(f"'{col}' expected {exp}, got {act}")
+        st.error(f"{name} schema problems: " + "; ".join(parts))
+        st.stop()
 
 
 @st.cache_data
@@ -606,6 +643,90 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     return hub_table
 
 
+def load_observed_data(
+    observed_data_file: UploadedFile | None,
+) -> pl.DataFrame:
+    """
+    Loads and validates the observed data table from a
+    Hubverse formatted file. Returns an empty DataFrame
+    with the given schema if no file is provided.
+    Otherwise, read via `load_hubverse_table`, filter to
+    the latest `as_of` date, then validate against
+    `expected_schema` (stopping on failure).
+
+    Parameters
+    ----------
+    observed_data_file : UploadedFile | None
+        Streamlit-uploaded file containing observed data,
+        or None.
+
+    Returns
+    -------
+    pl.DataFrame
+        The loaded and validated observed data table, or
+        an empty DataFrame conforming to `expected_schema`
+        if no file was uploaded.
+    """
+    observed_schema = {
+        "date": pl.Date,
+        "state": pl.Utf8,
+        "observation": pl.Float64,
+        "location": pl.Utf8,
+        "as_of": pl.Date,
+        "target": pl.Utf8,
+        "loc_abbr": pl.Utf8,
+    }
+    if not observed_data_file:
+        return pl.DataFrame(schema=observed_schema)
+    table = load_hubverse_table(observed_data_file)
+    validate_schema(table, observed_schema, "Observed Data")
+    table = table.filter(pl.col("as_of") == pl.col("as_of").max())
+    return table
+
+
+def load_forecast_data(
+    forecast_file: UploadedFile | None,
+) -> pl.DataFrame:
+    """
+    Loads and validates the forecast data table from a
+    Hubverse formatted file. Returns an empty DataFrame
+    with the given schema if no file is provided.
+    Otherwise, read via `load_hubverse_table` and
+    validate against `expected_schema` (stopping on
+    failure).
+
+    Parameters
+    ----------
+    forecast_file : UploadedFile | None
+        Streamlit-uploaded file containing forecast data,
+        or None.
+
+    Returns
+    -------
+    pl.DataFrame
+        The loaded and validated forecast table, or an
+        empty DataFrame conforming to `expected_schema`
+        if no file was uploaded.
+    """
+    forecast_schema = {
+        "model_id": pl.Utf8,
+        "reference_date": pl.Date,
+        "target": pl.Utf8,
+        "horizon": pl.Int32,
+        "target_end_date": pl.Date,
+        "location": pl.Utf8,
+        "output_type": pl.Utf8,
+        "output_type_id": pl.Utf8,
+        "value": pl.Float64,
+        "loc_abbr": pl.Utf8,
+    }
+    if not forecast_file:
+        return pl.DataFrame(schema=forecast_schema)
+    table = load_hubverse_table(forecast_file)
+    validate_schema(table, forecast_schema, "Forecast Data")
+    return table
+
+
 def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
     """
     Streamlit widget for the upload of the hubverse
@@ -622,47 +743,18 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         forecast_table (pl.DataFrame), i.e. the loaded
         forecast table or an empty DataFrame.
     """
-    observed_data_file = st.file_uploader(
+    observed_file = st.file_uploader(
         "Upload Hubverse Target Data", type=["parquet"]
     )
-    if observed_data_file:
-        observed_data_table = load_hubverse_table(observed_data_file)
-        if "as_of" in observed_data_table.columns:
-            observed_data_table = observed_data_table.filter(
-                pl.col("as_of") == pl.col("as_of").max()
-            )
-    else:
-        observed_data_table = pl.DataFrame(
-            schema={
-                "date": pl.Date,
-                "state": pl.Utf8,
-                "observation": pl.Float64,
-                "location": pl.Utf8,
-                "as_of": pl.Date,
-                "target": pl.Utf8,
-                "loc_abbr": pl.Utf8,
-            }
-        )
     forecast_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
-    if forecast_file:
-        forecast_table = load_hubverse_table(forecast_file)
-    else:
-        forecast_table = pl.DataFrame(
-            schema={
-                "model_id": pl.Utf8,
-                "reference_date": pl.Date,
-                "target": pl.Utf8,
-                "horizon": pl.Int32,
-                "target_end_date": pl.Date,
-                "location": pl.Utf8,
-                "output_type": pl.Utf8,
-                "output_type_id": pl.Utf8,
-                "value": pl.Float64,
-                "loc_abbr": pl.Utf8,
-            }
-        )
+    observed_data_table = load_observed_data(
+        observed_file,
+    )
+    forecast_table = load_forecast_data(
+        forecast_file,
+    )
     return observed_data_table, forecast_table
 
 
@@ -719,18 +811,24 @@ def main() -> None:
     # record session start time
     start_time = time.time()
     # streamlit application begins
-    st.title("Forecast Annotator")
-    observed_data_table, forecast_table = load_data_ui()
-    # at least one of the tables must be non-empty
-    if observed_data_table.is_empty() and forecast_table.is_empty():
-        st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
-        return None
-    selected_ref_date, loc_abbr = reference_date_and_location_ui(
-        observed_data_table, forecast_table
-    )
-    selected_models, selected_target = model_and_target_selection_ui(
-        observed_data_table, forecast_table, loc_abbr
-    )
+    with st.sidebar:
+        st.title("Forecast Annotator")
+        observed_data_table, forecast_table = load_data_ui()
+        # at least one of the tables must be non-empty
+        if observed_data_table.is_empty() and forecast_table.is_empty():
+            st.info(
+                "Please upload Observed Data or Hubverse Forecasts to begin."
+            )
+            return None
+        loc_abbr, selected_ref_date = location_and_reference_data_ui(
+            observed_data_table, forecast_table
+        )
+        selected_models, selected_target = model_and_target_selection_ui(
+            observed_data_table, forecast_table, loc_abbr
+        )
+        scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
+        grid = st.checkbox("Gridlines", value=True)
+        forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
     data_to_plot, forecasts_to_plot = filter_for_plotting(
         observed_data_table,
         forecast_table,
@@ -745,8 +843,9 @@ def main() -> None:
         loc_abbr,
         selected_target,
         selected_ref_date,
+        scale=scale,
+        grid=grid,
     )
-    forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
     duration = time.time() - start_time
     logger.info(f"Session lasted {duration:.1f}s")
 

@@ -261,6 +261,7 @@ dependencies = [
     { name = "forecasttools" },
     { name = "polars" },
     { name = "streamlit" },
+    { name = "streamlit-shortcuts" },
 ]
 
 [package.metadata]
@@ -269,6 +270,7 @@ requires-dist = [
     { name = "forecasttools", git = "https://github.com/cdcgov/forecasttools-py" },
     { name = "polars", specifier = ">=0.19.37" },
     { name = "streamlit", specifier = ">=1.47.0" },
+    { name = "streamlit-shortcuts", specifier = ">=1.1.5" },
 ]
 
 [[package]]
@@ -900,6 +902,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/19/da/cef67ed4614f04932a00068fe6291455deb884a04fd94f7ad78492b0e91a/streamlit-1.47.1.tar.gz", hash = "sha256:daed79763d1cafeb03cdd800b91aa9c7adc3688c6b2cbf4ecc2ca899aab82a2a", size = 9544057, upload-time = "2025-07-25T15:37:08.482Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c0/4d/701f5fcf9c0d388dad9d94ba272d333c7efa6231ddee1babc59d26dc14d2/streamlit-1.47.1-py3-none-any.whl", hash = "sha256:c7881549e3ba1daecfb5541f32ee6ff70e549f1c3400c92d045897cb7a29772a", size = 9944872, upload-time = "2025-07-25T15:37:05.758Z" },
+]
+
+[[package]]
+name = "streamlit-shortcuts"
+version = "1.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a0/77/dd549b07a6d2f33fd2433ff0845e403dd87d9e38b21d994c8533af603f27/streamlit_shortcuts-1.1.5.tar.gz", hash = "sha256:ff8153023b832dd0d7d5f4922961b9f1358ae610677d8d58bae335ede441d12e", size = 109627, upload-time = "2025-07-15T15:53:57.773Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/06/76/830f841da84f47d6a8ca60a917dbbc59e61841b5a0241e7a6f0513c63070/streamlit_shortcuts-1.1.5-py3-none-any.whl", hash = "sha256:53143861f7204f7688ed58942209faac1a937c440dea9db2df72de8595cfed39", size = 6094, upload-time = "2025-07-15T15:53:56.578Z" },
 ]
 
 [[package]]
