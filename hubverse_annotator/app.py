@@ -162,10 +162,10 @@ def target_selection_ui(
     Parameters
     ----------
     observed_data_table : pl.DataFrame
-        Hubverse-formatted observed data (must include
-        "loc_abbr", "target"; possibly empty).
+        Hubverse formatted observed data table (must
+        include "loc_abbr", "target"; possibly empty).
     forecast_table : pl.DataFrame
-        Hubverse-formatted forecasts (must include
+        Hubverse formatted forecast table (must include
         "loc_abbr", "model_id", "target"; possibly empty).
     loc_abbr : str
         The selection location, typically a US
