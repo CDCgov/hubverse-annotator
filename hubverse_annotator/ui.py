@@ -345,10 +345,14 @@ def plotting_ui(
     base_chart = st.empty()
     # scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
     # grid = st.checkbox("Gridlines", value=True)
-    forecast_layer = quantile_forecast_chart(forecasts_to_plot, scale=scale, grid=grid)
+    forecast_layer = quantile_forecast_chart(
+        forecasts_to_plot, scale=scale, grid=grid
+    )
     observed_layer = target_data_chart(data_to_plot, scale=scale, grid=grid)
     sub_layers = [
-        layer for layer in [forecast_layer, observed_layer] if not is_empty_chart(layer)
+        layer
+        for layer in [forecast_layer, observed_layer]
+        if not is_empty_chart(layer)
     ]
     if sub_layers:
         # for some reason alt.layer(*sub_layers) does not work
@@ -382,7 +386,9 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         forecast_table (pl.DataFrame), i.e. the loaded
         forecast table or an empty DataFrame.
     """
-    observed_file = st.file_uploader("Upload Hubverse Target Data", type=["parquet"])
+    observed_file = st.file_uploader(
+        "Upload Hubverse Target Data", type=["parquet"]
+    )
     forecast_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
