@@ -19,7 +19,6 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from streamlit.runtime.uploaded_file_manager import UploadedFile
-from streamlit_shortcuts import add_shortcuts
 
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
@@ -29,8 +28,6 @@ type ScaleType = Literal["linear", "log"]
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-add_shortcuts(prev_button="arrowleft", next_button="arrowright")
 
 
 def validate_schema(
@@ -154,9 +151,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
     spec = chart.to_dict()
     # unit chart: no data, no mark, no encoding
     if "layer" not in spec:
-        return not (
-            spec.get("data") or spec.get("mark") or spec.get("encoding")
-        )
+        return not (spec.get("data") or spec.get("mark") or spec.get("encoding"))
     # LayerChart: check each sub-layer recursively
     # check if the layer list is empty or all sub-layers
     # are empty
@@ -200,9 +195,7 @@ def target_data_chart(
         return alt.layer()
     yscale = alt.Scale(type=scale)
     x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
-    y_axis = alt.Axis(
-        title=None, grid=grid, ticks=True, labels=True, orient="right"
-    )
+    y_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True, orient="right")
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
@@ -406,9 +399,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(
-            lookup.select(["location_code", "short_name"]).iter_rows()
-        )
+        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )

@@ -10,7 +10,6 @@ import logging
 import time
 
 import streamlit as st
-from streamlit_shortcuts import add_shortcuts
 from ui import (
     forecast_annotation_ui,
     load_data_ui,
@@ -22,7 +21,6 @@ from ui import (
 )
 from utils import filter_for_plotting
 
-add_shortcuts(prev_button="arrowleft", next_button="arrowright")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,9 +35,7 @@ def main() -> None:
         observed_data_table, forecast_table = load_data_ui()
         # at least one of the tables must be non-empty
         if observed_data_table.is_empty() and forecast_table.is_empty():
-            st.info(
-                "Please upload Observed Data or Hubverse Forecasts to begin."
-            )
+            st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
             return None
         loc_abbr = location_selection_ui(observed_data_table, forecast_table)
         selected_ref_date = reference_date_selection_ui(forecast_table)
