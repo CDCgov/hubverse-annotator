@@ -195,7 +195,7 @@ def target_selection_ui(
         .to_list()
     )
     suffix = "_".join(selected_models) if selected_models else "none"
-    target_selection_key = f"target_selection__{suffix}"
+    target_selection_key = f"target_selection_{suffix}"
     all_targets = sorted(set(forecast_targets + observed_data_targets))
     selected_target = st.selectbox(
         "Target",
