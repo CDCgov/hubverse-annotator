@@ -194,13 +194,14 @@ def target_selection_ui(
         .sort()
         .to_list()
     )
+    suffix = "_".join(selected_models) if selected_models else "none"
+    target_selection_key = f"target_selection__{suffix}"
     all_targets = sorted(set(forecast_targets + observed_data_targets))
-    if "target_selection" not in st.session_state:
-        st.session_state.target_selection = all_targets[0]
     selected_target = st.selectbox(
         "Target",
         options=all_targets,
-        key="target_selection",
+        index=0,
+        key=target_selection_key,
     )
     return selected_target
 
