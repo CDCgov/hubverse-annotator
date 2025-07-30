@@ -124,12 +124,24 @@ def model_and_target_selection_ui(
         .sort()
         .to_list()
     )
+    if "model_selection" not in st.session_state:
+        st.session_state.model_selection = models.copy()
+
+    def select_all():
+        st.session_state.model_selection = models.copy()
+
+    def select_none():
+        st.session_state.model_selection = []
+
     selected_models = st.multiselect(
         "Model(s)",
         options=models,
-        default=None,
+        default=st.session_state.model_selection,
         key="model_selection",
     )
+    col1, col2 = st.columns(2)
+    col1.button("All", on_click=select_all)
+    col2.button("None", on_click=select_none)
     forecast_targets = (
         forecast_table.filter(
             pl.col("loc_abbr") == loc_abbr,
