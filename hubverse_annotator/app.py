@@ -331,6 +331,8 @@ def location_and_reference_data_ui(
         .item()
     )
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
+    if ref_dates and "ref_date_selection" not in st.session_state:
+        st.session_state.ref_date_selection = ref_dates[0]
     selected_ref_date = st.selectbox(
         "Reference Date",
         options=ref_dates,
