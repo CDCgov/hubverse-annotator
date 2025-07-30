@@ -288,10 +288,10 @@ def location_and_reference_data_ui(
             loc_lookup.get_column("long_name").sort().to_list()
         )
 
-    def go_to_prev_loc():
+    def _go_to_prev_loc():
         st.session_state.current_loc_id -= 1
 
-    def go_to_next_loc():
+    def _go_to_next_loc():
         st.session_state.current_loc_id += 1
 
     location_col, prev_col, next_col = st.columns(
@@ -308,7 +308,7 @@ def location_and_reference_data_ui(
         st.button(
             "⏮️",
             disabled=(st.session_state.current_loc_id == 0),
-            on_click=go_to_prev_loc,
+            on_click=_go_to_prev_loc,
             key="prev_button",
             use_container_width=True,
         )
@@ -319,7 +319,7 @@ def location_and_reference_data_ui(
                 st.session_state.current_loc_id
                 == len(st.session_state.locations_list) - 1
             ),
-            on_click=go_to_next_loc,
+            on_click=_go_to_next_loc,
             key="next_button",
             use_container_width=True,
         )
