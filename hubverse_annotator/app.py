@@ -124,6 +124,9 @@ def model_selection_ui(
         .sort()
         .to_list()
     )
+    if not models:
+        st.info("Upload forecasts for this location to pick models.")
+        return []
     if "model_selection" not in st.session_state:
         st.session_state.model_selection = models.copy()
 
@@ -354,6 +357,9 @@ def reference_date_selection_ui(
         are available.
     """
     ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
+    if not ref_dates:
+        st.info("Upload a forecast file to select a reference date.")
+        return None
     if ref_dates and "ref_date_selection" not in st.session_state:
         st.session_state.ref_date_selection = ref_dates[0]
     selected_ref_date = st.selectbox(
