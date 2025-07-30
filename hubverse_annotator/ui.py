@@ -1,6 +1,5 @@
 import datetime
 import json
-import logging
 import pathlib
 from functools import reduce
 
@@ -17,10 +16,6 @@ from utils import (
     quantile_forecast_chart,
     target_data_chart,
 )
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 add_shortcuts(prev_button="arrowleft", next_button="arrowright")
 
