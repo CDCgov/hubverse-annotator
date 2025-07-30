@@ -93,30 +93,30 @@ def forecast_annotation_ui(
     export_button()
 
 
-def model_and_target_selection_ui(
-    observed_data_table: pl.DataFrame,
+def model_selection_ui(
     forecast_table: pl.DataFrame,
     loc_abbr: str,
-) -> tuple[list[str], str | None]:
+) -> list[str]:
     """
-    Streamlit widget for model and target selection.
+    Renders a Streamlit multiselect widget for choosing
+    models, with "All" and "None" buttons. Defaults to all
+    models being selected.
 
     Parameters
     ----------
-    observed_data_table : pl.DataFrame
-        A hubverse table of loaded data (possibly empty).
     forecast_table : pl.DataFrame
-        The hubverse formatted table of forecasted ED
-        visits and or hospital admissions (possibly empty).
+        Hubverse-formatted forecasts (must include
+        "loc_abbr" and "model_id" columns; possibly empty).
     loc_abbr : str
-        The selection location, typically a US jurisdiction.
+        The selection location, typically a US
+        jurisdiction.
 
     Returns
     -------
-    tuple
-        Returns a list of selected model names and the
-        selected target.
+    list[str]
+        The list of currently selected model_ids.
     """
+
     models = (
         forecast_table.filter(pl.col("loc_abbr") == loc_abbr)
         .get_column("model_id")
@@ -124,24 +124,59 @@ def model_and_target_selection_ui(
         .sort()
         .to_list()
     )
+
     if "model_selection" not in st.session_state:
         st.session_state.model_selection = models.copy()
 
-    def select_all():
+    def _select_all():
         st.session_state.model_selection = models.copy()
 
-    def select_none():
+    def _select_none():
         st.session_state.model_selection = []
 
+    all_button, none_button = st.columns(2)
+    all_button.button("All", on_click=_select_all)
+    none_button.button("None", on_click=_select_none)
     selected_models = st.multiselect(
         "Model(s)",
         options=models,
-        default=st.session_state.model_selection,
         key="model_selection",
     )
-    col1, col2 = st.columns(2)
-    col1.button("All", on_click=select_all)
-    col2.button("None", on_click=select_none)
+
+    return selected_models
+
+
+def target_selection_ui(
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    loc_abbr: str,
+    selected_models: list[str],
+) -> str | None:
+    """
+    Renders a Streamlit selectbox for choosing a
+    target. Always defaults to the first alphabetical
+    target whenever the set of models changes.
+
+    Parameters
+    ----------
+    observed_data_table : pl.DataFrame
+        Hubverse-formatted observed data (must include
+        "loc_abbr", "target"; possibly empty).
+    forecast_table : pl.DataFrame
+        Hubverse-formatted forecasts (must include
+        "loc_abbr", "model_id", "target"; possibly empty).
+    loc_abbr : str
+        The selection location, typically a US
+        jurisdiction.
+    selected_models : list[str]
+        Models currently selected.
+
+    Returns
+    -------
+    str | None
+        The selected target, or None if there are no
+        targets.
+    """
     forecast_targets = (
         forecast_table.filter(
             pl.col("loc_abbr") == loc_abbr,
@@ -160,12 +195,14 @@ def model_and_target_selection_ui(
         .to_list()
     )
     all_targets = sorted(set(forecast_targets + observed_data_targets))
+    if "target_selection" not in st.session_state:
+        st.session_state.target_selection = all_targets[0]
     selected_target = st.selectbox(
         "Target",
         options=all_targets,
         key="target_selection",
     )
-    return selected_models, selected_target
+    return selected_target
 
 
 @st.cache_data
@@ -820,8 +857,12 @@ def main() -> None:
         loc_abbr, selected_ref_date = location_and_reference_data_ui(
             observed_data_table, forecast_table
         )
-        selected_models, selected_target = model_and_target_selection_ui(
-            observed_data_table, forecast_table, loc_abbr
+        selected_models = model_selection_ui(forecast_table, loc_abbr)
+        selected_target = target_selection_ui(
+            observed_data_table,
+            forecast_table,
+            loc_abbr,
+            selected_models,
         )
         scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
         grid = st.checkbox("Gridlines", value=True)
