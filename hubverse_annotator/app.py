@@ -6,9 +6,6 @@ and annotate models.
 To run: uv run streamlit run ./hubverse_annotator/app.py
 """
 
-import logging
-import time
-
 import streamlit as st
 from ui import (
     forecast_annotation_ui,
@@ -21,13 +18,9 @@ from ui import (
 )
 from utils import filter_for_plotting
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 def main() -> None:
     # record session start time
-    start_time = time.time()
     # streamlit application begins
     with st.sidebar:
         st.title("Forecast Annotator")
@@ -67,8 +60,6 @@ def main() -> None:
         scale=scale,
         grid=grid,
     )
-    duration = time.time() - start_time
-    logger.info(f"Session lasted {duration:.1f}s")
 
 
 if __name__ == "__main__":
