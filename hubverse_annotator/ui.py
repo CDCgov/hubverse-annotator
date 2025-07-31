@@ -26,6 +26,9 @@ from utils import (
     target_data_chart,
 )
 
+Y_LABEL_FONT_SIZE = 15
+CHART_TITLE_FONT_SIZE = 18
+
 
 def annotation_export_ui() -> None:
     """
@@ -426,8 +429,25 @@ def plotting_ui(
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
         layer.interactive()
-        .properties(title=alt.TitleParams(text=title, anchor="middle"))
-        .facet(row=alt.Row("model_id:N"), columns=1)
+        .facet(
+            row=alt.Row(
+                "model_id:N",
+                header=alt.Header(
+                    labelColor="black",
+                    labelFontSize=Y_LABEL_FONT_SIZE,
+                    title=None,
+                ),
+            ),
+            columns=1,
+        )
+        .properties(
+            title=alt.TitleParams(
+                text=title,
+                fontSize=CHART_TITLE_FONT_SIZE,
+                fontWeight="bold",
+                anchor="middle",
+            )
+        )
     )
     chart_key = f"forecast_{loc_abbr}_{selected_target}"
     base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
