@@ -131,6 +131,32 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
     return forecast_table.get_column("reference_date").unique().to_list()
 
 
+def get_initial_window_range(
+    observed_data_table: pl.DataFrame,
+    forecast_table: pl.DataFrame,
+    observed_date_col: str = "date",
+    forecast_date_col: str = "target_end_date",
+    extra_weeks: int = 4,
+) -> tuple[datetime.date, datetime.date]:
+    """
+    Determine the initial x-axis window for viewing of
+    data (starts a few weeks before the earliest forecast
+    and ends at the latest observed date).
+    """
+    observed = observed_data_table.with_columns(
+        pl.col(observed_date_col).cast(pl.Date)
+    )
+    forecasts = forecast_table.with_columns(
+        pl.col(forecast_date_col).cast(pl.Date)
+    )
+
+    min_forecast = forecasts.select(pl.col(forecast_date_col).min()).item()
+    max_observed = observed.select(pl.col(observed_date_col).max()).item()
+
+    start_window = min_forecast - datetime.timedelta(weeks=extra_weeks)
+    return start_window, max_observed
+
+
 def is_empty_chart(chart: alt.LayerChart) -> bool:
     """
     Checks if an altair layer is empty. Primarily used for
