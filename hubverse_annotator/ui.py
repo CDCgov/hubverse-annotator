@@ -15,7 +15,7 @@ from functools import reduce
 import altair as alt
 import polars as pl
 import streamlit as st
-from streamlit_shortcuts import add_shortcuts, shortcut_button
+from streamlit_shortcuts import add_shortcuts
 from utils import (
     get_available_locations,
     get_reference_dates,
@@ -278,26 +278,23 @@ def location_selection_ui(
             format_func=lambda i: st.session_state.locations[i],
         )
     with prev_col:
-        shortcut_button(
-            label="⏮️",
-            hint=False,
-            shortcut="arrowleft",
+        st.button(
+            "⏮️",
             disabled=(st.session_state.current_loc_id == 0),
             on_click=_go_to_prev_loc,
-            use_container_width=True,
+            key="prev_loc_button",
         )
     with next_col:
-        shortcut_button(
-            label="⏭️",
-            hint=False,
-            shortcut="arrowright",
+        st.button(
+            "⏭️",
             disabled=(
                 st.session_state.current_loc_id
                 == len(st.session_state.locations) - 1
             ),
             on_click=_go_to_next_loc,
-            use_container_width=True,
+            key="next_loc_button",
         )
+    add_shortcuts(prev_loc_button="arrowleft", next_loc_button="arrowright")
     loc_id = st.session_state.current_loc_id
     selected_location = st.session_state.locations[loc_id]
     loc_abbr = (
