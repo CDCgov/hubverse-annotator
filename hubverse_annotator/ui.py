@@ -227,7 +227,7 @@ def target_selection_ui(
             on_click=_go_to_next_target,
             key="next_target_button",
         )
-    add_shortcuts(prev_target_button="A", next_target_button="D")
+    add_shortcuts(prev_target_button="W", next_target_button="S")
     target_id = st.session_state.current_target_id
     selected_target = st.session_state.targets[target_id]
     return selected_target
