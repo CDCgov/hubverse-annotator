@@ -250,7 +250,7 @@ def location_selection_ui(
             "⏮️",
             disabled=(st.session_state.current_loc_id == 0),
             on_click=_go_to_prev_loc,
-            key="prev_button",
+            key="prev_loc_button",
         )
     with next_col:
         st.button(
@@ -260,9 +260,9 @@ def location_selection_ui(
                 == len(st.session_state.locations_list) - 1
             ),
             on_click=_go_to_next_loc,
-            key="next_button",
+            key="next_loc_button",
         )
-    add_shortcuts(prev_button="arrowleft", next_button="arrowright")
+    add_shortcuts(prev_loc_button="arrowleft", next_loc_button="arrowright")
     loc_id = st.session_state.current_loc_id
     selected_location = st.session_state.locations_list[loc_id]
     loc_abbr = (
