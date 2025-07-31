@@ -15,7 +15,7 @@ from functools import reduce
 import altair as alt
 import polars as pl
 import streamlit as st
-from streamlit_shortcuts import shortcut_button
+from streamlit_shortcuts import add_shortcuts, shortcut_button
 from utils import (
     get_available_locations,
     get_reference_dates,
@@ -189,15 +189,47 @@ def target_selection_ui(
         .sort()
         .to_list()
     )
-    suffix = "_".join(selected_models) if selected_models else "none"
-    target_selection_key = f"target_selection_{suffix}"
-    all_targets = sorted(set(forecast_targets + observed_data_targets))
-    selected_target = st.selectbox(
-        "Target",
-        options=all_targets,
-        index=0,
-        key=target_selection_key,
+    if "targets" not in st.session_state:
+        st.session_state.targets = sorted(
+            set(forecast_targets + observed_data_targets)
+        )
+
+    def _go_to_prev_target():
+        st.session_state.current_target_id -= 1
+
+    def _go_to_next_target():
+        st.session_state.current_target_id += 1
+
+    target_col, prev_col, next_col = st.columns(
+        [6, 1, 1], vertical_alignment="bottom"
     )
+    with target_col:
+        selected_target = st.selectbox(
+            "Target",
+            options=list(range(len(st.session_state.targets))),
+            key="current_target_id",
+            format_func=lambda i: st.session_state.targets[i],
+        )
+    with prev_col:
+        st.button(
+            "⏮️",
+            disabled=(st.session_state.current_target_id == 0),
+            on_click=_go_to_prev_target,
+            key="prev_target_button",
+        )
+    with next_col:
+        st.button(
+            "⏭️",
+            disabled=(
+                st.session_state.current_target_id
+                == len(st.session_state.targets) - 1
+            ),
+            on_click=_go_to_next_target,
+            key="next_target_button",
+        )
+    add_shortcuts(prev_target_button="A", next_target_button="D")
+    target_id = st.session_state.current_target_id
+    selected_target = st.session_state.targets[target_id]
     return selected_target
 
 
@@ -224,8 +256,8 @@ def location_selection_ui(
 
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
-    if "locations_list" not in st.session_state:
-        st.session_state.locations_list = (
+    if "locations" not in st.session_state:
+        st.session_state.locations = (
             loc_lookup.get_column("long_name").sort().to_list()
         )
 
@@ -241,9 +273,9 @@ def location_selection_ui(
     with location_col:
         st.selectbox(
             "Location",
-            options=list(range(len(st.session_state.locations_list))),
+            options=list(range(len(st.session_state.locations))),
             key="current_loc_id",
-            format_func=lambda i: st.session_state.locations_list[i],
+            format_func=lambda i: st.session_state.locations[i],
         )
     with prev_col:
         shortcut_button(
@@ -261,13 +293,13 @@ def location_selection_ui(
             shortcut="arrowright",
             disabled=(
                 st.session_state.current_loc_id
-                == len(st.session_state.locations_list) - 1
+                == len(st.session_state.locations) - 1
             ),
             on_click=_go_to_next_loc,
             use_container_width=True,
         )
     loc_id = st.session_state.current_loc_id
-    selected_location = st.session_state.locations_list[loc_id]
+    selected_location = st.session_state.locations[loc_id]
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
