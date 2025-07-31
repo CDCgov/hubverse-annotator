@@ -18,6 +18,7 @@ import streamlit as st
 from streamlit_shortcuts import add_shortcuts
 from utils import (
     get_available_locations,
+    get_initial_window_range,
     get_reference_dates,
     is_empty_chart,
     load_forecast_data,
@@ -423,9 +424,18 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
+    initial_start, initial_end = get_initial_window_range(
+        data_to_plot, forecasts_to_plot
+    )
+    selection_interval = alt.selection_interval(
+        encodings=["x"],
+        init={"x": [initial_start, initial_end]},
+        bind="scales",
+    )
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
         layer.interactive()
+        .add_selection(selection_interval)
         .properties(title=alt.TitleParams(text=title, anchor="middle"))
         .facet(row=alt.Row("model_id:N"), columns=1)
     )
