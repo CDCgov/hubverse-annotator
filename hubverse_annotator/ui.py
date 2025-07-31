@@ -191,15 +191,47 @@ def target_selection_ui(
         .sort()
         .to_list()
     )
-    suffix = "_".join(selected_models) if selected_models else "none"
-    target_selection_key = f"target_selection_{suffix}"
-    all_targets = sorted(set(forecast_targets + observed_data_targets))
-    selected_target = st.selectbox(
-        "Target",
-        options=all_targets,
-        index=0,
-        key=target_selection_key,
+    if "targets" not in st.session_state:
+        st.session_state.targets = sorted(
+            set(forecast_targets + observed_data_targets)
+        )
+
+    def _go_to_prev_target():
+        st.session_state.current_target_id -= 1
+
+    def _go_to_next_target():
+        st.session_state.current_target_id += 1
+
+    target_col, prev_col, next_col = st.columns(
+        [6, 1, 1], vertical_alignment="bottom"
     )
+    with target_col:
+        selected_target = st.selectbox(
+            "Target",
+            options=list(range(len(st.session_state.targets))),
+            key="current_target_id",
+            format_func=lambda i: st.session_state.targets[i],
+        )
+    with prev_col:
+        st.button(
+            "⏮️",
+            disabled=(st.session_state.current_target_id == 0),
+            on_click=_go_to_prev_target,
+            key="prev_target_button",
+        )
+    with next_col:
+        st.button(
+            "⏭️",
+            disabled=(
+                st.session_state.current_target_id
+                == len(st.session_state.targets) - 1
+            ),
+            on_click=_go_to_next_target,
+            key="next_target_button",
+        )
+    add_shortcuts(prev_target_button="n", next_target_button="m")
+    target_id = st.session_state.current_target_id
+    selected_target = st.session_state.targets[target_id]
     return selected_target
 
 
@@ -226,8 +258,8 @@ def location_selection_ui(
 
     """
     loc_lookup = get_available_locations(observed_data_table, forecast_table)
-    if "locations_list" not in st.session_state:
-        st.session_state.locations_list = (
+    if "locations" not in st.session_state:
+        st.session_state.locations = (
             loc_lookup.get_column("long_name").sort().to_list()
         )
 
@@ -243,9 +275,9 @@ def location_selection_ui(
     with location_col:
         st.selectbox(
             "Location",
-            options=list(range(len(st.session_state.locations_list))),
+            options=list(range(len(st.session_state.locations))),
             key="current_loc_id",
-            format_func=lambda i: st.session_state.locations_list[i],
+            format_func=lambda i: st.session_state.locations[i],
         )
     with prev_col:
         st.button(
@@ -259,14 +291,14 @@ def location_selection_ui(
             "⏭️",
             disabled=(
                 st.session_state.current_loc_id
-                == len(st.session_state.locations_list) - 1
+                == len(st.session_state.locations) - 1
             ),
             on_click=_go_to_next_loc,
             key="next_loc_button",
         )
-    add_shortcuts(prev_loc_button="arrowleft", next_loc_button="arrowright")
+    add_shortcuts(prev_loc_button="j", next_loc_button="k")
     loc_id = st.session_state.current_loc_id
-    selected_location = st.session_state.locations_list[loc_id]
+    selected_location = st.session_state.locations[loc_id]
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
@@ -298,14 +330,48 @@ def reference_date_selection_ui(
     if not ref_dates:
         st.info("Upload a forecast file to select a reference date.")
         return None
-    if ref_dates and "ref_date_selection" not in st.session_state:
-        st.session_state.ref_date_selection = ref_dates[0]
-    selected_ref_date = st.selectbox(
-        "Reference Date",
-        options=ref_dates,
-        format_func=lambda d: d.strftime("%Y-%m-%d"),
-        key="ref_date_selection",
+
+    if "ref_dates" not in st.session_state:
+        st.session_state.ref_dates = ref_dates.copy()
+
+    def _go_to_prev_ref_date():
+        st.session_state.current_ref_date_id -= 1
+
+    def _go_to_next_ref_date():
+        st.session_state.current_ref_date_id += 1
+
+    ref_date_col, prev_col, next_col = st.columns(
+        [6, 1, 1], vertical_alignment="bottom"
     )
+    with ref_date_col:
+        st.selectbox(
+            "Reference Date",
+            options=list(range(len(st.session_state.ref_dates))),
+            key="current_ref_date_id",
+            format_func=lambda i: st.session_state.ref_dates[i].strftime(
+                "%Y-%m-%d"
+            ),
+        )
+    with prev_col:
+        st.button(
+            "⏮️",
+            disabled=(st.session_state.current_ref_date_id == 0),
+            on_click=_go_to_prev_ref_date,
+            key="prev_ref_date_button",
+        )
+    with next_col:
+        st.button(
+            "⏭️",
+            disabled=(
+                st.session_state.current_ref_date_id
+                == len(st.session_state.ref_dates) - 1
+            ),
+            on_click=_go_to_next_ref_date,
+            key="next_ref_date_button",
+        )
+    add_shortcuts(prev_ref_date_button=",", next_ref_date_button=".")
+    ref_date_id = st.session_state.current_ref_date_id
+    selected_ref_date = st.session_state.ref_dates[ref_date_id]
     return selected_ref_date
 
 
