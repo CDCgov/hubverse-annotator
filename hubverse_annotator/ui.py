@@ -227,7 +227,7 @@ def target_selection_ui(
             on_click=_go_to_next_target,
             key="next_target_button",
         )
-    add_shortcuts(prev_target_button="W", next_target_button="S")
+    add_shortcuts(prev_target_button="n", next_target_button="m")
     target_id = st.session_state.current_target_id
     selected_target = st.session_state.targets[target_id]
     return selected_target
@@ -294,7 +294,7 @@ def location_selection_ui(
             on_click=_go_to_next_loc,
             key="next_loc_button",
         )
-    add_shortcuts(prev_loc_button="arrowleft", next_loc_button="arrowright")
+    add_shortcuts(prev_loc_button="j", next_loc_button="k")
     loc_id = st.session_state.current_loc_id
     selected_location = st.session_state.locations[loc_id]
     loc_abbr = (
@@ -328,14 +328,48 @@ def reference_date_selection_ui(
     if not ref_dates:
         st.info("Upload a forecast file to select a reference date.")
         return None
-    if ref_dates and "ref_date_selection" not in st.session_state:
-        st.session_state.ref_date_selection = ref_dates[0]
-    selected_ref_date = st.selectbox(
-        "Reference Date",
-        options=ref_dates,
-        format_func=lambda d: d.strftime("%Y-%m-%d"),
-        key="ref_date_selection",
+
+    if "ref_dates" not in st.session_state:
+        st.session_state.ref_dates = ref_dates.copy()
+
+    def _go_to_prev_ref_date():
+        st.session_state.current_ref_date_id -= 1
+
+    def _go_to_next_ref_date():
+        st.session_state.current_ref_date_id += 1
+
+    ref_date_col, prev_col, next_col = st.columns(
+        [6, 1, 1], vertical_alignment="bottom"
     )
+    with ref_date_col:
+        st.selectbox(
+            "Reference Date",
+            options=list(range(len(st.session_state.ref_dates))),
+            key="current_ref_date_id",
+            format_func=lambda i: st.session_state.ref_dates[i].strftime(
+                "%Y-%m-%d"
+            ),
+        )
+    with prev_col:
+        st.button(
+            "⏮️",
+            disabled=(st.session_state.current_ref_date_id == 0),
+            on_click=_go_to_prev_ref_date,
+            key="prev_ref_date_button",
+        )
+    with next_col:
+        st.button(
+            "⏭️",
+            disabled=(
+                st.session_state.current_ref_date_id
+                == len(st.session_state.ref_dates) - 1
+            ),
+            on_click=_go_to_next_ref_date,
+            key="next_ref_date_button",
+        )
+    add_shortcuts(prev_ref_date_button=",", next_ref_date_button=".")
+    ref_date_id = st.session_state.current_ref_date_id
+    selected_ref_date = st.session_state.ref_dates[ref_date_id]
     return selected_ref_date
 
 
