@@ -27,6 +27,7 @@ from utils import (
 )
 
 Y_LABEL_FONT_SIZE = 15
+CHART_TITLE_FONT_SIZE = 18
 
 
 def annotation_export_ui() -> None:
@@ -441,7 +442,10 @@ def plotting_ui(
         )
         .properties(
             title=alt.TitleParams(
-                text=title, fontSize=18, fontWeight="bold", anchor="middle"
+                text=title,
+                fontSize=CHART_TITLE_FONT_SIZE,
+                fontWeight="bold",
+                anchor="middle",
             )
         )
     )
