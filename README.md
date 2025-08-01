@@ -32,11 +32,17 @@ The following is a showcasing of the annotator:
 
 <summary> Demonstration </summary>
 
-
 https://github.com/user-attachments/assets/fc8d06c0-fd9d-41f7-8fe8-e8069e15af05
 
 </details>
 
+When using the annotator, there are shortcuts to help cycle through selections faster:
+
+| Shortcut Item | Bindings | Previous | Next |
+| --- | --- | --- | --- |
+| `location` | `j`/`k` | `j` | `k` |
+| `reference_date` | `,`/`.` | `,` | `.` |
+| `target` | `n`/`m` | `n` | `m` |
 
 ## CDCgov GitHub Organization Protocols
 
