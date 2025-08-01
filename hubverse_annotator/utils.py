@@ -22,7 +22,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
-MARKER_SIZE = 25
+MARKER_SIZE = 55
 
 type ScaleType = Literal["linear", "log"]
 
@@ -129,6 +129,25 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
         A list of available reference dates.
     """
     return forecast_table.get_column("reference_date").unique().to_list()
+
+
+def get_initial_window_range(
+    forecast_table: pl.DataFrame,
+    forecast_date_col: str = "target_end_date",
+    extra_weeks: int = 6,
+) -> tuple[datetime.date, datetime.date]:
+    """
+    Determine the initial x-axis window for the most
+    recent portion of the data. The window ends at the
+    latest observed date and starts a few weeks before.
+    """
+    forecasts = forecast_table.with_columns(
+        pl.col(forecast_date_col).cast(pl.Date)
+    )
+    max_forecast = forecasts.select(pl.col(forecast_date_col).max()).item()
+    end_window = max_forecast
+    start_window = end_window - datetime.timedelta(weeks=extra_weeks)
+    return start_window, end_window
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:

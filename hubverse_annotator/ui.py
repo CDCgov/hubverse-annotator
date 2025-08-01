@@ -18,6 +18,7 @@ import streamlit as st
 from streamlit_shortcuts import add_shortcuts
 from utils import (
     get_available_locations,
+    get_initial_window_range,
     get_reference_dates,
     is_empty_chart,
     load_forecast_data,
@@ -26,6 +27,8 @@ from utils import (
     target_data_chart,
 )
 
+PLOT_WIDTH = 625
+VIEW_HEIGHT = 50
 Y_LABEL_FONT_SIZE = 15
 CHART_TITLE_FONT_SIZE = 18
 
@@ -426,9 +429,19 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
+
+    initial_start, initial_end = get_initial_window_range(forecasts_to_plot)
+    selection_interval = alt.selection_interval(
+        encodings=["x"],
+        value=[initial_start, initial_end],
+        translate=True,
+        zoom=True,
+    )
+    xscale = alt.Scale(domain=[initial_start, initial_end])
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
+
     chart = (
-        layer.interactive()
+        layer.encode(x=alt.X("date:T", scale=xscale))
         .facet(
             row=alt.Row(
                 "model_id:N",
@@ -449,8 +462,13 @@ def plotting_ui(
             )
         )
     )
+    view = layer.add_selection(selection_interval).properties(
+        width=PLOT_WIDTH,
+        height=VIEW_HEIGHT,
+    )
+    final = chart & view
     chart_key = f"forecast_{loc_abbr}_{selected_target}"
-    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
+    base_chart.altair_chart(final, use_container_width=False, key=chart_key)
 
 
 def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
