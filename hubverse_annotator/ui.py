@@ -424,15 +424,14 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
-    initial_start, initial_end = get_initial_window_range(
-        data_to_plot, forecasts_to_plot
-    )
+    initial_start, initial_end = get_initial_window_range(forecasts_to_plot)
     selection_interval = alt.selection_interval(
         encodings=["x"],
         init={"x": [initial_start, initial_end]},
         bind="scales",
     )
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
+
     chart = (
         layer.interactive()
         .add_selection(selection_interval)

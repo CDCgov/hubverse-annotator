@@ -132,28 +132,21 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
 
 
 def get_initial_window_range(
-    observed_data_table: pl.DataFrame,
     forecast_table: pl.DataFrame,
-    observed_date_col: str = "date",
     forecast_date_col: str = "target_end_date",
-    extra_weeks: int = 4,
+    extra_weeks: int = 6,
 ) -> tuple[datetime.date, datetime.date]:
     """
     Determine the initial x-axis window for the most
     recent portion of the data. The window ends at the
     latest observed date and starts a few weeks before.
     """
-    observed = observed_data_table.with_columns(
-        pl.col(observed_date_col).cast(pl.Date)
-    )
     forecasts = forecast_table.with_columns(
         pl.col(forecast_date_col).cast(pl.Date)
     )
     max_forecast = forecasts.select(pl.col(forecast_date_col).max()).item()
-    max_observed = observed.select(pl.col(observed_date_col).max()).item()
-    end_window = max(max_forecast, max_observed)
+    end_window = max_forecast
     start_window = end_window - datetime.timedelta(weeks=extra_weeks)
-
     return start_window, end_window
 
 
