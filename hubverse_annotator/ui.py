@@ -431,11 +431,11 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
-    domain = get_initial_window_range(forecasts_to_plot)
+    domain = get_initial_window_range(data_to_plot, forecasts_to_plot)
     x_enc = alt.X(
         "date:T",
         scale=alt.Scale(domain=domain),
-        axis=alt.Axis(format="%b %d"),
+        axis=alt.Axis(format="%b %d", grid=grid),
     )
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
@@ -461,10 +461,13 @@ def plotting_ui(
         )
         .interactive()
     )
-    # autoscale to own data range, not full range
     chart = chart.resolve_scale(y="independent")
-    chart_key = f"forecast_{loc_abbr}_{selected_target}"
-    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
+
+    base_chart.altair_chart(
+        chart,
+        use_container_width=False,
+        key=f"forecast_{loc_abbr}_{selected_target}",
+    )
 
 
 def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:

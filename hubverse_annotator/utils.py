@@ -132,28 +132,62 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
 
 
 def get_initial_window_range(
-    forecast_table: pl.DataFrame,
+    data_to_plot: pl.DataFrame,
+    forecast_to_plot: pl.DataFrame,
+    observed_date_col: str = "date",
     forecast_date_col: str = "target_end_date",
     extra_weeks: int = 6,
-) -> tuple[datetime.date, datetime.date]:
+) -> tuple[datetime.datetime, datetime.datetime]:
     """
-    Determine the initial x-axis window for the most
-    recent portion of the data. The window ends at the
-    latest observed date and starts a few weeks before.
+    Compute an initial x-axis window for plotting of
+    forecasts.
+
+    Parameters
+    ----------
+    data_to_plot : pl.DataFrame
+        Hubverse-formatted observed time-series, filtered
+        to the requested location, target, and models.
+    forecast_to_plot : pl.DataFrame
+        Hubverse-formatted forecast table, filtered to the
+        requested location, target, and models.
+    observed_date_col : str, optional
+        Name of the date column in `data_to_plot`
+        Defaults to "date".
+    forecast_date_col : str, optional
+        Name of the date column in `forecast_to_plot`.
+        Defaults to "target_end_date"`.
+    extra_weeks : int, optional
+        How many weeks before the first forecast to
+        include. Defaults to 6.
+
+    Returns
+    -------
+    tuple[datetime.datetime, datetime.datetime]
+        A 2-tuple `(start, end)` giving the initial
+        plotting window for forecast viewing.
     """
-    if forecast_table.is_empty():
-        return None, None
-    forecasts = forecast_table.with_columns(
+    data_to_plot = data_to_plot.with_columns(
+        pl.col(observed_date_col).cast(pl.Datetime)
+    )
+    forecast_to_plot = forecast_to_plot.with_columns(
         pl.col(forecast_date_col).cast(pl.Datetime)
     )
-    max_forecast_date = forecasts.select(
-        pl.col(forecast_date_col).max()
-    ).item()
-    if max_forecast is None:
-        return alt.Undefined
-    end_window = max_forecast
-    start_window = end_window - datetime.timedelta(weeks=extra_weeks)
-    return start_window, end_window
+    first_obs = data_to_plot.select(pl.col(observed_date_col).min()).item()
+    first_fc = forecast_to_plot.select(pl.col(forecast_date_col).min()).item()
+    if first_fc is None:
+        start = first_obs
+    else:
+        candidate = first_fc - datetime.timedelta(weeks=extra_weeks)
+        start = (
+            max(first_obs, candidate) if first_obs is not None else candidate
+        )
+    last_fc = forecast_to_plot.select(pl.col(forecast_date_col).max()).item()
+    end = (
+        last_fc
+        if last_fc is not None
+        else data_to_plot.select(pl.col(observed_date_col).max()).item()
+    )
+    return [start, end]
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:
