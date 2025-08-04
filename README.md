@@ -49,7 +49,7 @@ When using the annotator, there are shortcuts to help step through selections fa
 
 
 > [!NOTE]
-> We recommend using Blink-based (Chrome) or WebKit-based (Safari) browsers with the annotator, as some features are not supported in Gecko-based (Firefox) browsers.
+> We recommend using Blink-based (Chrome) or WebKit-based (Safari) browsers with the annotator, as some features (e.g. shortcut-key bindings) are not supported in Gecko-based (Firefox) browsers.
 
 
 ## CDCgov GitHub Organization Protocols
