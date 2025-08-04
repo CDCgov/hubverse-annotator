@@ -412,7 +412,6 @@ def plotting_ui(
         Y-axis scale type.
     grid : bool
         Whether to show gridlines on both axes.
-
     """
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
@@ -434,7 +433,6 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
-
     initial_start, initial_end = get_initial_window_range(forecasts_to_plot)
     if initial_start is not None and initial_end is not None:
         domain = [initial_start, initial_end]
