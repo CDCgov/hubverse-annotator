@@ -385,8 +385,8 @@ def plotting_ui(
     loc_abbr: str,
     selected_target: str | None,
     selected_ref_date: datetime.date | None,
-    scale,
-    grid,
+    scale: bool = True,
+    grid: bool = True,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -408,6 +408,11 @@ def plotting_ui(
         observed hubverse tables.
     selected_ref_date : str
         The selected reference date.
+    scale : {"log", "linear"}
+        Y-axis scale type.
+    grid : bool
+        Whether to show gridlines on both axes.
+
     """
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
@@ -432,31 +437,17 @@ def plotting_ui(
 
     initial_start, initial_end = get_initial_window_range(forecasts_to_plot)
     if initial_start is not None and initial_end is not None:
-        selection_interval = alt.selection_interval(
-            name="x_brush",
-            encodings=["x"],
-            value=[initial_start, initial_end],
-            translate=True,
-            zoom=True,
-        )
-        x_domain = [initial_start, initial_end]
-    else:
-        selection_interval = alt.selection_interval(
-            name="x_brush", encodings=["x"]
-        )
-        x_domain = None
-
-    x_encoding = alt.X("date:T")
-    if x_domain:
-        x_encoding = alt.X(
-            "date:T", scale=alt.Scale(domain={"param": "x_brush"})
+        domain = [initial_start, initial_end]
+        x_enc = alt.X(
+            "date:T",
+            scale=alt.Scale(domain=domain),
+            axis=alt.Axis(format="%b %d"),
         )
     else:
-        x_encoding = alt.X("date:T")
-
+        x_enc = alt.X("date:T", axis=alt.Axis(format="%b %d"))
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
-        layer.encode(x=x_encoding)
+        layer.encode(x=x_enc)
         .facet(
             row=alt.Row(
                 "model_id:N",
@@ -476,16 +467,12 @@ def plotting_ui(
                 anchor="middle",
             )
         )
+        .interactive()
     )
-    view = (
-        layer.encode(x="date:T")
-        .add_selection(selection_interval)
-        .properties(width=PLOT_WIDTH, height=VIEW_HEIGHT)
-    )
-
-    final = chart & view
+    # autoscale to own data range, not full range
+    chart = chart.resolve_scale(y="independent")
     chart_key = f"forecast_{loc_abbr}_{selected_target}"
-    base_chart.altair_chart(final, use_container_width=False, key=chart_key)
+    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
 
 
 def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
