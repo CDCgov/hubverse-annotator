@@ -431,16 +431,12 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
-    initial_start, initial_end = get_initial_window_range(forecasts_to_plot)
-    if initial_start is not None and initial_end is not None:
-        domain = [initial_start, initial_end]
-        x_enc = alt.X(
-            "date:T",
-            scale=alt.Scale(domain=domain),
-            axis=alt.Axis(format="%b %d"),
-        )
-    else:
-        x_enc = alt.X("date:T", axis=alt.Axis(format="%b %d"))
+    domain = get_initial_window_range(forecasts_to_plot)
+    x_enc = alt.X(
+        "date:T",
+        scale=alt.Scale(domain=domain),
+        axis=alt.Axis(format="%b %d"),
+    )
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
         layer.encode(x=x_enc)
