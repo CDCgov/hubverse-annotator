@@ -148,7 +148,7 @@ def get_initial_window_range(
     )
     max_forecast = forecasts.select(pl.col(forecast_date_col).max()).item()
     if max_forecast is None:
-        return None, None
+        return alt.Undefined
     end_window = max_forecast
     start_window = end_window - datetime.timedelta(weeks=extra_weeks)
     return start_window, end_window
