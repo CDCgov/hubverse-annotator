@@ -137,7 +137,7 @@ def get_initial_window_range(
     observed_date_col: str = "date",
     forecast_date_col: str = "target_end_date",
     extra_weeks: int = 6,
-) -> tuple[datetime.datetime, datetime.datetime]:
+) -> list[datetime.datetime, datetime.datetime]:
     """
     Compute an initial x-axis window for plotting of
     forecasts.
@@ -162,7 +162,7 @@ def get_initial_window_range(
 
     Returns
     -------
-    tuple[datetime.datetime, datetime.datetime]
+    list[datetime.datetime, datetime.datetime]
         A 2-tuple `(start, end)` giving the initial
         plotting window for forecast viewing.
     """
