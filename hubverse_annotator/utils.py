@@ -183,10 +183,10 @@ def get_initial_window_range(
             if first_obs_date is not None
             else candidate_start_date
         )
-    last_fc = forecast_to_plot.get_column(forecast_date_col).max()
+    last_fc_date = forecast_to_plot.get_column(forecast_date_col).max()
     end_date = (
-        last_fc
-        if last_fc is not None
+        last_fc_date
+        if last_fc_date is not None
         else data_to_plot.select(pl.col(observed_date_col).max()).item()
     )
     return [start_date, end_date]
