@@ -5,11 +5,11 @@
 
 ## Background
 
-The `hubverse-annotator` (hereafter, annotator) is a Python `streamlit` application desired to aid CFA's Short Term Forecasts (STF) team with forecast reviews.
+The `hubverse-annotator` (hereafter, annotator) is a Python `streamlit` application designed to aid CFA's Short Term Forecasts (STF) team with forecast reviews.
 
 The annotator is designed for:
 
-* Visualization of model forecasts and data across location, reference date, and model.
+* Visualization of model forecasts and data across location, target, reference date, and model.
 * Selection and exportation of data points for exclusion or comment.
 * Selection and exportation of model forecasts for submission to forecast hubs.
 
@@ -30,9 +30,12 @@ The following is a showcasing of the annotator:
 
 <details markdown=1>
 
-<summary> Demonstration </summary>
+<summary> Annotator Demonstration (click me) </summary>
 
-https://github.com/user-attachments/assets/fc8d06c0-fd9d-41f7-8fe8-e8069e15af05
+
+
+https://github.com/user-attachments/assets/c94bb22f-2e44-4c09-a7b6-d93916ad1471
+
 
 </details>
 
