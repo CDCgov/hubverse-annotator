@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -906,14 +906,14 @@ wheels = [
 
 [[package]]
 name = "streamlit-shortcuts"
-version = "1.1.5"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "streamlit" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/77/dd549b07a6d2f33fd2433ff0845e403dd87d9e38b21d994c8533af603f27/streamlit_shortcuts-1.1.5.tar.gz", hash = "sha256:ff8153023b832dd0d7d5f4922961b9f1358ae610677d8d58bae335ede441d12e", size = 109627, upload-time = "2025-07-15T15:53:57.773Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/87/6d/a3b9befa11528163b96c216f7e4152c7e6df8976bb6ad8a42fb82e8c1778/streamlit_shortcuts-1.2.1.tar.gz", hash = "sha256:c982ace38ce6f887beef2bd3f16c36d645bdcbee010c5585e6963e4615fc8f16", size = 111285, upload-time = "2025-07-31T21:02:57.65Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/06/76/830f841da84f47d6a8ca60a917dbbc59e61841b5a0241e7a6f0513c63070/streamlit_shortcuts-1.1.5-py3-none-any.whl", hash = "sha256:53143861f7204f7688ed58942209faac1a937c440dea9db2df72de8595cfed39", size = 6094, upload-time = "2025-07-15T15:53:56.578Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/b5/a9d1ad477ae69db0b6cef35bf40154ec634a42657ff684a4b3c2024dde36/streamlit_shortcuts-1.2.1-py3-none-any.whl", hash = "sha256:58fa6d375c9f91068bf1400f9870ff3d382b4e4f1dcbf26e05567e4db3547375", size = 6856, upload-time = "2025-07-31T21:02:56.273Z" },
 ]
 
 [[package]]
