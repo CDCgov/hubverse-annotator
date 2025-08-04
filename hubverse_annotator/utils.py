@@ -166,12 +166,6 @@ def get_initial_window_range(
         A 2-tuple `(start, end)` giving the initial
         plotting window for forecast viewing.
     """
-    data_to_plot = data_to_plot.with_columns(
-        pl.col(observed_date_col).cast(pl.Datetime)
-    )
-    forecast_to_plot = forecast_to_plot.with_columns(
-        pl.col(forecast_date_col).cast(pl.Datetime)
-    )
     first_obs_date = data_to_plot.select(
         pl.col(observed_date_col).min()
     ).item()
