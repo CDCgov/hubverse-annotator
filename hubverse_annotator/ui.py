@@ -27,8 +27,6 @@ from utils import (
     target_data_chart,
 )
 
-PLOT_WIDTH = 625
-VIEW_HEIGHT = 50
 Y_LABEL_FONT_SIZE = 15
 CHART_TITLE_FONT_SIZE = 18
 
