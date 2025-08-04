@@ -146,7 +146,7 @@ def get_initial_window_range(
     forecasts = forecast_table.with_columns(
         pl.col(forecast_date_col).cast(pl.Datetime)
     )
-    max_forecast = forecasts.select(pl.col(forecast_date_col).max()).item()
+    max_forecast_date = forecasts.select(pl.col(forecast_date_col).max()).item()
     if max_forecast is None:
         return alt.Undefined
     end_window = max_forecast
