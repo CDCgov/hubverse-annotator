@@ -137,7 +137,7 @@ def get_initial_window_range(
     observed_date_col: str = "date",
     forecast_date_col: str = "target_end_date",
     extra_weeks: int = 6,
-) -> list[datetime.datetime, datetime.datetime]:
+) -> tuple[datetime.datetime, datetime.datetime]:
     """
     Compute an initial x-axis window for plotting of
     forecasts.
@@ -162,7 +162,7 @@ def get_initial_window_range(
 
     Returns
     -------
-    list[datetime.datetime, datetime.datetime]
+    tuple[datetime.datetime, datetime.datetime]
         A 2-tuple `(start, end)` giving the initial
         plotting window for forecast viewing.
     """
@@ -182,7 +182,7 @@ def get_initial_window_range(
             else candidate_start_date
         )
     end_date = last_fc_date if last_fc_date is not None else last_obs_date
-    return [start_date, end_date]
+    return (start_date, end_date)
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:
