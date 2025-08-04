@@ -1,7 +1,7 @@
 # Hubverse Annotator
 
 > [!IMPORTANT]
-> This project is currently IN PROGRESS. As such, there may be parts of this repository that do not make much sense or that are broken!
+> This project is currently IN PROGRESS. As such, there may be parts of this repository that are desired but non-existent or that may not work as smoothly as we want!
 
 ## Background
 
@@ -46,6 +46,11 @@ When using the annotator, there are shortcuts to help step through selections fa
 | Location | `j` | `k` |
 | Reference Date | `,` | `.` |
 | Target | `n` | `m` |
+
+
+> [!NOTE]
+> We recommend using Blink-based (Chrome) or WebKit-based (Safari) browsers with the annotator, as some features (e.g. shortcut-key bindings) are not supported in Gecko-based (Firefox) browsers.
+
 
 ## CDCgov GitHub Organization Protocols
 
