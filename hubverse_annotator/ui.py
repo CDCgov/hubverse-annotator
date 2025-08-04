@@ -416,8 +416,6 @@ def plotting_ui(
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
-    # scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
-    # grid = st.checkbox("Gridlines", value=True)
     forecast_layer = quantile_forecast_chart(
         forecasts_to_plot, scale=scale, grid=grid
     )
