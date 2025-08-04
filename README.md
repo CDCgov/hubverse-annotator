@@ -26,11 +26,11 @@ The annotator is designed to work with [hubverse](https://hubverse.io/) data. Ex
 * Observed Data File: see <https://github.com/CDCgov/covid19-forecast-hub/blob/main/target-data/time-series.parquet>
 * COVID-19 Hubverse Forecasts File: see <https://github.com/CDCgov/covid19-forecast-hub/tree/main/model-output>
 
-The following is a showcasing of the annotator:
+The following is a demonstration of the annotator as a tool for visualization :
 
 <details markdown=1>
 
-<summary> Annotator Demonstration (click me) </summary>
+<summary> Demonstration (click me) </summary>
 
 
 
