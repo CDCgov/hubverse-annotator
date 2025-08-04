@@ -18,6 +18,7 @@ import streamlit as st
 from streamlit_shortcuts import add_shortcuts
 from utils import (
     get_available_locations,
+    get_initial_window_range,
     get_reference_dates,
     is_empty_chart,
     load_forecast_data,
@@ -382,8 +383,8 @@ def plotting_ui(
     loc_abbr: str,
     selected_target: str | None,
     selected_ref_date: datetime.date | None,
-    scale,
-    grid,
+    scale: bool = True,
+    grid: bool = True,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -405,12 +406,14 @@ def plotting_ui(
         observed hubverse tables.
     selected_ref_date : str
         The selected reference date.
+    scale : {"log", "linear"}
+        Y-axis scale type.
+    grid : bool
+        Whether to show gridlines on both axes.
     """
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
-    # scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
-    # grid = st.checkbox("Gridlines", value=True)
     forecast_layer = quantile_forecast_chart(
         forecasts_to_plot, scale=scale, grid=grid
     )
@@ -426,9 +429,15 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
+    domain = get_initial_window_range(data_to_plot, forecasts_to_plot)
+    x_enc = alt.X(
+        "date:T",
+        scale=alt.Scale(domain=domain),
+        axis=alt.Axis(format="%b %d", grid=grid),
+    )
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
-        layer.interactive()
+        layer.encode(x=x_enc)
         .facet(
             row=alt.Row(
                 "model_id:N",
@@ -448,9 +457,15 @@ def plotting_ui(
                 anchor="middle",
             )
         )
+        .interactive()
     )
-    chart_key = f"forecast_{loc_abbr}_{selected_target}"
-    base_chart.altair_chart(chart, use_container_width=False, key=chart_key)
+    chart = chart.resolve_scale(y="independent")
+
+    base_chart.altair_chart(
+        chart,
+        use_container_width=False,
+        key=f"forecast_{loc_abbr}_{selected_target}",
+    )
 
 
 def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
