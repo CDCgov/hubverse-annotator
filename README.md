@@ -1,7 +1,7 @@
 # Hubverse Annotator
 
 > [!IMPORTANT]
-> This project is currently IN PROGRESS. As such, there may be parts of this repository that do not make much sense or that are broken!
+> This project is currently IN PROGRESS. As such, there may be parts of this repository that are desired but non-existent or that may not work as smoothly as we want!
 
 ## Background
 
@@ -39,16 +39,6 @@ https://github.com/user-attachments/assets/c94bb22f-2e44-4c09-a7b6-d93916ad1471
 
 </details>
 
-> [!CAUTION]
-> This project is currently IN PROGRESS. As such, there may be parts of this repository that do not make much sense or that are broken!
-
-In annotator-testing, some browsers do not support certain features in the annotator (the key binding shortcuts usually break in those with ❌).
-
-* ✅ Chrome
-* ✅ Safari (16.4)
-* ❌ Firefox
-* ❌ Waterfox (6.5.11)
-
 When using the annotator, there are shortcuts to help step through selections faster:
 
 | Selection | Previous | Next |
@@ -56,6 +46,11 @@ When using the annotator, there are shortcuts to help step through selections fa
 | Location | `j` | `k` |
 | Reference Date | `,` | `.` |
 | Target | `n` | `m` |
+
+
+> [!NOTE]
+> We recommend using Blink-based (Chrome) or WebKit-based (Safari) browsers with the annotator, as some features are not supported in Gecko-based (Firefox) browsers.
+
 
 ## CDCgov GitHub Organization Protocols
 
