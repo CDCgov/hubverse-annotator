@@ -41,11 +41,11 @@ https://github.com/user-attachments/assets/c94bb22f-2e44-4c09-a7b6-d93916ad1471
 
 When using the annotator, there are shortcuts to help step through selections faster:
 
-| Shortcut Item | Bindings | Previous | Next |
-| --- | --- | --- | --- |
-| `location` | `j`/`k` | `j` | `k` |
-| `reference_date` | `,`/`.` | `,` | `.` |
-| `target` | `n`/`m` | `n` | `m` |
+| Selection | Previous | Next |
+| --------- | -------- | ---- |
+| Location | `j` | `k` |
+| Reference Date | `,` | `.` |
+| Target | `n` | `m` |
 
 ## CDCgov GitHub Organization Protocols
 
