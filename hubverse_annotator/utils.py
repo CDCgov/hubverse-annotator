@@ -172,8 +172,8 @@ def get_initial_window_range(
     forecast_to_plot = forecast_to_plot.with_columns(
         pl.col(forecast_date_col).cast(pl.Datetime)
     )
-    first_obs = data_to_plot.select(pl.col(observed_date_col).min()).item()
-    first_fc = forecast_to_plot.select(pl.col(forecast_date_col).min()).item()
+    first_obs_date = data_to_plot.select(pl.col(observed_date_col).min()).item()
+    first_fc_date = forecast_to_plot.select(pl.col(forecast_date_col).min()).item()
     if first_fc is None:
         start = first_obs
     else:
