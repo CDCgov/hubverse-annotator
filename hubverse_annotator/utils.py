@@ -178,20 +178,24 @@ def get_initial_window_range(
     first_fc_date = forecast_to_plot.select(
         pl.col(forecast_date_col).min()
     ).item()
-    if first_fc is None:
-        start = first_obs
+    if first_fc_date is None:
+        start_date = first_obs_date
     else:
-        candidate = first_fc - datetime.timedelta(weeks=extra_weeks)
-        start = (
-            max(first_obs, candidate) if first_obs is not None else candidate
+        candidate_start_date = first_fc_date - datetime.timedelta(
+            weeks=extra_weeks
+        )
+        start_date = (
+            max(first_obs_date, candidate_start_date)
+            if first_obs_date is not None
+            else candidate_start_date
         )
     last_fc = forecast_to_plot.select(pl.col(forecast_date_col).max()).item()
-    end = (
+    end_date = (
         last_fc
         if last_fc is not None
         else data_to_plot.select(pl.col(observed_date_col).max()).item()
     )
-    return [start, end]
+    return [start_date, end_date]
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:
