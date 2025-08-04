@@ -43,7 +43,7 @@ https://github.com/user-attachments/assets/fc8d06c0-fd9d-41f7-8fe8-e8069e15af05
 In annotator-testing, some browsers do not support certain features in the annotator (the key binding shortcuts usually break in those with ❌).
 
 * ✅ Chrome
-* ✅ Safari
+* ✅ Safari (16.4)
 * ❌ Firefox
 * ❌ Waterfox (6.5.11)
 
