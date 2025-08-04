@@ -431,17 +431,32 @@ def plotting_ui(
         return
 
     initial_start, initial_end = get_initial_window_range(forecasts_to_plot)
-    selection_interval = alt.selection_interval(
-        encodings=["x"],
-        value=[initial_start, initial_end],
-        translate=True,
-        zoom=True,
-    )
-    xscale = alt.Scale(domain=[initial_start, initial_end])
-    title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
+    if initial_start is not None and initial_end is not None:
+        selection_interval = alt.selection_interval(
+            name="x_brush",
+            encodings=["x"],
+            value=[initial_start, initial_end],
+            translate=True,
+            zoom=True,
+        )
+        x_domain = [initial_start, initial_end]
+    else:
+        selection_interval = alt.selection_interval(
+            name="x_brush", encodings=["x"]
+        )
+        x_domain = None
 
+    x_encoding = alt.X("date:T")
+    if x_domain:
+        x_encoding = alt.X(
+            "date:T", scale=alt.Scale(domain={"param": "x_brush"})
+        )
+    else:
+        x_encoding = alt.X("date:T")
+
+    title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
-        layer.encode(x=alt.X("date:T", scale=xscale))
+        layer.encode(x=x_encoding)
         .facet(
             row=alt.Row(
                 "model_id:N",
@@ -462,10 +477,12 @@ def plotting_ui(
             )
         )
     )
-    view = layer.add_selection(selection_interval).properties(
-        width=PLOT_WIDTH,
-        height=VIEW_HEIGHT,
+    view = (
+        layer.encode(x="date:T")
+        .add_selection(selection_interval)
+        .properties(width=PLOT_WIDTH, height=VIEW_HEIGHT)
     )
+
     final = chart & view
     chart_key = f"forecast_{loc_abbr}_{selected_target}"
     base_chart.altair_chart(final, use_container_width=False, key=chart_key)

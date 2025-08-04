@@ -141,10 +141,14 @@ def get_initial_window_range(
     recent portion of the data. The window ends at the
     latest observed date and starts a few weeks before.
     """
+    if forecast_table.is_empty():
+        return None, None
     forecasts = forecast_table.with_columns(
-        pl.col(forecast_date_col).cast(pl.Date)
+        pl.col(forecast_date_col).cast(pl.Datetime)
     )
     max_forecast = forecasts.select(pl.col(forecast_date_col).max()).item()
+    if max_forecast is None:
+        return None, None
     end_window = max_forecast
     start_window = end_window - datetime.timedelta(weeks=extra_weeks)
     return start_window, end_window
