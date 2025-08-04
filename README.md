@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/c94bb22f-2e44-4c09-a7b6-d93916ad1471
 
 </details>
 
-When using the annotator, there are shortcuts to help cycle through selections faster:
+When using the annotator, there are shortcuts to help step through selections faster:
 
 | Shortcut Item | Bindings | Previous | Next |
 | --- | --- | --- | --- |
