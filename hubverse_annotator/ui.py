@@ -460,8 +460,9 @@ def plotting_ui(
             )
         )
         .interactive()
+        .resolve_scale(y="independent")
+        .resolve_axis(x="independent")
     )
-    chart = chart.resolve_scale(y="independent")
 
     base_chart.altair_chart(
         chart,
