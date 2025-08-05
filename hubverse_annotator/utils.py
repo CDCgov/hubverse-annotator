@@ -308,8 +308,6 @@ def quantile_forecast_chart(
     if forecast_table.is_empty():
         return alt.layer()
     value_col = "value"
-    # yscale = alt.Scale(type=scale)
-    # x_axis = alt.Axis(title="Date", grid=grid, ticks=True, labels=True)
     y_axis = alt.Axis(
         title="Value",
         grid=grid,
