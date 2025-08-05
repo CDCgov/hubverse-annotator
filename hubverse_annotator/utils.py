@@ -257,12 +257,19 @@ def target_data_chart(
         ),
         scale=alt.Scale(type=scale),
     )
+    color_enc = alt.Color(
+        scale=alt.Scale(
+            domain=["Observation", "Forecast"], range=["limegreen", "navy"]
+        ),
+        legend=alt.Legend(title="Data Type"),
+    )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
         .encode(
             x=x_enc,
             y=y_enc,
+            color=color_enc,
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("observation:Q", title="Value"),
@@ -324,9 +331,16 @@ def quantile_forecast_chart(
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
     )
     base_y_enc = alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale))
+    color_enc = alt.Color(
+        scale=alt.Scale(
+            domain=["Observation", "Forecast"], range=["limegreen", "navy"]
+        ),
+        legend=alt.Legend(title="Data Type"),
+    )
     base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(
         x=base_x_enc,
         y=base_y_enc,
+        color=color_enc,
     )
     band_95 = base.mark_errorband(
         extent="ci",
