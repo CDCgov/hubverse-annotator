@@ -97,18 +97,11 @@ def get_available_locations(
     pl.DataFrame
         A dataframe of locations in different formats.
     """
-    locs = (
-        pl.concat(
-            [
-                observed_data_table.get_column("loc_abbr"),
-                forecast_table.get_column("loc_abbr"),
-            ]
-        )
-        .unique()
-        .to_list()
-    )
+    fc_locs = forecast_table.get_column("loc_abbr").unique().to_list()
+    obs_locs = observed_data_table.get_column("loc_abbr").unique().to_list()
+    locs = fc_locs or list(set(obs_locs + fc_locs))
     return forecasttools.location_lookup(
-        location_vector=list(set(locs)), location_format="abbr"
+        location_vector=locs, location_format="abbr"
     )
 
 
