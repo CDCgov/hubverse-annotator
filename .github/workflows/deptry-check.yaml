@@ -2,12 +2,12 @@
 # OVERVIEW
 ###############################################################################
 # The following indicates if there are discrepancies between the dependencies
-# grouped in pyproject.toml and the Python dependencies actually in use.
+# grouped in `pyproject.toml` and the Python dependencies actually in use.
 #
 # Description:
 #
-# This runs deptry `hubverse_annotator` on every push to main and on every pull
-# request. This action fails if deptry finds problems with dependencies that
+# This runs `deptry hubverse_annotator` on every push to main and on every pull
+# request. This action fails if `deptry` finds problems with dependencies that
 # are improperly specified.
 #
 # Links:
