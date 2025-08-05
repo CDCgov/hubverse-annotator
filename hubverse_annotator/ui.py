@@ -434,14 +434,16 @@ def plotting_ui(
         "date:T",
         scale=alt.Scale(domain=domain),
         axis=alt.Axis(format="%b %d", grid=grid),
+        title="Date",
     )
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
         layer.encode(x=x_enc)
         .facet(
-            row=alt.Row(
+            facet=alt.Facet(
                 "model_id:N",
                 header=alt.Header(
+                    labelOrient="top",
                     labelColor="black",
                     labelFontSize=Y_LABEL_FONT_SIZE,
                     title=None,
@@ -458,8 +460,9 @@ def plotting_ui(
             )
         )
         .interactive()
+        .resolve_scale(y="independent")
+        .resolve_axis(x="independent")
     )
-    chart = chart.resolve_scale(y="independent")
 
     base_chart.altair_chart(
         chart,
