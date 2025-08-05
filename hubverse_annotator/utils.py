@@ -22,7 +22,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
-MARKER_SIZE = 25
+MARKER_SIZE = 55
 
 type ScaleType = Literal["linear", "log"]
 
@@ -131,6 +131,60 @@ def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
     return forecast_table.get_column("reference_date").unique().to_list()
 
 
+def get_initial_window_range(
+    data_to_plot: pl.DataFrame,
+    forecast_to_plot: pl.DataFrame,
+    observed_date_col: str = "date",
+    forecast_date_col: str = "target_end_date",
+    extra_weeks: int = 6,
+) -> tuple[datetime.datetime, datetime.datetime]:
+    """
+    Compute an initial x-axis window for plotting of
+    forecasts.
+
+    Parameters
+    ----------
+    data_to_plot : pl.DataFrame
+        Hubverse-formatted observed time-series, filtered
+        to the requested location, target, and models.
+    forecast_to_plot : pl.DataFrame
+        Hubverse-formatted forecast table, filtered to the
+        requested location, target, and models.
+    observed_date_col : str, optional
+        Name of the date column in `data_to_plot`
+        Defaults to "date".
+    forecast_date_col : str, optional
+        Name of the date column in `forecast_to_plot`.
+        Defaults to "target_end_date"`.
+    extra_weeks : int, optional
+        How many weeks before the first forecast to
+        include. Defaults to 6.
+
+    Returns
+    -------
+    tuple[datetime.datetime, datetime.datetime]
+        A 2-tuple `(start, end)` giving the initial
+        plotting window for forecast viewing.
+    """
+    first_obs_date = data_to_plot.get_column(observed_date_col).min()
+    first_fc_date = forecast_to_plot.get_column(forecast_date_col).min()
+    last_fc_date = forecast_to_plot.get_column(forecast_date_col).max()
+    last_obs_date = data_to_plot.get_column(observed_date_col).max()
+    if first_fc_date is None:
+        start_date = first_obs_date
+    else:
+        candidate_start_date = first_fc_date - datetime.timedelta(
+            weeks=extra_weeks
+        )
+        start_date = (
+            max(first_obs_date, candidate_start_date)
+            if first_obs_date is not None
+            else candidate_start_date
+        )
+    end_date = last_fc_date if last_fc_date is not None else last_obs_date
+    return (start_date, end_date)
+
+
 def is_empty_chart(chart: alt.LayerChart) -> bool:
     """
     Checks if an altair layer is empty. Primarily used for
@@ -195,20 +249,31 @@ def target_data_chart(
     """
     if observed_data_table.is_empty():
         return alt.layer()
-    yscale = alt.Scale(type=scale)
-    x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
-    y_axis = alt.Axis(
-        title=None, grid=grid, ticks=True, labels=True, orient="right"
+    if "model_id" not in observed_data_table.columns:
+        observed_data_table = observed_data_table.with_columns(
+            pl.lit("Observations").alias("model_id")
+        )
+    x_enc = alt.X(
+        "date:T",
+        axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
+        scale=alt.Scale(type=scale),
+    )
+    y_enc = alt.Y(
+        "observation:Q",
+        axis=alt.Axis(
+            title="Value", grid=grid, ticks=True, labels=True, orient="left"
+        ),
+        scale=alt.Scale(type=scale),
     )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
         .encode(
-            x=alt.X("date:T", axis=x_axis),
-            y=alt.Y("observation:Q", axis=y_axis, scale=yscale),
+            x=x_enc,
+            y=y_enc,
             tooltip=[
-                alt.Tooltip("date:T"),
-                alt.Tooltip("observation:Q"),
+                alt.Tooltip("date:T", title="Date"),
+                alt.Tooltip("observation:Q", title="Value"),
             ],
         )
     )
@@ -243,14 +308,12 @@ def quantile_forecast_chart(
     if forecast_table.is_empty():
         return alt.layer()
     value_col = "value"
-    yscale = alt.Scale(type=scale)
-    x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
     y_axis = alt.Axis(
-        title="Forecasted Value",
+        title="Value",
         grid=grid,
         ticks=True,
         labels=True,
-        orient="right",
+        orient="left",
     )
     # filter to quantile only rows and ensure quantiles
     # are str for pivot; also, pivot to wide, so quantiles
@@ -264,9 +327,14 @@ def quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
+    base_x_enc = alt.X(
+        "target_end_date:T",
+        axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
+    )
+    base_y_enc = alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale))
     base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(
-        x=alt.X("target_end_date:T", axis=x_axis),
-        y=alt.Y("median:Q", axis=y_axis, scale=yscale),
+        x=base_x_enc,
+        y=base_y_enc,
     )
     band_95 = base.mark_errorband(
         extent="ci",
