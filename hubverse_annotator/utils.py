@@ -308,8 +308,8 @@ def quantile_forecast_chart(
     if forecast_table.is_empty():
         return alt.layer()
     value_col = "value"
-    yscale = alt.Scale(type=scale)
-    x_axis = alt.Axis(title="Date", grid=grid, ticks=True, labels=True)
+    # yscale = alt.Scale(type=scale)
+    # x_axis = alt.Axis(title="Date", grid=grid, ticks=True, labels=True)
     y_axis = alt.Axis(
         title="Value",
         grid=grid,
@@ -329,9 +329,14 @@ def quantile_forecast_chart(
         )
         .with_columns(pl.col("0.5").alias("median"))
     )
+    base_x_enc = alt.X(
+        "target_end_date:T",
+        axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
+    )
+    base_y_enc = alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale))
     base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(
-        x=alt.X("target_end_date:T", axis=x_axis),
-        y=alt.Y("median:Q", axis=y_axis, scale=yscale),
+        x=base_x_enc,
+        y=base_y_enc,
     )
     band_95 = base.mark_errorband(
         extent="ci",
