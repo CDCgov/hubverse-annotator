@@ -31,9 +31,11 @@ def main() -> None:
                 "Please upload Observed Data or Hubverse Forecasts to begin."
             )
             return None
-        loc_abbr = location_selection_ui(observed_data_table, forecast_table)
         selected_ref_date = reference_date_selection_ui(forecast_table)
-        selected_models = model_selection_ui(forecast_table, loc_abbr)
+        selected_models = model_selection_ui(forecast_table)
+        loc_abbr = location_selection_ui(
+            observed_data_table, forecast_table, selected_models
+        )
         selected_target = target_selection_ui(
             observed_data_table,
             forecast_table,

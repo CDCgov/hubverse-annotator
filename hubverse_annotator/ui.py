@@ -92,7 +92,6 @@ def forecast_annotation_ui(
 
 def model_selection_ui(
     forecast_table: pl.DataFrame,
-    loc_abbr: str,
 ) -> list[str]:
     """
     Renders a Streamlit multiselect widget for choosing
@@ -104,9 +103,6 @@ def model_selection_ui(
     forecast_table : pl.DataFrame
         Hubverse-formatted forecasts (must include
         "loc_abbr" and "model_id" columns; possibly empty).
-    loc_abbr : str
-        The selection location, typically a US
-        jurisdiction.
 
     Returns
     -------
@@ -114,13 +110,7 @@ def model_selection_ui(
         The list of currently selected model_ids.
     """
 
-    models = (
-        forecast_table.filter(pl.col("loc_abbr") == loc_abbr)
-        .get_column("model_id")
-        .unique()
-        .sort()
-        .to_list()
-    )
+    models = forecast_table.get_column("model_id").unique().sort().to_list()
     if not models:
         st.info("Upload forecasts for this location to pick models.")
         return []
@@ -240,6 +230,7 @@ def target_selection_ui(
 def location_selection_ui(
     observed_data_table: pl.DataFrame,
     forecast_table: pl.DataFrame,
+    selected_models: list[str],
 ) -> str:
     """
     Streamlit widget for the selection of a location (two
@@ -252,6 +243,8 @@ def location_selection_ui(
     forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions (possibly empty).
+    selected_models : list[str]
+        Selected models to annotate.
 
     Returns
     -------
@@ -259,11 +252,11 @@ def location_selection_ui(
         The selected two-letter location abbreviation.
 
     """
-    loc_lookup = get_available_locations(observed_data_table, forecast_table)
-    if "locations" not in st.session_state:
-        st.session_state.locations = (
-            loc_lookup.get_column("long_name").sort().to_list()
-        )
+    loc_lookup = get_available_locations(
+        observed_data_table, forecast_table, selected_models
+    )
+    locations = loc_lookup.get_column("long_name").sort().to_list()
+    st.session_state.locations = locations
 
     def _go_to_prev_loc():
         st.session_state.current_loc_id -= 1
@@ -299,8 +292,7 @@ def location_selection_ui(
             key="next_loc_button",
         )
     add_shortcuts(prev_loc_button="j", next_loc_button="k")
-    loc_id = st.session_state.current_loc_id
-    selected_location = st.session_state.locations[loc_id]
+    selected_location = locations[st.session_state.current_loc_id]
     loc_abbr = (
         loc_lookup.filter(pl.col("long_name") == selected_location)
         .get_column("short_name")
