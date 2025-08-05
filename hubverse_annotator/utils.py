@@ -77,9 +77,7 @@ def validate_schema(
 
 @st.cache_data
 def get_available_locations(
-    observed_data_table: pl.DataFrame,
-    forecast_table: pl.DataFrame,
-    selected_models: list[str] | None = None,
+    observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
 ) -> pl.DataFrame:
     """
     Retrieves a dataframe of locations from forecasttools
@@ -93,18 +91,12 @@ def get_available_locations(
     forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions (possibly empty).
-    selected_models : list[str] | None
-        Selected models to annotate.
 
     Returns
     -------
     pl.DataFrame
         A dataframe of locations in different formats.
     """
-    if selected_models:
-        forecast_table = forecast_table.filter(
-            pl.col("model_id").is_in(selected_models)
-        )
     fc_locs = forecast_table.get_column("loc_abbr").unique().to_list()
     obs_locs = observed_data_table.get_column("loc_abbr").unique().to_list()
     locs = fc_locs or list(set(obs_locs + fc_locs))

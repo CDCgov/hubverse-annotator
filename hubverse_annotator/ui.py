@@ -230,7 +230,6 @@ def target_selection_ui(
 def location_selection_ui(
     observed_data_table: pl.DataFrame,
     forecast_table: pl.DataFrame,
-    selected_models: list[str],
 ) -> str:
     """
     Streamlit widget for the selection of a location (two
@@ -243,8 +242,6 @@ def location_selection_ui(
     forecast_table : pl.DataFrame
         The hubverse formatted table of forecasted ED
         visits and or hospital admissions (possibly empty).
-    selected_models : list[str]
-        Selected models to annotate.
 
     Returns
     -------
@@ -252,9 +249,7 @@ def location_selection_ui(
         The selected two-letter location abbreviation.
 
     """
-    loc_lookup = get_available_locations(
-        observed_data_table, forecast_table, selected_models
-    )
+    loc_lookup = get_available_locations(observed_data_table, forecast_table)
     locations = loc_lookup.get_column("long_name").sort().to_list()
     st.session_state.locations = locations
 
