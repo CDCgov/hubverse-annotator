@@ -249,20 +249,31 @@ def target_data_chart(
     """
     if observed_data_table.is_empty():
         return alt.layer()
-    yscale = alt.Scale(type=scale)
-    x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
-    y_axis = alt.Axis(
-        title=None, grid=grid, ticks=True, labels=True, orient="right"
+    if "model_id" not in observed_data_table.columns:
+        observed_data_table = observed_data_table.with_columns(
+            pl.lit("Observations").alias("model_id")
+        )
+    x_enc = alt.X(
+        "date:T",
+        axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
+        scale=alt.Scale(type=scale),
+    )
+    y_enc = alt.Y(
+        "observation:Q",
+        axis=alt.Axis(
+            title="Value", grid=grid, ticks=True, labels=True, orient="right"
+        ),
+        scale=alt.Scale(type=scale),
     )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
         .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
         .encode(
-            x=alt.X("date:T", axis=x_axis),
-            y=alt.Y("observation:Q", axis=y_axis, scale=yscale),
+            x=x_enc,
+            y=y_enc,
             tooltip=[
-                alt.Tooltip("date:T"),
-                alt.Tooltip("observation:Q"),
+                alt.Tooltip("date:T", title="Date"),
+                alt.Tooltip("observation:Q", title="Value"),
             ],
         )
     )
@@ -298,9 +309,9 @@ def quantile_forecast_chart(
         return alt.layer()
     value_col = "value"
     yscale = alt.Scale(type=scale)
-    x_axis = alt.Axis(title=None, grid=grid, ticks=True, labels=True)
+    x_axis = alt.Axis(title="Date", grid=grid, ticks=True, labels=True)
     y_axis = alt.Axis(
-        title="Forecasted Value",
+        title="Value",
         grid=grid,
         ticks=True,
         labels=True,

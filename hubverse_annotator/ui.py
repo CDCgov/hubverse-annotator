@@ -434,6 +434,7 @@ def plotting_ui(
         "date:T",
         scale=alt.Scale(domain=domain),
         axis=alt.Axis(format="%b %d", grid=grid),
+        title="Date",
     )
     title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
