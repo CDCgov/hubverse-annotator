@@ -216,6 +216,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
 
 def target_data_chart(
     observed_data_table: pl.DataFrame,
+    selected_target: str,
     scale: ScaleType = "log",
     grid: bool = True,
 ) -> alt.Chart | alt.LayerChart:
@@ -227,6 +228,9 @@ def target_data_chart(
     observed_data_table : pl.DataFrame
         A polars dataframe of E and H target data formatted
         as hubverse time series.
+    selected_target : str
+        The target for filtering in the forecast and or
+        observed hubverse tables.
     scale : str
         The scale to use for the Y axis during plotting.
         Defaults to logarithmic.
@@ -253,7 +257,11 @@ def target_data_chart(
     y_enc = alt.Y(
         "observation:Q",
         axis=alt.Axis(
-            title="Value", grid=grid, ticks=True, labels=True, orient="left"
+            title=f"{selected_target}",
+            grid=grid,
+            ticks=True,
+            labels=True,
+            orient="left",
         ),
         scale=alt.Scale(type=scale),
     )
@@ -273,7 +281,10 @@ def target_data_chart(
 
 
 def quantile_forecast_chart(
-    forecast_table: pl.DataFrame, scale: ScaleType = "log", grid: bool = True
+    forecast_table: pl.DataFrame,
+    selected_target: str,
+    scale: ScaleType = "log",
+    grid: bool = True,
 ) -> alt.LayerChart:
     """
     Uses a hubverse table (polars) and a reference date to
@@ -285,6 +296,9 @@ def quantile_forecast_chart(
     ----------
     forecast_table : pl.DataFrame
         The hubverse-formatted forecast table.
+    selected_target : str
+        The target for filtering in the forecast and or
+        observed hubverse tables.
     scale : str
         The scale to use for the Y axis during plotting.
         Defaults to logarithmic.
@@ -301,7 +315,7 @@ def quantile_forecast_chart(
         return alt.layer()
     value_col = "value"
     y_axis = alt.Axis(
-        title="Value",
+        title=f"{selected_target}",
         grid=grid,
         ticks=True,
         labels=True,
