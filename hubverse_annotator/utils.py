@@ -469,11 +469,6 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
-    # ensure output_type_id is float not str
-    if "output_type_id" in hub_table.columns:
-        hub_table = hub_table.with_columns(
-            pl.col("output_type_id").cast(pl.Float64)
-        )
     return hub_table
 
 
