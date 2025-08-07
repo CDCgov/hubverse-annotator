@@ -75,7 +75,7 @@ def validate_schema(
         st.stop()
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def get_available_locations(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
 ) -> pl.DataFrame:
@@ -104,6 +104,7 @@ def get_available_locations(
     )
 
 
+@st.cache_data(show_spinner=False)
 def get_reference_dates(forecast_table: pl.DataFrame) -> list[datetime.date]:
     """
     Retrieves a dataframe of forecast reference dates. The
@@ -245,10 +246,6 @@ def target_data_chart(
     """
     if observed_data_table.is_empty():
         return alt.layer()
-    if "model_id" not in observed_data_table.columns:
-        observed_data_table = observed_data_table.with_columns(
-            pl.lit("Observations").alias("model_id")
-        )
     x_enc = alt.X(
         "date:T",
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
@@ -377,6 +374,7 @@ def quantile_forecast_chart(
     return alt.layer(band_95, band_80, band_50, median)
 
 
+@st.cache_data(show_spinner=False)
 def filter_for_plotting(
     observed_data_table: pl.DataFrame,
     forecast_table: pl.DataFrame,
@@ -426,7 +424,7 @@ def filter_for_plotting(
     return data_to_plot, forecasts_to_plot
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_hubverse_table(hub_file: UploadedFile | None):
     """
     Load a hubverse formatted table into Polars from a
@@ -486,6 +484,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
     return hub_table
 
 
+@st.cache_data(show_spinner=False)
 def load_observed_data(
     observed_data_file: UploadedFile | None,
 ) -> pl.DataFrame:
@@ -527,6 +526,7 @@ def load_observed_data(
     return table
 
 
+@st.cache_data(show_spinner=False)
 def load_forecast_data(
     forecast_file: UploadedFile | None,
 ) -> pl.DataFrame:
