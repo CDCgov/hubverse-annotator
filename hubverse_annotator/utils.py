@@ -344,7 +344,7 @@ def quantile_forecast_chart(
         opacity=0.1,
         interpolate="step",
     ).encode(
-        y=alt.Y("0.025:Q", axis=y_axis),
+        y=alt.Y("0.025:Q", axis=y_axis, scale=alt.Scale(type=scale)),
         y2="0.975:Q",
         fill=alt.value("steelblue"),
     )
@@ -353,7 +353,7 @@ def quantile_forecast_chart(
         opacity=0.2,
         interpolate="step",
     ).encode(
-        y=alt.Y("0.10:Q", axis=y_axis),
+        y=alt.Y("0.10:Q", axis=y_axis, scale=alt.Scale(type=scale)),
         y2="0.90:Q",
         fill=alt.value("steelblue"),
     )
@@ -362,7 +362,7 @@ def quantile_forecast_chart(
         opacity=0.3,
         interpolate="step",
     ).encode(
-        y=alt.Y("0.25:Q", axis=y_axis),
+        y=alt.Y("0.25:Q", axis=y_axis, scale=alt.Scale(type=scale)),
         y2="0.75:Q",
         fill=alt.value("steelblue"),
     )
@@ -370,7 +370,7 @@ def quantile_forecast_chart(
         strokeWidth=STROKE_WIDTH,
         interpolate="step",
         color="navy",
-    ).encode(alt.Y("median:Q", axis=y_axis))
+    ).encode(alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale)))
     return alt.layer(band_95, band_80, band_50, median)
 
 
