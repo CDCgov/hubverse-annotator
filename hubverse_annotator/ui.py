@@ -402,9 +402,11 @@ def plotting_ui(
     # plots to reload successfully with new data.
     base_chart = st.empty()
     forecast_layer = quantile_forecast_chart(
-        forecasts_to_plot, scale=scale, grid=grid
+        forecasts_to_plot, selected_target, scale=scale, grid=grid
     )
-    observed_layer = target_data_chart(data_to_plot, scale=scale, grid=grid)
+    observed_layer = target_data_chart(
+        data_to_plot, selected_target, scale=scale, grid=grid
+    )
     sub_layers = [
         layer
         for layer in [forecast_layer, observed_layer]
@@ -423,7 +425,6 @@ def plotting_ui(
         axis=alt.Axis(format="%b %d", grid=grid),
         title="Date",
     )
-    title = f"{loc_abbr}: {selected_target}, {selected_ref_date}"
     chart = (
         layer.encode(x=x_enc)
         .facet(
@@ -440,7 +441,7 @@ def plotting_ui(
         )
         .properties(
             title=alt.TitleParams(
-                text=title,
+                text=f"({loc_abbr}) Reference Date: {selected_ref_date}",
                 fontSize=CHART_TITLE_FONT_SIZE,
                 fontWeight="bold",
                 anchor="middle",
