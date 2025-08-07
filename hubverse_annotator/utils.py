@@ -555,7 +555,7 @@ def load_forecast_data(
         "model_id": pl.Utf8,
         "reference_date": pl.Date,
         "target": pl.Utf8,
-        "horizon": pl.Int32,
+        "horizon": pl.Float64,
         "target_end_date": pl.Date,
         "location": pl.Utf8,
         "output_type": pl.Utf8,
