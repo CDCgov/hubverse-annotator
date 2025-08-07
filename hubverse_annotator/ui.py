@@ -450,8 +450,8 @@ def plotting_ui(
         .interactive()
         .resolve_scale(y="independent")
         .resolve_axis(x="independent")
+        .resolve_legend(color="shared")
     )
-
     base_chart.altair_chart(
         chart,
         use_container_width=False,
