@@ -398,6 +398,10 @@ def plotting_ui(
     grid : bool
         Whether to show gridlines on both axes.
     """
+    if "model_id" not in data_to_plot.columns:
+        data_to_plot = data_to_plot.with_columns(
+            pl.lit("Observations").alias("model_id")
+        )
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
@@ -451,7 +455,6 @@ def plotting_ui(
         .resolve_scale(y="independent")
         .resolve_axis(x="independent")
     )
-
     base_chart.altair_chart(
         chart,
         use_container_width=False,
