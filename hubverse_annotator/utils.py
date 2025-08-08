@@ -30,51 +30,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def validate_schema(
-    df: pl.DataFrame,
-    expected_schema: dict[str, pl.DataType],
-    name: str,
-    strict: bool = False,
-) -> None:
-    """
-    Stop the app if received dataframe does not adhere to
-    the provided schema.
-
-    Parameters
-    ----------
-    df : pl.DataFrame
-        An ingested dataframe expected to be either
-        hubverse formatted observed data or forecasts.
-    expected_schema : dict[str, pl.DataType]
-        Mapping of column name to expected Polars dtype.
-    name : str
-        Name for the dataframe (used in error messages).
-    strict : bool
-        If True, extra columns beyond those in
-        `expected_schema` will also trigger an error.
-        If False, extra columns are ignored. Defaults to
-        False.
-    """
-    actual = df.schema
-    missing = set(expected_schema) - actual.keys()
-    extra = set(actual.keys()) - expected_schema.keys() if strict else set()
-    mismatches = {
-        col: (expected_schema[col], actual[col])
-        for col in expected_schema.keys() & actual.keys()
-        if expected_schema[col] != actual[col]
-    }
-    if missing or extra or mismatches:
-        parts: list[str] = []
-        if missing:
-            parts.append(f"missing cols {sorted(missing)}")
-        if extra:
-            parts.append(f"unexpected cols {sorted(extra)}")
-        for col, (exp, act) in mismatches.items():
-            parts.append(f"'{col}' expected {exp}, got {act}")
-        st.error(f"{name} schema problems: " + "; ".join(parts))
-        st.stop()
-
-
 @st.cache_data
 def get_available_locations(
     observed_data_table: pl.DataFrame, forecast_table: pl.DataFrame
@@ -426,6 +381,51 @@ def filter_for_plotting(
     return data_to_plot, forecasts_to_plot
 
 
+def validate_schema(
+    df: pl.DataFrame,
+    expected_schema: dict[str, pl.DataType],
+    name: str,
+    strict: bool = False,
+) -> None:
+    """
+    Stop the app if received dataframe does not adhere to
+    the provided schema.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        An ingested dataframe expected to be either
+        hubverse formatted observed data or forecasts.
+    expected_schema : dict[str, pl.DataType]
+        Mapping of column name to expected Polars dtype.
+    name : str
+        Name for the dataframe (used in error messages).
+    strict : bool
+        If True, extra columns beyond those in
+        `expected_schema` will also trigger an error.
+        If False, extra columns are ignored. Defaults to
+        False.
+    """
+    actual = df.schema
+    missing = set(expected_schema) - actual.keys()
+    extra = set(actual.keys()) - expected_schema.keys() if strict else set()
+    mismatches = {
+        col: (expected_schema[col], actual[col])
+        for col in expected_schema.keys() & actual.keys()
+        if expected_schema[col] != actual[col]
+    }
+    if missing or extra or mismatches:
+        parts: list[str] = []
+        if missing:
+            parts.append(f"missing cols {sorted(missing)}")
+        if extra:
+            parts.append(f"unexpected cols {sorted(extra)}")
+        for col, (exp, act) in mismatches.items():
+            parts.append(f"'{col}' expected {exp}, got {act}")
+        st.error(f"{name} schema problems: " + "; ".join(parts))
+        st.stop()
+
+
 @st.cache_data
 def load_hubverse_table(hub_file: UploadedFile | None):
     """
@@ -512,7 +512,6 @@ def load_observed_data(
     """
     observed_schema = {
         "date": pl.Date,
-        "state": pl.Utf8,
         "observation": pl.Float64,
         "location": pl.Utf8,
         "as_of": pl.Date,
@@ -521,7 +520,9 @@ def load_observed_data(
     }
     if not observed_data_file:
         return pl.DataFrame(schema=observed_schema)
-    table = load_hubverse_table(observed_data_file)
+    table = load_hubverse_table(observed_data_file).select(
+        observed_schema.keys()
+    )
     validate_schema(table, observed_schema, "Observed Data")
     table = table.filter(pl.col("as_of") == pl.col("as_of").max())
     return table
@@ -565,6 +566,6 @@ def load_forecast_data(
     }
     if not forecast_file:
         return pl.DataFrame(schema=forecast_schema)
-    table = load_hubverse_table(forecast_file)
+    table = load_hubverse_table(forecast_file).select(forecast_schema.keys())
     validate_schema(table, forecast_schema, "Forecast Data")
     return table
