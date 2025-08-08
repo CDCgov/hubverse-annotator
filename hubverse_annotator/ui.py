@@ -315,7 +315,7 @@ def reference_date_selection_ui(
         The selected reference date, or None if no dates
         are available.
     """
-    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
+    ref_dates = sorted(get_reference_dates(forecast_table))
     if not ref_dates:
         st.info("Upload a forecast file to select a reference date.")
         return None
