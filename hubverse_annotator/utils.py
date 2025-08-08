@@ -520,11 +520,9 @@ def load_observed_data(
     }
     if not observed_data_file:
         return pl.DataFrame(schema=observed_schema)
-    print(load_hubverse_table(observed_data_file).columns)
     table = load_hubverse_table(observed_data_file).select(
         observed_schema.keys()
     )
-    print(table.columns)
     validate_schema(table, observed_schema, "Observed Data")
     table = table.filter(pl.col("as_of") == pl.col("as_of").max())
     return table
