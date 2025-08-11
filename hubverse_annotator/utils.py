@@ -287,7 +287,6 @@ def quantile_forecast_chart(
             names with a "q" prefix and the leading
             0 stripped. Columns not starting with 0 are
             omitted.
-
         """
         return {
             c: f"q{c[2:]}"
@@ -301,7 +300,6 @@ def quantile_forecast_chart(
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "q5:Q",
-        title=selected_target,
         axis=alt.Axis(grid=grid),
         scale=alt.Scale(type=scale),
     )
@@ -349,7 +347,9 @@ def quantile_forecast_chart(
             ) from e
 
         return base.mark_errorband(opacity=opacity, interpolate="step").encode(
-            y=f"{low_col}:Q", y2=f"{high_col}:Q", fill=alt.value("steelblue")
+            y=alt.Y(f"{low_col}:Q", title=selected_target),
+            y2=f"{high_col}:Q",
+            fill=alt.value("steelblue"),
         )
 
     bands = [
