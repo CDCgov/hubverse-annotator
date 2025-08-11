@@ -200,10 +200,6 @@ def target_data_chart(
     """
     if observed_data_table.is_empty():
         return alt.layer()
-    if "model_id" not in observed_data_table.columns:
-        observed_data_table = observed_data_table.with_columns(
-            pl.lit("Observations").alias("model_id")
-        )
     x_enc = alt.X(
         "date:T",
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
