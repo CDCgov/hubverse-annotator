@@ -200,10 +200,6 @@ def target_data_chart(
     """
     if observed_data_table.is_empty():
         return alt.layer()
-    if "model_id" not in observed_data_table.columns:
-        observed_data_table = observed_data_table.with_columns(
-            pl.lit("Observations").alias("model_id")
-        )
     x_enc = alt.X(
         "date:T",
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
@@ -302,7 +298,7 @@ def quantile_forecast_chart(
         opacity=0.1,
         interpolate="step",
     ).encode(
-        y=alt.Y("0.025:Q", axis=y_axis),
+        y=alt.Y("0.025:Q", axis=y_axis, scale=alt.Scale(type=scale)),
         y2="0.975:Q",
         fill=alt.value("steelblue"),
     )
@@ -311,7 +307,7 @@ def quantile_forecast_chart(
         opacity=0.2,
         interpolate="step",
     ).encode(
-        y=alt.Y("0.10:Q", axis=y_axis),
+        y=alt.Y("0.10:Q", axis=y_axis, scale=alt.Scale(type=scale)),
         y2="0.90:Q",
         fill=alt.value("steelblue"),
     )
@@ -320,7 +316,7 @@ def quantile_forecast_chart(
         opacity=0.3,
         interpolate="step",
     ).encode(
-        y=alt.Y("0.25:Q", axis=y_axis),
+        y=alt.Y("0.25:Q", axis=y_axis, scale=alt.Scale(type=scale)),
         y2="0.75:Q",
         fill=alt.value("steelblue"),
     )
@@ -328,7 +324,7 @@ def quantile_forecast_chart(
         strokeWidth=STROKE_WIDTH,
         interpolate="step",
         color="navy",
-    ).encode(alt.Y("median:Q", axis=y_axis))
+    ).encode(alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale)))
     return alt.layer(band_95, band_80, band_50, median)
 
 
