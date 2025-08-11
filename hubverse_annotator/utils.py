@@ -269,21 +269,38 @@ def quantile_forecast_chart(
         index=cs.exclude("output_type_id", "value"),
         values="value",
     )
-    col_rename_map = {
-        "0.025": "q025",
-        "0.10": "q10",
-        "0.25": "q25",
-        "0.5": "median",
-        "0.75": "q75",
-        "0.90": "q90",
-        "0.975": "q975",
-    }
-    df_wide = df_wide.rename(
-        {k: v for k, v in col_rename_map.items() if k in df_wide.columns}
-    )
+
+    def quantile_rename_map(cols: list[str]) -> dict[str, str]:
+        """
+        Creates a map for renaming quantile columns
+        formatted as strings.
+
+        Parameters
+        ----------
+        cols : list[str]
+            Column names from a (pivoted) forecast table.
+
+        Returns
+        -------
+        dict[str, str]
+            Mapping from original names to normalized
+            names with a "q" prefix and the leading
+            0 stripped. Columns not starting with 0 are
+            omitted.
+
+        """
+        return {
+            c: f"q{c[2:]}"
+            for c in cols
+            if isinstance(c, str) and c.startswith("0.")
+        }
+
+    rename_map = quantile_rename_map(df_wide.columns)
+    df_wide = df_wide.rename(rename_map)
+
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
-        "median:Q",
+        "q5:Q",
         title=selected_target,
         axis=alt.Axis(grid=grid),
         scale=alt.Scale(type=scale),
