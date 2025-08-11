@@ -268,68 +268,141 @@ def quantile_forecast_chart(
     """
     if forecast_table.is_empty():
         return alt.layer()
-    value_col = "value"
-    y_axis = alt.Axis(
-        title=f"{selected_target}",
-        grid=grid,
-        ticks=True,
-        labels=True,
-        orient="left",
+    df_wide = forecast_table.filter(pl.col("output_type") == "quantile").pivot(
+        on="output_type_id",
+        index=cs.exclude("output_type_id", "value"),
+        values="value",
     )
-    # filter to quantile only rows and ensure quantiles
-    # are str for pivot; also, pivot to wide, so quantiles
-    # ids are columns
-    df_wide = (
-        forecast_table.filter(pl.col("output_type") == "quantile")
-        .pivot(
-            on="output_type_id",
-            index=cs.exclude("output_type_id", value_col),
-            values=value_col,
+    col_rename_map = {
+        "0.025": "q025",
+        "0.10": "q10",
+        "0.25": "q25",
+        "0.5": "median",
+        "0.75": "q75",
+        "0.90": "q90",
+        "0.975": "q975",
+    }
+    df_wide = df_wide.rename(
+        {k: v for k, v in col_rename_map.items() if k in df_wide.columns}
+    )
+    x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
+    y_enc = alt.Y(
+        "median:Q",
+        title=selected_target,
+        axis=alt.Axis(grid=grid),
+        scale=alt.Scale(type=scale),
+    )
+    base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(x=x_enc, y=y_enc)
+
+    def band(low: str, high: str, opacity: float) -> alt.Chart:
+        """
+        Builds an errorband layer for a quantile.
+
+        Parameters
+        ----------
+        low : str
+            Lower-bound column name in the wide forecast
+            table (e.g., "q025").
+        high : str
+            Upper-bound column name in the wide forecast
+            table (e.g., "q975").
+        opacity : float
+            Fill opacity for the band in the range
+            [0.0, 1.0].
+
+        Returns
+        -------
+        alt.Chart
+            An Altair layer with the filled band from
+            ``low`` to ``high``, with step interpolation.
+        """
+        return base.mark_errorband(opacity=opacity, interpolate="step").encode(
+            y=f"{low}:Q", y2=f"{high}:Q", fill=alt.value("steelblue")
         )
-        .with_columns(pl.col("0.5").alias("median"))
-    )
-    base_x_enc = alt.X(
-        "target_end_date:T",
-        axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
-    )
-    base_y_enc = alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale))
-    base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(
-        x=base_x_enc,
-        y=base_y_enc,
-    )
-    band_95 = base.mark_errorband(
-        extent="ci",
-        opacity=0.1,
-        interpolate="step",
-    ).encode(
-        y=alt.Y("0.025:Q", axis=y_axis),
-        y2="0.975:Q",
-        fill=alt.value("steelblue"),
-    )
-    band_80 = base.mark_errorband(
-        extent="ci",
-        opacity=0.2,
-        interpolate="step",
-    ).encode(
-        y=alt.Y("0.10:Q", axis=y_axis),
-        y2="0.90:Q",
-        fill=alt.value("steelblue"),
-    )
-    band_50 = base.mark_errorband(
-        extent="iqr",
-        opacity=0.3,
-        interpolate="step",
-    ).encode(
-        y=alt.Y("0.25:Q", axis=y_axis),
-        y2="0.75:Q",
-        fill=alt.value("steelblue"),
-    )
+
+    bands = [
+        band("q025", "q975", 0.10),
+        band("q10", "q90", 0.20),
+        band("q25", "q75", 0.30),
+    ]
     median = base.mark_line(
-        strokeWidth=STROKE_WIDTH,
-        interpolate="step",
-        color="navy",
-    ).encode(alt.Y("median:Q", axis=y_axis))
-    return alt.layer(band_95, band_80, band_50, median)
+        strokeWidth=STROKE_WIDTH, interpolate="step", color="navy"
+    )
+
+    return alt.layer(*bands, median)
+
+
+# def quantile_forecast_chart(
+#     forecast_table: pl.DataFrame,
+#     selected_target: str,
+#     scale: ScaleType = "log",
+#     grid: bool = True,
+# ) -> alt.LayerChart:
+
+#     if forecast_table.is_empty():
+#         return alt.layer()
+#     value_col = "value"
+#     y_axis = alt.Axis(
+#         title=f"{selected_target}",
+#         grid=grid,
+#         ticks=True,
+#         labels=True,
+#         orient="left",
+#     )
+#     # filter to quantile only rows and ensure quantiles
+#     # are str for pivot; also, pivot to wide, so quantiles
+#     # ids are columns
+#     df_wide = (
+#         forecast_table.filter(pl.col("output_type") == "quantile")
+#         .pivot(
+#             on="output_type_id",
+#             index=cs.exclude("output_type_id", value_col),
+#             values=value_col,
+#         )
+#         .with_columns(pl.col("0.5").alias("median"))
+#     )
+#     base_x_enc = alt.X(
+#         "target_end_date:T",
+#         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
+#     )
+#     base_y_enc = alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale))
+#     base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(
+#         x=base_x_enc,
+#         y=base_y_enc,
+#     )
+#     band_95 = base.mark_errorband(
+#         extent="ci",
+#         opacity=0.1,
+#         interpolate="step",
+#     ).encode(
+#         y=alt.Y("0.025:Q", axis=y_axis),
+#         y2="0.975:Q",
+#         fill=alt.value("steelblue"),
+#     )
+#     band_80 = base.mark_errorband(
+#         extent="ci",
+#         opacity=0.2,
+#         interpolate="step",
+#     ).encode(
+#         y=alt.Y("0.10:Q", axis=y_axis),
+#         y2="0.90:Q",
+#         fill=alt.value("steelblue"),
+#     )
+#     band_50 = base.mark_errorband(
+#         extent="iqr",
+#         opacity=0.3,
+#         interpolate="step",
+#     ).encode(
+#         y=alt.Y("0.25:Q", axis=y_axis),
+#         y2="0.75:Q",
+#         fill=alt.value("steelblue"),
+#     )
+#     median = base.mark_line(
+#         strokeWidth=STROKE_WIDTH,
+#         interpolate="step",
+#         color="navy",
+#     ).encode(alt.Y("median:Q", axis=y_axis))
+#     return alt.layer(band_95, band_80, band_50, median)
 
 
 def filter_for_plotting(
