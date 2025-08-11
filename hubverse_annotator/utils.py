@@ -307,18 +307,15 @@ def quantile_forecast_chart(
     )
     base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(x=x_enc, y=y_enc)
 
-    def band(low: str, high: str, opacity: float) -> alt.Chart:
+    def band(width: float, opacity: float) -> alt.Chart:
         """
         Builds an errorband layer for a quantile.
 
         Parameters
         ----------
-        low : str
-            Lower-bound column name in the wide forecast
-            table (e.g., "q025").
-        high : str
-            Upper-bound column name in the wide forecast
-            table (e.g., "q975").
+        width : float
+            Interval width in (0, 1], e.g., 0.95 for a 95%
+            band (q025-q975), 0.80 for 80% (q1-q9), etc...
         opacity : float
             Fill opacity for the band in the range
             [0.0, 1.0].
@@ -329,14 +326,36 @@ def quantile_forecast_chart(
             An Altair layer with the filled band from
             ``low`` to ``high``, with step interpolation.
         """
+        if not (0 < width <= 1):
+            raise ValueError("width must be in (0, 1].")
+
+        low = (1.0 - width) / 2.0
+        high = 1.0 - low
+
+        def norm_key(x: float) -> str:
+            s = f"{x:.3f}"
+            return s.rstrip("0").rstrip(".")
+
+        low_key = norm_key(low)
+        high_key = norm_key(high)
+
+        try:
+            low_col = rename_map[low_key]
+            high_col = rename_map[high_key]
+        except KeyError as e:
+            raise KeyError(
+                f"Quantile columns missing for width={width}: "
+                f"expected '{low_key}' and '{high_key}' in dataframe columns."
+            ) from e
+
         return base.mark_errorband(opacity=opacity, interpolate="step").encode(
-            y=f"{low}:Q", y2=f"{high}:Q", fill=alt.value("steelblue")
+            y=f"{low_col}:Q", y2=f"{high_col}:Q", fill=alt.value("steelblue")
         )
 
     bands = [
-        band("q025", "q975", 0.10),
-        band("q10", "q90", 0.20),
-        band("q25", "q75", 0.30),
+        band(0.95, 0.10),
+        band(0.80, 0.20),
+        band(0.50, 0.30),
     ]
     median = base.mark_line(
         strokeWidth=STROKE_WIDTH, interpolate="step", color="navy"
