@@ -315,13 +315,14 @@ def reference_date_selection_ui(
         The selected reference date, or None if no dates
         are available.
     """
-    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
+    ref_dates = sorted(get_reference_dates(forecast_table))
     if not ref_dates:
         st.info("Upload a forecast file to select a reference date.")
         return None
 
     if "ref_dates" not in st.session_state:
         st.session_state.ref_dates = ref_dates.copy()
+        st.session_state.current_ref_date_id = len(ref_dates) - 1
 
     def _go_to_prev_ref_date():
         st.session_state.current_ref_date_id -= 1
@@ -332,10 +333,11 @@ def reference_date_selection_ui(
     ref_date_col, prev_col, next_col = st.columns(
         [6, 1, 1], vertical_alignment="bottom"
     )
+    num_ref_dates = len(st.session_state.ref_dates)
     with ref_date_col:
         st.selectbox(
             "Reference Date",
-            options=list(range(len(st.session_state.ref_dates))),
+            options=list(range(num_ref_dates)),
             key="current_ref_date_id",
             format_func=lambda i: st.session_state.ref_dates[i].strftime(
                 "%Y-%m-%d"
