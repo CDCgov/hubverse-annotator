@@ -375,8 +375,8 @@ def plotting_ui(
     selected_target: str | None,
     selected_ref_date: datetime.date | None,
     scale: bool = True,
-    grid: bool = True,
-    ref_date_line: bool = True,
+    show_grid: bool = True,
+    show_ref_date_line: bool = True,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -400,9 +400,9 @@ def plotting_ui(
         The selected reference date.
     scale : {"log", "linear"}
         Y-axis scale type.
-    grid : bool
+    show_grid : bool
         Whether to show gridlines on both axes.
-    ref_date_line : bool
+    show_ref_date_line : bool
         If True, draw a vertical dashed black line at the
         selected reference date.
     """
@@ -414,10 +414,10 @@ def plotting_ui(
     # plots to reload successfully with new data.
     base_chart = st.empty()
     forecast_layer = quantile_forecast_chart(
-        forecasts_to_plot, selected_target, scale=scale, grid=grid
+        forecasts_to_plot, selected_target, scale=scale, grid=show_grid
     )
     observed_layer = target_data_chart(
-        data_to_plot, selected_target, scale=scale, grid=grid
+        data_to_plot, selected_target, scale=scale, grid=show_grid
     )
     sub_layers = [
         layer
@@ -430,7 +430,7 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
-    if ref_date_line and selected_ref_date is not None:
+    if show_ref_date_line and selected_ref_date is not None:
         rule_layer = alt.Chart(
             alt.Data(values=[{"date": str(selected_ref_date)}])
         ).mark_rule(
@@ -443,7 +443,7 @@ def plotting_ui(
     x_enc = alt.X(
         "date:T",
         scale=alt.Scale(domain=domain),
-        axis=alt.Axis(format="%b %d", grid=grid),
+        axis=alt.Axis(format="%b %d", grid=show_grid),
         title="Date",
     )
     chart = (
