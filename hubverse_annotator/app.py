@@ -60,7 +60,7 @@ def main() -> None:
         selected_ref_date,
         scale=scale,
         show_grid=show_grid,
-        ref_date_line=show_ref_date_line,
+        show_ref_date_line=show_ref_date_line,
     )
 
 
