@@ -29,6 +29,8 @@ from utils import (
 
 Y_LABEL_FONT_SIZE = 15
 CHART_TITLE_FONT_SIZE = 18
+REF_DATE_STROKE_WIDTH = 3
+REF_DATE_STROKE_DASH = [6, 6]
 
 
 def annotation_export_ui() -> None:
@@ -374,6 +376,7 @@ def plotting_ui(
     selected_ref_date: datetime.date | None,
     scale: bool = True,
     grid: bool = True,
+    ref_date_line: bool = True,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -399,6 +402,9 @@ def plotting_ui(
         Y-axis scale type.
     grid : bool
         Whether to show gridlines on both axes.
+    ref_date_line : bool
+        If True, draw a vertical dashed black line at the
+        selected reference date.
     """
     if "model_id" not in data_to_plot.columns:
         data_to_plot = data_to_plot.with_columns(
@@ -424,6 +430,15 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
+    if ref_date_line and selected_ref_date is not None:
+        rule_layer = alt.Chart(
+            alt.Data(values=[{"date": str(selected_ref_date)}])
+        ).mark_rule(
+            color="black",
+            strokeDash=REF_DATE_STROKE_DASH,
+            strokeWidth=REF_DATE_STROKE_WIDTH,
+        )
+        layer = layer + rule_layer
     domain = get_initial_window_range(data_to_plot, forecasts_to_plot)
     x_enc = alt.X(
         "date:T",

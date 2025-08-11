@@ -42,6 +42,7 @@ def main() -> None:
         )
         scale = "log" if st.checkbox("Log-scale", value=True) else "linear"
         grid = st.checkbox("Gridlines", value=True)
+        ref_date_line = st.checkbox("Reference Date Line", value=True)
         forecast_annotation_ui(selected_models, loc_abbr, selected_ref_date)
     data_to_plot, forecasts_to_plot = filter_for_plotting(
         observed_data_table,
@@ -59,6 +60,7 @@ def main() -> None:
         selected_ref_date,
         scale=scale,
         grid=grid,
+        ref_date_line=ref_date_line,
     )
 
 
