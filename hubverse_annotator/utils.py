@@ -270,13 +270,28 @@ def quantile_forecast_chart(
         values="value",
     )
 
+    def quantile_rename_map(quantiles: list[str]) -> dict[str, str]:
+        """
+        Build a rename map for quantile-like columns
+        formatted as strings starting with '0.'.
+
+        Parameters
+        ----------
+        quantiles : list[str]
+            The quantiles to rename (e.g., from a pivoted
+            forecast table).
+
+        Returns
+        -------
+        dict[str, str]
+            Mapping from original names to the 'q'
+            prefixed form with the leading '0.' removed.
+        """
+
     rename_map = {
-        c: f"q{c[2:]}"
-        for c in df_wide.columns
-        if isinstance(c, str) and c.startswith("0.")
+        c: f"q{c[2:]}" for c in df_wide.columns if c.startswith("0.")
     }
     df_wide = df_wide.rename(rename_map)
-
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "q5:Q",
