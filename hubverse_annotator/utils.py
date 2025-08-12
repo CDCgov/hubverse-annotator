@@ -304,7 +304,9 @@ def quantile_forecast_chart(
             ``low`` to ``high``, with step interpolation.
         """
         return base.mark_errorband(opacity=opacity, interpolate="step").encode(
-            y=f"{low}:Q", y2=f"{high}:Q", fill=alt.value("steelblue")
+            y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
+            y2=f"{high}:Q",
+            fill=alt.value("steelblue"),
         )
 
     bands = [
