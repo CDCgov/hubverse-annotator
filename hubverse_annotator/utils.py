@@ -264,68 +264,61 @@ def quantile_forecast_chart(
     """
     if forecast_table.is_empty():
         return alt.layer()
-    value_col = "value"
-    y_axis = alt.Axis(
-        title=f"{selected_target}",
-        grid=grid,
-        ticks=True,
-        labels=True,
-        orient="left",
-    )
-    # filter to quantile only rows and ensure quantiles
-    # are str for pivot; also, pivot to wide, so quantiles
-    # ids are columns
     df_wide = (
         forecast_table.filter(pl.col("output_type") == "quantile")
         .pivot(
             on="output_type_id",
-            index=cs.exclude("output_type_id", value_col),
-            values=value_col,
+            index=cs.exclude("output_type_id", "value"),
+            values="value",
         )
-        .with_columns(pl.col("0.5").alias("median"))
+        .rename({"0.5": "median"})
     )
-    base_x_enc = alt.X(
-        "target_end_date:T",
-        axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
+    x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
+    y_enc = alt.Y(
+        "median:Q",
+        axis=alt.Axis(grid=grid),
+        scale=alt.Scale(type=scale),
     )
-    base_y_enc = alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale))
-    base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(
-        x=base_x_enc,
-        y=base_y_enc,
-    )
-    band_95 = base.mark_errorband(
-        extent="ci",
-        opacity=0.1,
-        interpolate="step",
-    ).encode(
-        y=alt.Y("0.025:Q", axis=y_axis, scale=alt.Scale(type=scale)),
-        y2="0.975:Q",
-        fill=alt.value("steelblue"),
-    )
-    band_80 = base.mark_errorband(
-        extent="ci",
-        opacity=0.2,
-        interpolate="step",
-    ).encode(
-        y=alt.Y("0.10:Q", axis=y_axis, scale=alt.Scale(type=scale)),
-        y2="0.90:Q",
-        fill=alt.value("steelblue"),
-    )
-    band_50 = base.mark_errorband(
-        extent="iqr",
-        opacity=0.3,
-        interpolate="step",
-    ).encode(
-        y=alt.Y("0.25:Q", axis=y_axis, scale=alt.Scale(type=scale)),
-        y2="0.75:Q",
-        fill=alt.value("steelblue"),
-    )
+    base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(x=x_enc, y=y_enc)
+
+    def band(low: str, high: str, opacity: float) -> alt.Chart:
+        """
+        Builds an errorband layer for a quantile.
+
+        Parameters
+        ----------
+        low : str
+            Lower-bound column name in the wide forecast
+            table (e.g., "0.25").
+        high : str
+            Upper-bound column name in the wide forecast
+            table (e.g., "0.975").
+        opacity : float
+            Fill opacity for the band in the range
+            [0.0, 1.0].
+
+        Returns
+        -------
+        alt.Chart
+            An Altair layer with the filled band from
+            ``low`` to ``high``, with step interpolation.
+        """
+        return base.mark_errorband(opacity=opacity, interpolate="step").encode(
+            y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
+            y2=f"{high}:Q",
+            fill=alt.value("steelblue"),
+        )
+
+    bands = [
+        band("0.25", "0.975", 0.10),
+        band("0.1", "0.9", 0.20),
+        band("0.25", "0.75", 0.30),
+    ]
     median = base.mark_line(
-        strokeWidth=STROKE_WIDTH,
-        interpolate="step",
-        color="navy",
-    ).encode(alt.Y("median:Q", axis=y_axis, scale=alt.Scale(type=scale)))
-    return alt.layer(band_95, band_80, band_50, median)
+        strokeWidth=STROKE_WIDTH, interpolate="step", color="navy"
+    )
+
+    return alt.layer(*bands, median)
 
 
 def filter_for_plotting(
