@@ -120,9 +120,7 @@ def get_initial_window_range(
     if first_fc_date is None:
         start_date = first_obs_date
     else:
-        candidate_start_date = first_fc_date - datetime.timedelta(
-            weeks=extra_weeks
-        )
+        candidate_start_date = first_fc_date - datetime.timedelta(weeks=extra_weeks)
         start_date = (
             max(first_obs_date, candidate_start_date)
             if first_obs_date is not None
@@ -152,9 +150,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
     spec = chart.to_dict()
     # unit chart: no data, no mark, no encoding
     if "layer" not in spec:
-        return not (
-            spec.get("data") or spec.get("mark") or spec.get("encoding")
-        )
+        return not (spec.get("data") or spec.get("mark") or spec.get("encoding"))
     # LayerChart: check each sub-layer recursively
     # check if the layer list is empty or all sub-layers
     # are empty
@@ -264,58 +260,35 @@ def quantile_forecast_chart(
     """
     if forecast_table.is_empty():
         return alt.layer()
-    df_wide = forecast_table.filter(pl.col("output_type") == "quantile").pivot(
-        on="output_type_id",
-        index=cs.exclude("output_type_id", "value"),
-        values="value",
-    )
-
-    def norm_key(x: float | str) -> str:
-        """
-        Converts a quantile (float in [0,1]) or '0.xxx'
-        string to a 'q...' column name.
-
-        Parameters
-        ----------
-        x : float | str
-            A quantile value to be standardized, e.g. `0.01`
-            to `q01`.
-
-        Returns
-        -------
-        str
-            A standardized quantile value.
-        """
-        if isinstance(x, str):
-            s = x.strip()
-            if not s.startswith("0."):
-                raise ValueError(f"Expected '0.xxx' string, got {x}.")
-            return f"q{s[2:]}"
-        s = f"{x:.3f}".rstrip("0").rstrip(".")
-        if not s.startswith("0."):
-            raise ValueError(f"Quantile out of [0,1]: {x}.")
-        return f"q{s[2:]}"
-
-    df_wide = df_wide.rename(
-        {c: norm_key(c) for c in df_wide.columns if c.startswith("0.")}
+    df_wide = (
+        forecast_table.filter(pl.col("output_type") == "quantile")
+        .pivot(
+            on="output_type_id",
+            index=cs.exclude("output_type_id", "value"),
+            values="value",
+        )
+        .rename({"0.5": "median"})
     )
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
-        "q5:Q",
+        "median:Q",
         axis=alt.Axis(grid=grid),
         scale=alt.Scale(type=scale),
     )
     base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(x=x_enc, y=y_enc)
 
-    def band(width: float, opacity: float) -> alt.Chart:
+    def band(low: str, high: str, opacity: float) -> alt.Chart:
         """
         Builds an errorband layer for a quantile.
 
         Parameters
         ----------
-        width : float
-            Interval width in (0, 1], e.g., 0.95 for a 95%
-            band (q025-q975), 0.80 for 80% (q1-q9), etc...
+        low : str
+            Lower-bound column name in the wide forecast
+            table (e.g., "0.25").
+        high : str
+            Upper-bound column name in the wide forecast
+            table (e.g., "9.75").
         opacity : float
             Fill opacity for the band in the range
             [0.0, 1.0].
@@ -326,29 +299,16 @@ def quantile_forecast_chart(
             An Altair layer with the filled band from
             ``low`` to ``high``, with step interpolation.
         """
-        if not (0 < width <= 1):
-            raise ValueError("width must be in (0, 1].")
-
-        low = (1.0 - width) / 2.0
-        high = 1.0 - low
-
-        low_col = norm_key(low)
-        high_col = norm_key(high)
-
         return base.mark_errorband(opacity=opacity, interpolate="step").encode(
-            y=alt.Y(f"{low_col}:Q", title=selected_target),
-            y2=f"{high_col}:Q",
-            fill=alt.value("steelblue"),
+            y=f"{low}:Q", y2=f"{high}:Q", fill=alt.value("steelblue")
         )
 
     bands = [
-        band(0.95, 0.10),
-        band(0.80, 0.20),
-        band(0.50, 0.30),
+        band("0.25", "0.975", 0.10),
+        band("0.1", "0.9", 0.20),
+        band("0.25", "0.75", 0.30),
     ]
-    median = base.mark_line(
-        strokeWidth=STROKE_WIDTH, interpolate="step", color="navy"
-    )
+    median = base.mark_line(strokeWidth=STROKE_WIDTH, interpolate="step", color="navy")
 
     return alt.layer(*bands, median)
 
@@ -498,9 +458,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(
-            lookup.select(["location_code", "short_name"]).iter_rows()
-        )
+        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
@@ -541,9 +499,7 @@ def load_observed_data(
     }
     if not observed_data_file:
         return pl.DataFrame(schema=observed_schema)
-    table = load_hubverse_table(observed_data_file).select(
-        observed_schema.keys()
-    )
+    table = load_hubverse_table(observed_data_file).select(observed_schema.keys())
     validate_schema(table, observed_schema, "Observed Data")
     table = table.filter(pl.col("as_of") == pl.col("as_of").max())
     return table
