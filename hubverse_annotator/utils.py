@@ -23,13 +23,6 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 65
-COLOR_ENC = alt.Color(
-    "data_type:N",
-    title=None,
-    scale=alt.Scale(
-        domain=["Observations", "Forecast"], range=["limegreen", "steelblue"]
-    ),
-)
 
 type ScaleType = Literal["linear", "log"]
 
@@ -229,7 +222,11 @@ def target_data_chart(
         .encode(
             x=x_enc,
             y=y_enc,
-            color=COLOR_ENC,
+            color=alt.Color(
+                "data_type:N",
+                title=None,
+                scale=alt.Scale(domain=["Observations"], range=["limegreen"]),
+            ),
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("observation:Q", title="Value"),
@@ -295,11 +292,23 @@ def quantile_forecast_chart(
         .encode(
             x=x_enc,
             y=y_enc,
-            color=COLOR_ENC,
         )
     )
+    labels = ["97.5% CI", "80% CI", "50% CI"]
+    lows = ["0.25", "0.1", "0.25"]
+    highs = ["0.975", "0.9", "0.75"]
+    opacities = [0.10, 0.20, 0.30]
+    color_enc = alt.Color(
+        "legend_label:N",
+        title="Quantiles",
+        scale=alt.Scale(domain=labels, range=["steelblue"] * len(labels)),
+    )
+    opacity_enc = alt.Opacity(
+        "legend_label:N",
+        scale=alt.Scale(domain=labels, range=opacities),
+    )
 
-    def band(low: str, high: str, opacity: float) -> alt.Chart:
+    def band(low: str, high: str, label: str) -> alt.Chart:
         """
         Builds an errorband layer for a quantile.
 
@@ -321,15 +330,20 @@ def quantile_forecast_chart(
             An Altair layer with the filled band from
             ``low`` to ``high``, with step interpolation.
         """
-        return base.mark_errorband(opacity=opacity, interpolate="step").encode(
-            y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
-            y2=f"{high}:Q",
+        return (
+            base.transform_calculate(legend_label=f"'{label}'")
+            .mark_errorband(interpolate="step")
+            .encode(
+                y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
+                y2=f"{high}:Q",
+                color=color_enc,
+                opacity=opacity_enc,
+            )
         )
 
     bands = [
-        band("0.25", "0.975", 0.10),
-        band("0.1", "0.9", 0.20),
-        band("0.25", "0.75", 0.30),
+        band(lo, hi, lab)
+        for lo, hi, lab in zip(lows, highs, labels, strict=False)
     ]
     median = base.mark_line(
         strokeWidth=STROKE_WIDTH, interpolate="step", color="navy"

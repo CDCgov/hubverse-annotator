@@ -477,7 +477,6 @@ def plotting_ui(
             direction="horizontal",
             symbolType="circle",
             symbolSize=MARKER_SIZE,
-            symbolOpacity=1,
             symbolStrokeWidth=0,
             titleAnchor="middle",
         )
