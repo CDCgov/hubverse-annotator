@@ -274,15 +274,26 @@ def quantile_forecast_chart(
         """
         Converts a quantile (float in [0,1]) or '0.xxx'
         string to a 'q...' column name.
+
+        Parameters
+        ----------
+        x : float | str
+            A quantile value to be standardized, e.g. `0.01`
+            to `q01`.
+
+        Returns
+        -------
+        str
+            A standardized quantile value.
         """
         if isinstance(x, str):
             s = x.strip()
             if not s.startswith("0."):
-                raise ValueError(f"Expected '0.xxx' string, got {x}")
+                raise ValueError(f"Expected '0.xxx' string, got {x}.")
             return f"q{s[2:]}"
         s = f"{x:.3f}".rstrip("0").rstrip(".")
         if not s.startswith("0."):
-            raise ValueError(f"Quantile out of [0,1]: {x}")
+            raise ValueError(f"Quantile out of [0,1]: {x}.")
         return f"q{s[2:]}"
 
     df_wide = df_wide.rename(
