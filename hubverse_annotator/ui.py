@@ -31,6 +31,7 @@ Y_LABEL_FONT_SIZE = 15
 CHART_TITLE_FONT_SIZE = 18
 REF_DATE_STROKE_WIDTH = 2.5
 REF_DATE_STROKE_DASH = [6, 6]
+MARKER_SIZE = 65
 
 
 def annotation_export_ui() -> None:
@@ -469,9 +470,17 @@ def plotting_ui(
             )
         )
         .interactive()
-        .resolve_scale(y="independent")
+        .resolve_scale(y="independent", color="independent")
         .resolve_axis(x="independent")
-        .configure_legend(orient="bottom", symbolOpacity=1)
+        .configure_legend(
+            orient="bottom",
+            direction="horizontal",
+            symbolType="circle",
+            symbolSize=MARKER_SIZE,
+            symbolOpacity=1,
+            symbolStrokeWidth=0,
+            titleAnchor="middle",
+        )
     )
     base_chart.altair_chart(
         chart,

@@ -22,7 +22,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
-MARKER_SIZE = 55
+MARKER_SIZE = 65
 COLOR_ENC = alt.Color(
     "data_type:N",
     title=None,
