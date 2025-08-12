@@ -23,6 +23,10 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 55
+COLOR_SCALE = alt.Scale(
+    domain=["Observations", "Forecast"],
+    range=["limegreen", "navy"],
+)
 
 type ScaleType = Literal["linear", "log"]
 
@@ -216,19 +220,16 @@ def target_data_chart(
         ),
         scale=alt.Scale(type=scale),
     )
-    color_enc = alt.Color(
-        scale=alt.Scale(
-            domain=["Observation", "Forecast"], range=["limegreen", "navy"]
-        ),
-        legend=alt.Legend(title="Data Type"),
-    )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
-        .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
+        .transform_calculate(data_type="Observations")
+        .mark_point(filled=True, size=MARKER_SIZE)
         .encode(
             x=x_enc,
             y=y_enc,
-            color=color_enc,
+            color=alt.Color(
+                "data_type:N", scale=COLOR_SCALE, legend=alt.Legend(title=None)
+            ),
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("observation:Q", title="Value"),
@@ -286,7 +287,11 @@ def quantile_forecast_chart(
         axis=alt.Axis(grid=grid),
         scale=alt.Scale(type=scale),
     )
-    base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(x=x_enc, y=y_enc)
+    base = (
+        alt.Chart(df_wide, width=PLOT_WIDTH)
+        .encode(x=x_enc, y=y_enc)
+        .transform_calculate(data_type="Forecast")
+    )
 
     def band(low: str, high: str, opacity: float) -> alt.Chart:
         """
@@ -313,7 +318,7 @@ def quantile_forecast_chart(
         return base.mark_errorband(opacity=opacity, interpolate="step").encode(
             y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
             y2=f"{high}:Q",
-            fill=alt.value("steelblue"),
+            color=alt.Color("data_type:N", scale=COLOR_SCALE, legend=None),
         )
 
     bands = [
