@@ -292,7 +292,7 @@ def quantile_forecast_chart(
             table (e.g., "0.25").
         high : str
             Upper-bound column name in the wide forecast
-            table (e.g., "9.75").
+            table (e.g., "0.975").
         opacity : float
             Fill opacity for the band in the range
             [0.0, 1.0].
