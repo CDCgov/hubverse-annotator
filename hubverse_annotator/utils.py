@@ -23,9 +23,12 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 55
-COLOR_SCALE = alt.Scale(
-    domain=["Observations", "Forecast"],
-    range=["limegreen", "navy"],
+COLOR_ENC = alt.Color(
+    "data_type:N",
+    title=None,
+    scale=alt.Scale(
+        domain=["Observations", "Forecast"], range=["limegreen", "steelblue"]
+    ),
 )
 
 type ScaleType = Literal["linear", "log"]
@@ -207,7 +210,6 @@ def target_data_chart(
     x_enc = alt.X(
         "date:T",
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
-        scale=alt.Scale(type=scale),
     )
     y_enc = alt.Y(
         "observation:Q",
@@ -222,14 +224,12 @@ def target_data_chart(
     )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
-        .transform_calculate(data_type="Observations")
+        .transform_calculate(data_type="'Observations'")
         .mark_point(filled=True, size=MARKER_SIZE)
         .encode(
             x=x_enc,
             y=y_enc,
-            color=alt.Color(
-                "data_type:N", scale=COLOR_SCALE, legend=alt.Legend(title=None)
-            ),
+            color=COLOR_ENC,
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("observation:Q", title="Value"),
@@ -289,8 +289,14 @@ def quantile_forecast_chart(
     )
     base = (
         alt.Chart(df_wide, width=PLOT_WIDTH)
-        .encode(x=x_enc, y=y_enc)
-        .transform_calculate(data_type="Forecast")
+        .transform_calculate(
+            data_type="'Forecast'",
+        )
+        .encode(
+            x=x_enc,
+            y=y_enc,
+            color=COLOR_ENC,
+        )
     )
 
     def band(low: str, high: str, opacity: float) -> alt.Chart:
@@ -318,7 +324,6 @@ def quantile_forecast_chart(
         return base.mark_errorband(opacity=opacity, interpolate="step").encode(
             y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
             y2=f"{high}:Q",
-            color=alt.Color("data_type:N", scale=COLOR_SCALE, legend=None),
         )
 
     bands = [

@@ -471,7 +471,7 @@ def plotting_ui(
         .interactive()
         .resolve_scale(y="independent")
         .resolve_axis(x="independent")
-        .resolve_legend(color="shared")
+        .configure_legend(orient="bottom", symbolOpacity=1)
     )
     base_chart.altair_chart(
         chart,
