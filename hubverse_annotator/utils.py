@@ -270,28 +270,24 @@ def quantile_forecast_chart(
         values="value",
     )
 
-    def quantile_rename_map(quantiles: list[str]) -> dict[str, str]:
+    def norm_key(x: float | str) -> str:
         """
-        Build a rename map for quantile-like columns
-        formatted as strings starting with '0.'.
-
-        Parameters
-        ----------
-        quantiles : list[str]
-            The quantiles to rename (e.g., from a pivoted
-            forecast table).
-
-        Returns
-        -------
-        dict[str, str]
-            Mapping from original names to the 'q'
-            prefixed form with the leading '0.' removed.
+        Converts a quantile (float in [0,1]) or '0.xxx'
+        string to a 'q...' column name.
         """
+        if isinstance(x, str):
+            s = x.strip()
+            if not s.startswith("0."):
+                raise ValueError(f"Expected '0.xxx' string, got {x}")
+            return f"q{s[2:]}"
+        s = f"{x:.3f}".rstrip("0").rstrip(".")
+        if not s.startswith("0."):
+            raise ValueError(f"Quantile out of [0,1]: {x}")
+        return f"q{s[2:]}"
 
-    rename_map = {
-        c: f"q{c[2:]}" for c in df_wide.columns if c.startswith("0.")
-    }
-    df_wide = df_wide.rename(rename_map)
+    df_wide = df_wide.rename(
+        {c: norm_key(c) for c in df_wide.columns if c.startswith("0.")}
+    )
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "q5:Q",
@@ -325,21 +321,8 @@ def quantile_forecast_chart(
         low = (1.0 - width) / 2.0
         high = 1.0 - low
 
-        def norm_key(x: float) -> str:
-            s = f"{x:.3f}"
-            return s.rstrip("0").rstrip(".")
-
-        low_key = norm_key(low)
-        high_key = norm_key(high)
-
-        try:
-            low_col = rename_map[low_key]
-            high_col = rename_map[high_key]
-        except KeyError as e:
-            raise KeyError(
-                f"Quantile columns missing for width={width}: "
-                f"expected '{low_key}' and '{high_key}' in dataframe columns."
-            ) from e
+        low_col = norm_key(low)
+        high_col = norm_key(high)
 
         return base.mark_errorband(opacity=opacity, interpolate="step").encode(
             y=alt.Y(f"{low_col}:Q", title=selected_target),
