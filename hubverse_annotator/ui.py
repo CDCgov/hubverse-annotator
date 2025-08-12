@@ -61,7 +61,7 @@ def forecast_annotation_ui(
     selected_ref_date : datetime.date
         The selected reference date.
     """
-    output_dir = pathlib.Path("../output")
+    output_dir = pathlib.Path("./output")
     output_dir.mkdir(parents=True, exist_ok=True)
     annotations_file = output_dir / f"anno_{selected_ref_date}.json"
     if annotations_file.exists():
