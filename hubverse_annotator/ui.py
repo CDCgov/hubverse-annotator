@@ -29,6 +29,8 @@ from utils import (
 
 Y_LABEL_FONT_SIZE = 15
 CHART_TITLE_FONT_SIZE = 18
+REF_DATE_STROKE_WIDTH = 2.5
+REF_DATE_STROKE_DASH = [6, 6]
 
 
 def annotation_export_ui() -> None:
@@ -315,13 +317,14 @@ def reference_date_selection_ui(
         The selected reference date, or None if no dates
         are available.
     """
-    ref_dates = sorted(get_reference_dates(forecast_table), reverse=True)
+    ref_dates = sorted(get_reference_dates(forecast_table))
     if not ref_dates:
         st.info("Upload a forecast file to select a reference date.")
         return None
 
     if "ref_dates" not in st.session_state:
         st.session_state.ref_dates = ref_dates.copy()
+        st.session_state.current_ref_date_id = len(ref_dates) - 1
 
     def _go_to_prev_ref_date():
         st.session_state.current_ref_date_id -= 1
@@ -332,10 +335,11 @@ def reference_date_selection_ui(
     ref_date_col, prev_col, next_col = st.columns(
         [6, 1, 1], vertical_alignment="bottom"
     )
+    num_ref_dates = len(st.session_state.ref_dates)
     with ref_date_col:
         st.selectbox(
             "Reference Date",
-            options=list(range(len(st.session_state.ref_dates))),
+            options=list(range(num_ref_dates)),
             key="current_ref_date_id",
             format_func=lambda i: st.session_state.ref_dates[i].strftime(
                 "%Y-%m-%d"
@@ -371,7 +375,8 @@ def plotting_ui(
     selected_target: str | None,
     selected_ref_date: datetime.date | None,
     scale: bool = True,
-    grid: bool = True,
+    show_grid: bool = True,
+    show_ref_date_line: bool = True,
 ) -> None:
     """
     Altair chart of the forecasts, with observed data
@@ -395,17 +400,24 @@ def plotting_ui(
         The selected reference date.
     scale : {"log", "linear"}
         Y-axis scale type.
-    grid : bool
+    show_grid : bool
         Whether to show gridlines on both axes.
+    show_ref_date_line : bool
+        If True, draw a vertical dashed black line at the
+        selected reference date.
     """
+    if "model_id" not in data_to_plot.columns:
+        data_to_plot = data_to_plot.with_columns(
+            pl.lit("Observations").alias("model_id")
+        )
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
     forecast_layer = quantile_forecast_chart(
-        forecasts_to_plot, selected_target, scale=scale, grid=grid
+        forecasts_to_plot, selected_target, scale=scale, grid=show_grid
     )
     observed_layer = target_data_chart(
-        data_to_plot, selected_target, scale=scale, grid=grid
+        data_to_plot, selected_target, scale=scale, grid=show_grid
     )
     sub_layers = [
         layer
@@ -418,11 +430,20 @@ def plotting_ui(
     else:
         st.info("No data to plot for that model/target/location.")
         return
+    if show_ref_date_line and selected_ref_date is not None:
+        rule_layer = alt.Chart(
+            alt.Data(values=[{"date": str(selected_ref_date)}])
+        ).mark_rule(
+            color="black",
+            strokeDash=REF_DATE_STROKE_DASH,
+            strokeWidth=REF_DATE_STROKE_WIDTH,
+        )
+        layer = layer + rule_layer
     domain = get_initial_window_range(data_to_plot, forecasts_to_plot)
     x_enc = alt.X(
         "date:T",
         scale=alt.Scale(domain=domain),
-        axis=alt.Axis(format="%b %d", grid=grid),
+        axis=alt.Axis(format="%b %d", grid=show_grid),
         title="Date",
     )
     chart = (
