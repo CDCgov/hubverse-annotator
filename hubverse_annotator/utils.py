@@ -295,7 +295,7 @@ def quantile_forecast_chart(
         )
     )
     labels = ["97.5% CI", "80% CI", "50% CI"]
-    lows = ["0.25", "0.1", "0.25"]
+    lows = ["0.025", "0.1", "0.25"]
     highs = ["0.975", "0.9", "0.75"]
     opacities = [0.10, 0.20, 0.30]
     color_enc = alt.Color(
@@ -586,6 +586,10 @@ def load_forecast_data(
     }
     if not forecast_file:
         return pl.DataFrame(schema=forecast_schema)
-    table = load_hubverse_table(forecast_file).select(forecast_schema.keys())
+    table = (
+        load_hubverse_table(forecast_file)
+        .select(forecast_schema.keys())
+        .cast({"horizon": pl.Float64})
+    )
     validate_schema(table, forecast_schema, "Forecast Data")
     return table
