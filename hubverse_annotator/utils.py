@@ -310,7 +310,7 @@ def quantile_forecast_chart(
         )
 
     bands = [
-        band("0.25", "0.975", 0.10),
+        band("0.025", "0.975", 0.10),
         band("0.1", "0.9", 0.20),
         band("0.25", "0.75", 0.30),
     ]
@@ -555,6 +555,10 @@ def load_forecast_data(
     }
     if not forecast_file:
         return pl.DataFrame(schema=forecast_schema)
-    table = load_hubverse_table(forecast_file).select(forecast_schema.keys())
+    table = (
+        load_hubverse_table(forecast_file)
+        .select(forecast_schema.keys())
+        .cast({"horizon": pl.Float64})
+    )
     validate_schema(table, forecast_schema, "Forecast Data")
     return table
