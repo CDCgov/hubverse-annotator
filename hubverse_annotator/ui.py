@@ -32,6 +32,7 @@ CHART_TITLE_FONT_SIZE = 18
 REF_DATE_STROKE_WIDTH = 2.5
 REF_DATE_STROKE_DASH = [6, 6]
 MARKER_SIZE = 65
+ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def annotation_export_ui() -> None:
@@ -62,7 +63,7 @@ def forecast_annotation_ui(
     selected_ref_date : datetime.date
         The selected reference date.
     """
-    output_dir = pathlib.Path("../output")
+    output_dir = ROOT / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
     annotations_file = output_dir / f"anno_{selected_ref_date}.json"
     if annotations_file.exists():
