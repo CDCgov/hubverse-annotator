@@ -338,7 +338,6 @@ def quantile_forecast_chart(
                 y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
                 y2=f"{high}:Q",
                 color=color_enc,
-                # color=alt.value("steelblue"),
                 opacity=opacity_enc,
             )
         )
