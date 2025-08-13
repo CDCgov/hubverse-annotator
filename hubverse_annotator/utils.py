@@ -240,8 +240,8 @@ def target_data_chart(
 def quantile_forecast_chart(
     forecast_table: pl.DataFrame,
     selected_target: str,
+    ci_specs: str,
     color_enc: alt.Color,
-    opacity_enc: alt.Opacity,
     scale: ScaleType = "log",
     grid: bool = True,
 ) -> alt.LayerChart:
@@ -298,10 +298,6 @@ def quantile_forecast_chart(
             y=y_enc,
         )
     )
-    labels = ["97.5% CI", "80% CI", "50% CI"]
-    lows = ["0.025", "0.1", "0.25"]
-    highs = ["0.975", "0.9", "0.75"]
-    opacities = [0.10, 0.20, 0.30]
 
     def band(low: str, high: str, label: str) -> alt.Chart:
         """
@@ -332,17 +328,18 @@ def quantile_forecast_chart(
                 y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
                 y2=f"{high}:Q",
                 color=color_enc,
-                opacity=opacity_enc,
+                opacity=alt.value(1.0),
             )
         )
 
     bands = [
-        band(lo, hi, lab)
-        for lo, hi, lab in zip(lows, highs, labels, strict=False)
+        band(spec["low"], spec["high"], label)
+        for label, spec in ci_specs.items()
+        if spec["low"] in df_wide.columns and spec["high"] in df_wide.columns
     ]
 
     median = base.mark_line(
-        strokeWidth=STROKE_WIDTH, interpolate="step", color="steelblue"
+        strokeWidth=STROKE_WIDTH, interpolate="step", color="navy"
     )
 
     return alt.layer(*bands, median)

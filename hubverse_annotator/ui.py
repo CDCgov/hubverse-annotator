@@ -33,6 +33,11 @@ REF_DATE_STROKE_WIDTH = 2.5
 REF_DATE_STROKE_DASH = [6, 6]
 MARKER_SIZE = 65
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+CI_SPECS: dict[str, dict[str, object]] = {
+    "97.5% CI": {"low": "0.025", "high": "0.975", "color": "#DEEBF7"},
+    "80% CI": {"low": "0.1", "high": "0.9", "color": "#9ECAE1"},
+    "50% CI": {"low": "0.25", "high": "0.75", "color": "#3182BD"},
+}
 
 
 def annotation_export_ui() -> None:
@@ -421,33 +426,19 @@ def plotting_ui(
 
     legend_labels = []
     color_range = []
-    opacity_range = []
-    opacity_labels = []
 
     if has_obs:
         legend_labels.append("Observations")
         color_range.append("limegreen")
 
     if has_fc:
-        legend_labels += ["97.5% CI", "80% CI", "50% CI"]
-        color_range += ["steelblue", "steelblue", "steelblue", "steelblue"]
-        opacity_labels += ["97.5% CI", "80% CI", "50% CI", "medians"]
-        opacity_range += [0.10, 0.20, 0.30, 1.0]
+        legend_labels += list(CI_SPECS.keys())
+        color_range += [spec["color"] for spec in CI_SPECS.values()]
 
     color_enc = alt.Color(
         "legend_label:N",
         title=None,
         scale=alt.Scale(domain=legend_labels, range=color_range),
-    )
-
-    opacity_enc = alt.condition(
-        "datum.legend_label != 'Observations'",
-        alt.Opacity(
-            "legend_label:N",
-            scale=alt.Scale(domain=opacity_labels, range=opacity_range),
-            legend=None,
-        ),
-        alt.value(1),
     )
 
     observed_layer = target_data_chart(
@@ -460,8 +451,8 @@ def plotting_ui(
     forecast_layer = quantile_forecast_chart(
         forecasts_to_plot,
         selected_target,
+        ci_specs=CI_SPECS,
         color_enc=color_enc,
-        opacity_enc=opacity_enc,
         scale=scale,
         grid=show_grid,
     )
@@ -522,7 +513,6 @@ def plotting_ui(
             direction="horizontal",
             symbolType="circle",
             symbolSize=MARKER_SIZE,
-            symbolStrokeWidth=0,
             titleAnchor="middle",
         )
     )
