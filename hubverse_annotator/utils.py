@@ -555,6 +555,10 @@ def load_forecast_data(
     }
     if not forecast_file:
         return pl.DataFrame(schema=forecast_schema)
-    table = load_hubverse_table(forecast_file).select(forecast_schema.keys())
+    table = (
+        load_hubverse_table(forecast_file)
+        .select(forecast_schema.keys())
+        .cast({"horizon": pl.Float64})
+    )
     validate_schema(table, forecast_schema, "Forecast Data")
     return table
