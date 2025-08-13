@@ -558,7 +558,7 @@ def load_forecast_data(
     table = (
         load_hubverse_table(forecast_file)
         .select(forecast_schema.keys())
-        .cast({"horizon": pl.Float64})
+        .cast({"horizon": pl.Float64, "output_type_id": pl.Utf8})
     )
     validate_schema(table, forecast_schema, "Forecast Data")
     return table
