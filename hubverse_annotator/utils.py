@@ -287,6 +287,7 @@ def quantile_forecast_chart(
     base = (
         alt.Chart(df_wide, width=PLOT_WIDTH)
         .transform_calculate(
+            date="toDate(datum.target_end_date)",
             data_type="'Forecast'",
         )
         .encode(
@@ -300,7 +301,7 @@ def quantile_forecast_chart(
     opacities = [0.10, 0.20, 0.30]
     color_enc = alt.Color(
         "legend_label:N",
-        title="Quantiles",
+        title=None,
         scale=alt.Scale(domain=labels, range=["steelblue"] * len(labels)),
     )
     opacity_enc = alt.Opacity(
@@ -337,6 +338,7 @@ def quantile_forecast_chart(
                 y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
                 y2=f"{high}:Q",
                 color=color_enc,
+                # color=alt.value("steelblue"),
                 opacity=opacity_enc,
             )
         )
