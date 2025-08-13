@@ -23,8 +23,6 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 65
-LEGEND_LABELS = ["Observations", "97.5% CI", "80% CI", "50% CI"]
-COLOR_RANGE = ["limegreen", "steelblue", "steelblue", "steelblue"]
 
 
 type ScaleType = Literal["linear", "log"]
@@ -175,6 +173,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
 def target_data_chart(
     observed_data_table: pl.DataFrame,
     selected_target: str,
+    color_enc: alt.Color,
     scale: ScaleType = "log",
     grid: bool = True,
 ) -> alt.Chart | alt.LayerChart:
@@ -203,11 +202,6 @@ def target_data_chart(
     """
     if observed_data_table.is_empty():
         return alt.layer()
-    color_enc = alt.Color(
-        "legend_label:N",
-        title=None,
-        scale=alt.Scale(domain=LEGEND_LABELS, range=COLOR_RANGE),
-    )
     x_enc = alt.X(
         "date:T",
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
@@ -246,6 +240,8 @@ def target_data_chart(
 def quantile_forecast_chart(
     forecast_table: pl.DataFrame,
     selected_target: str,
+    color_enc: alt.Color,
+    opacity_enc: alt.Opacity,
     scale: ScaleType = "log",
     grid: bool = True,
 ) -> alt.LayerChart:
@@ -306,20 +302,6 @@ def quantile_forecast_chart(
     lows = ["0.025", "0.1", "0.25"]
     highs = ["0.975", "0.9", "0.75"]
     opacities = [0.10, 0.20, 0.30]
-    color_enc = alt.Color(
-        "legend_label:N",
-        title=None,
-        scale=alt.Scale(domain=LEGEND_LABELS, range=COLOR_RANGE),
-    )
-    opacity_enc = alt.condition(
-        "datum.legend_label != 'Observations'",
-        alt.Opacity(
-            "legend_label:N",
-            scale=alt.Scale(domain=labels, range=opacities),
-            legend=None,
-        ),
-        alt.value(1),
-    )
 
     def band(low: str, high: str, label: str) -> alt.Chart:
         """
@@ -358,6 +340,7 @@ def quantile_forecast_chart(
         band(lo, hi, lab)
         for lo, hi, lab in zip(lows, highs, labels, strict=False)
     ]
+
     median = base.mark_line(
         strokeWidth=STROKE_WIDTH, interpolate="step", color="steelblue"
     )

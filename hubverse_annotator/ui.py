@@ -415,11 +415,55 @@ def plotting_ui(
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
-    forecast_layer = quantile_forecast_chart(
-        forecasts_to_plot, selected_target, scale=scale, grid=show_grid
+
+    has_obs = not data_to_plot.is_empty()
+    has_fc = not forecasts_to_plot.is_empty()
+
+    legend_labels = []
+    color_range = []
+    opacity_range = []
+    opacity_labels = []
+
+    if has_obs:
+        legend_labels.append("Observations")
+        color_range.append("limegreen")
+
+    if has_fc:
+        legend_labels += ["97.5% CI", "80% CI", "50% CI"]
+        color_range += ["steelblue", "steelblue", "steelblue", "steelblue"]
+        opacity_labels += ["97.5% CI", "80% CI", "50% CI", "medians"]
+        opacity_range += [0.10, 0.20, 0.30, 1.0]
+
+    color_enc = alt.Color(
+        "legend_label:N",
+        title=None,
+        scale=alt.Scale(domain=legend_labels, range=color_range),
     )
+
+    opacity_enc = alt.condition(
+        "datum.legend_label != 'Observations'",
+        alt.Opacity(
+            "legend_label:N",
+            scale=alt.Scale(domain=opacity_labels, range=opacity_range),
+            legend=None,
+        ),
+        alt.value(1),
+    )
+
     observed_layer = target_data_chart(
-        data_to_plot, selected_target, scale=scale, grid=show_grid
+        data_to_plot,
+        selected_target,
+        color_enc=color_enc,
+        scale=scale,
+        grid=show_grid,
+    )
+    forecast_layer = quantile_forecast_chart(
+        forecasts_to_plot,
+        selected_target,
+        color_enc=color_enc,
+        opacity_enc=opacity_enc,
+        scale=scale,
+        grid=show_grid,
     )
     sub_layers = [
         layer
@@ -473,7 +517,6 @@ def plotting_ui(
         .interactive()
         .resolve_scale(y="independent")
         .resolve_axis(x="independent")
-        .resolve_legend(opacity="shared")
         .configure_legend(
             orient="top",
             direction="horizontal",
