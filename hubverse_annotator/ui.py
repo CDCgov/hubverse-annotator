@@ -471,11 +471,11 @@ def plotting_ui(
             )
         )
         .interactive()
-        .resolve_scale(y="independent", color="independent")
+        .resolve_scale(y="independent")
         .resolve_axis(x="independent")
-        # .resolve_legend(color="shared")
+        .resolve_legend(opacity="shared")
         .configure_legend(
-            orient="bottom",
+            orient="top",
             direction="horizontal",
             symbolType="circle",
             symbolSize=MARKER_SIZE,

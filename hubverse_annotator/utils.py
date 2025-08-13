@@ -316,6 +316,7 @@ def quantile_forecast_chart(
         alt.Opacity(
             "legend_label:N",
             scale=alt.Scale(domain=labels, range=opacities),
+            legend=None,
         ),
         alt.value(1),
     )
