@@ -23,6 +23,9 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 65
+LEGEND_LABELS = ["Observations", "97.5% CI", "80% CI", "50% CI"]
+COLOR_RANGE = ["limegreen", "steelblue", "steelblue", "steelblue"]
+
 
 type ScaleType = Literal["linear", "log"]
 
@@ -200,6 +203,11 @@ def target_data_chart(
     """
     if observed_data_table.is_empty():
         return alt.layer()
+    color_enc = alt.Color(
+        "legend_label:N",
+        title=None,
+        scale=alt.Scale(domain=LEGEND_LABELS, range=COLOR_RANGE),
+    )
     x_enc = alt.X(
         "date:T",
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
@@ -217,16 +225,15 @@ def target_data_chart(
     )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
-        .transform_calculate(data_type="'Observations'")
-        .mark_point(filled=True, size=MARKER_SIZE)
+        .transform_calculate(legend_label="'Observations'")
+        .mark_point(
+            filled=True,
+            size=MARKER_SIZE,
+        )
         .encode(
             x=x_enc,
             y=y_enc,
-            color=alt.Color(
-                "data_type:N",
-                title=None,
-                scale=alt.Scale(domain=["Observations"], range=["limegreen"]),
-            ),
+            color=color_enc,
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("observation:Q", title="Value"),
@@ -302,11 +309,15 @@ def quantile_forecast_chart(
     color_enc = alt.Color(
         "legend_label:N",
         title=None,
-        scale=alt.Scale(domain=labels, range=["steelblue"] * len(labels)),
+        scale=alt.Scale(domain=LEGEND_LABELS, range=COLOR_RANGE),
     )
-    opacity_enc = alt.Opacity(
-        "legend_label:N",
-        scale=alt.Scale(domain=labels, range=opacities),
+    opacity_enc = alt.condition(
+        "datum.legend_label != 'Observations'",
+        alt.Opacity(
+            "legend_label:N",
+            scale=alt.Scale(domain=labels, range=opacities),
+        ),
+        alt.value(1),
     )
 
     def band(low: str, high: str, label: str) -> alt.Chart:

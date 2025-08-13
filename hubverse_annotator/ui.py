@@ -472,6 +472,7 @@ def plotting_ui(
         .interactive()
         .resolve_scale(y="independent", color="independent")
         .resolve_axis(x="independent")
+        # .resolve_legend(color="shared")
         .configure_legend(
             orient="bottom",
             direction="horizontal",
