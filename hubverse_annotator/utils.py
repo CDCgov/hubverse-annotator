@@ -200,12 +200,10 @@ def build_ci_specs_from_df(df_wide: pl.DataFrame) -> dict[str, dict[str, str]]:
         for high_q in quantiles[i + 1 :]
         if abs(low_q + high_q - 1.0) < 1e-6
     ]
-
     palette = colorbrewer.Blues.get(
         len(pairs), colorbrewer.Blues[max(colorbrewer.Blues)]
     )
     colors = [to_hex([r / 255, g / 255, b / 255]) for r, g, b in palette]
-
     ci_specs = {}
     for (low_q, high_q), color in zip(pairs, colors, strict=False):
         ci_width = round((high_q - low_q) * 100)

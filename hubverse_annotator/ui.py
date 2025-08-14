@@ -13,12 +13,11 @@ import pathlib
 from functools import reduce
 
 import altair as alt
-import colorbrewer
 import polars as pl
 import streamlit as st
-from matplotlib.colors import to_hex
 from streamlit_shortcuts import add_shortcuts
 from utils import (
+    build_ci_specs_from_levels,
     get_available_locations,
     get_initial_window_range,
     get_reference_dates,
@@ -40,17 +39,7 @@ CI_LEVELS = [
     ("80% CI", "0.1", "0.9"),
     ("50% CI", "0.25", "0.75"),
 ]
-CI_SPECS = {
-    label: {"low": low, "high": high, "color": color}
-    for (label, low, high), color in zip(
-        CI_LEVELS,
-        [
-            to_hex([r / 255, g / 255, b / 255])
-            for r, g, b in colorbrewer.Blues[3]
-        ],
-        strict=False,
-    )
-}
+CI_SPECS = build_ci_specs_from_levels(CI_LEVELS)
 
 
 def annotation_export_ui() -> None:
@@ -437,16 +426,13 @@ def plotting_ui(
     has_obs = not data_to_plot.is_empty()
     has_fc = not forecasts_to_plot.is_empty()
 
-    legend_labels = []
-    color_range = []
+    legend_labels = (["Observations"] if has_obs else []) + (
+        list(CI_SPECS.keys()) if has_fc else []
+    )
 
-    if has_obs:
-        legend_labels.append("Observations")
-        color_range.append("limegreen")
-
-    if has_fc:
-        legend_labels += list(CI_SPECS.keys())
-        color_range += [spec["color"] for spec in CI_SPECS.values()]
+    color_range = (["limegreen"] if has_obs else []) + (
+        [spec["color"] for spec in CI_SPECS.values()] if has_fc else []
+    )
 
     color_enc = alt.Color(
         "legend_label:N",
