@@ -11,13 +11,16 @@ To run: uv run streamlit run ./hubverse_annotator/app.py
 import datetime
 import logging
 import pathlib
+import re
 from typing import Literal
 
 import altair as alt
+import colorbrewer
 import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
+from matplotlib.colors import to_hex
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 PLOT_WIDTH = 625
@@ -133,6 +136,89 @@ def get_initial_window_range(
     return (start_date, end_date)
 
 
+def build_ci_specs_from_levels(
+    levels: list[tuple[str, str, str]],
+) -> dict[str, dict[str, str]]:
+    """
+    Build CI_SPECS dict from a static list of levels.
+
+    Parameters
+    ----------
+    levels : list of tuples
+        Each tuple is (label, low_quantile, high_quantile)
+
+    Returns
+    -------
+    dict[str, dict[str, str]]
+        CI_SPECS dict.
+    """
+    palette = colorbrewer.Blues.get(
+        len(levels), colorbrewer.Blues[max(colorbrewer.Blues)]
+    )
+    colors = [to_hex([r / 255, g / 255, b / 255]) for r, g, b in palette]
+
+    return {
+        label: {"low": low_q, "high": low_q, "color": color}
+        for (label, low_q, low_q), color in zip(levels, colors, strict=False)
+    }
+
+
+def build_ci_specs_from_df(df_wide: pl.DataFrame) -> dict[str, dict[str, str]]:
+    """
+    Automatically constructs a CI_SPECS-style dict for
+    altair legend creation by finding quantile columns in
+    a wide forecast table.
+
+    Parameters
+    ----------
+    df_wide : pl.DataFrame
+        A Polars DataFrame of forecasts, with quantile
+        forecast columns.
+
+    Returns
+    -------
+    dict[str, dict[str, str]]
+        Mapping from CI label (e.g. "95% CI") to its
+        bounds and color.
+    """
+
+    # use regex to find quantile columns:
+    # 0 : the col must start with a literal zero
+    # \. : matches a literal period; the backslash escapes
+    # \d+ : one or more digits (0–9)
+    # re.fullmatch : ensures the entire string matches
+    # (no prefixes/suffixes)
+    quantile_cols = [
+        col
+        for col in df_wide.columns
+        if re.fullmatch(r"0\.\d+", col) and 0 < float(col) < 1
+    ]
+    quantiles = sorted(float(q) for q in quantile_cols)
+    pairs = [
+        (low_q, high_q)
+        for i, low_q in enumerate(quantiles)
+        for high_q in quantiles[i + 1 :]
+        if abs(low_q + high_q - 1.0) < 1e-6
+    ]
+
+    palette = colorbrewer.Blues.get(
+        len(pairs), colorbrewer.Blues[max(colorbrewer.Blues)]
+    )
+    colors = [to_hex([r / 255, g / 255, b / 255]) for r, g, b in palette]
+
+    ci_specs = {}
+    for (low_q, high_q), color in zip(pairs, colors, strict=False):
+        ci_width = round((high_q - low_q) * 100)
+        label = f"{ci_width}% CI"
+        ci_specs[label] = {
+            "low": f"{low_q:.3f}".rstrip("0").rstrip("."),
+            "high": f"{high_q:.3f}".rstrip("0").rstrip("."),
+            "color": color,
+        }
+
+    return dict(sorted(ci_specs.items(), reverse=True))
+
+
 def is_empty_chart(chart: alt.LayerChart) -> bool:
     """
     Checks if an altair layer is empty. Primarily used for
@@ -188,6 +274,9 @@ def target_data_chart(
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    color_enc : alt.Color
+        An Altair color encoding used for plotting the
+        observations color and legend.
     scale : str
         The scale to use for the Y axis during plotting.
         Defaults to logarithmic.
@@ -240,7 +329,6 @@ def target_data_chart(
 def quantile_forecast_chart(
     forecast_table: pl.DataFrame,
     selected_target: str,
-    ci_specs: str,
     color_enc: alt.Color,
     scale: ScaleType = "log",
     grid: bool = True,
@@ -258,6 +346,9 @@ def quantile_forecast_chart(
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    color_enc : alt.Color
+        An Altair color encoding used for plotting the
+        quantile bands color and legend.
     scale : str
         The scale to use for the Y axis during plotting.
         Defaults to logarithmic.
@@ -281,6 +372,7 @@ def quantile_forecast_chart(
         )
         .rename({"0.5": "median"})
     )
+    ci_specs = build_ci_specs_from_df(df_wide)
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "median:Q",

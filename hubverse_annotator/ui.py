@@ -464,7 +464,6 @@ def plotting_ui(
     forecast_layer = quantile_forecast_chart(
         forecasts_to_plot,
         selected_target,
-        ci_specs=CI_SPECS,
         color_enc=color_enc,
         scale=scale,
         grid=show_grid,
