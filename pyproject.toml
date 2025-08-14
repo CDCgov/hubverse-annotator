@@ -19,6 +19,7 @@ dependencies = [
     "polars>=0.19.37",
     "streamlit-shortcuts>=1.1.5",
     "colorbrewer>=0.3",
+    "matplotlib>=3.10.3",
 ]
 
 [project.urls]
