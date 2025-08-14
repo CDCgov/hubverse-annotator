@@ -11,7 +11,6 @@ To run: uv run streamlit run ./hubverse_annotator/app.py
 import datetime
 import logging
 import pathlib
-from itertools import combinations
 from typing import Literal
 
 import altair as alt
@@ -178,9 +177,7 @@ def build_ci_specs_from_df(
         float(col) for col in df_wide.columns if col.startswith("0.")
     )
     ci_pairs = [
-        (low, high)
-        for low, high in combinations(quant_vals, 2)
-        if low < 0.5 < high and abs(low + high - 1.0) < 1e-6
+        (q, 1 - q) for q in quant_vals if q < 0.5 and (1 - q) in quant_vals
     ]
     ci_pairs.sort(key=lambda p: p[1] - p[0], reverse=True)
 
