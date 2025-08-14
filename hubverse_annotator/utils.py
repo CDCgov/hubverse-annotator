@@ -19,6 +19,7 @@ import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
+from babel.numbers import format_percent
 from matplotlib.colors import to_hex
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
@@ -181,7 +182,10 @@ def build_ci_specs_from_df(
     ]
     ci_pairs.sort(key=lambda p: p[1] - p[0], reverse=True)
 
-    labels = [f"{round((high - low) * 100)}% CI" for low, high in ci_pairs]
+    labels = [
+        f"{format_percent(high - low, locale='en_US', format='#,##0%')} CI"
+        for low, high in ci_pairs
+    ]
 
     palette_rgb255 = list(
         colorbrewer.Blues[max(3, min(MAX_NUM_CIS, len(labels)))]
