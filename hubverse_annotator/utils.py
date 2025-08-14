@@ -137,7 +137,7 @@ def get_initial_window_range(
     return (start_date, end_date)
 
 
-def wide_quantile_df(forecast_table: pl.DataFrame) -> pl.DataFrame:
+def pivot_quantile_df(forecast_table: pl.DataFrame) -> pl.DataFrame:
     """
     Converts long-format quantile forecast table into
     wide format where each quantile is a column.
@@ -173,7 +173,7 @@ def build_ci_specs_from_df(
         Mapping from CI label (e.g. "95% CI") to its
         bounds and color.
     """
-    df_wide = wide_quantile_df(forecast_table)
+    df_wide = pivot_quantile_df(forecast_table)
     quant_vals = sorted(
         float(col) for col in df_wide.columns if col.startswith("0.")
     )
@@ -349,7 +349,7 @@ def quantile_forecast_chart(
     """
     if forecast_table.is_empty():
         return alt.layer()
-    df_wide = wide_quantile_df(forecast_table)
+    df_wide = pivot_quantile_df(forecast_table)
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "median:Q",
