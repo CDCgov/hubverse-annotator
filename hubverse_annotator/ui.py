@@ -18,7 +18,6 @@ import streamlit as st
 from streamlit_shortcuts import add_shortcuts
 from utils import (
     build_ci_specs_from_df,
-    build_ci_specs_from_levels,
     get_available_locations,
     get_initial_window_range,
     get_reference_dates,
@@ -35,11 +34,6 @@ REF_DATE_STROKE_WIDTH = 2.5
 REF_DATE_STROKE_DASH = [6, 6]
 MARKER_SIZE = 65
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-CI_LEVELS = [
-    ("95% CI", "0.025", "0.975"),
-    ("80% CI", "0.1", "0.9"),
-    ("50% CI", "0.25", "0.75"),
-]
 
 
 def annotation_export_ui() -> None:
@@ -425,27 +419,19 @@ def plotting_ui(
 
     has_obs = not data_to_plot.is_empty()
     has_fc = not forecasts_to_plot.is_empty()
+    ci_specs = build_ci_specs_from_df(forecasts_to_plot) if has_fc else {}
 
-    ci_specs = (
-        build_ci_specs_from_df(forecasts_to_plot)
-        if not forecasts_to_plot.is_empty()
-        else build_ci_specs_from_levels(CI_LEVELS)
-    )
+    legend_labels = ["Observations"] if has_obs else []
+    color_range = ["limegreen"] if has_obs else []
 
-    legend_labels = (["Observations"] if has_obs else []) + (
-        list(ci_specs.keys()) if has_fc else []
-    )
-
-    color_range = (["limegreen"] if has_obs else []) + (
-        [spec["color"] for spec in ci_specs.values()] if has_fc else []
-    )
-
+    if has_fc and ci_specs:
+        legend_labels.extend(ci_specs.keys())
+        color_range.extend([spec["color"] for spec in ci_specs.values()])
     color_enc = alt.Color(
         "legend_label:N",
         title=None,
         scale=alt.Scale(domain=legend_labels, range=color_range),
     )
-
     observed_layer = target_data_chart(
         data_to_plot,
         selected_target,
