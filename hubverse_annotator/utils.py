@@ -177,10 +177,11 @@ def build_ci_specs_from_df(
     quant_vals = sorted(
         float(col) for col in df_wide.columns if col.startswith("0.")
     )
-    ci_pairs = [
-        (q, 1 - q) for q in quant_vals if q < 0.5 and (1 - q) in quant_vals
-    ]
-    ci_pairs.sort(key=lambda p: p[1] - p[0], reverse=True)
+    ci_pairs = sorted(
+        [(q, 1 - q) for q in quant_vals if q < 0.5 and (1 - q) in quant_vals],
+        key=lambda p: p[1] - p[0],
+        reverse=True,
+    )[:MAX_NUM_CIS]
 
     labels = [
         f"{format_percent(high - low, locale='en_US', format='#,##0%')} CI"
