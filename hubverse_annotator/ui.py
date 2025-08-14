@@ -13,8 +13,10 @@ import pathlib
 from functools import reduce
 
 import altair as alt
+import colorbrewer
 import polars as pl
 import streamlit as st
+from matplotlib.colors import to_hex
 from streamlit_shortcuts import add_shortcuts
 from utils import (
     get_available_locations,
@@ -33,10 +35,21 @@ REF_DATE_STROKE_WIDTH = 2.5
 REF_DATE_STROKE_DASH = [6, 6]
 MARKER_SIZE = 65
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-CI_SPECS: dict[str, dict[str, object]] = {
-    "97.5% CI": {"low": "0.025", "high": "0.975", "color": "#DEEBF7"},
-    "80% CI": {"low": "0.1", "high": "0.9", "color": "#9ECAE1"},
-    "50% CI": {"low": "0.25", "high": "0.75", "color": "#3182BD"},
+CI_LEVELS = [
+    ("95% CI", "0.025", "0.975"),
+    ("80% CI", "0.1", "0.9"),
+    ("50% CI", "0.25", "0.75"),
+]
+CI_SPECS = {
+    label: {"low": low, "high": high, "color": color}
+    for (label, low, high), color in zip(
+        CI_LEVELS,
+        [
+            to_hex([r / 255, g / 255, b / 255])
+            for r, g, b in colorbrewer.Blues[3]
+        ],
+        strict=False,
+    )
 }
 
 
