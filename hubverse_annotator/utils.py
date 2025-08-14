@@ -164,6 +164,22 @@ def build_ci_specs_from_levels(
     }
 
 
+def wide_quantile_df(forecast_table: pl.DataFrame) -> pl.DataFrame:
+    """
+    Converts long-format quantile forecast table into
+    wide format where each quantile is a column.
+    """
+    return (
+        forecast_table.filter(pl.col("output_type") == "quantile")
+        .pivot(
+            on="output_type_id",
+            index=cs.exclude("output_type_id", "value"),
+            values="value",
+        )
+        .rename({"0.5": "median"})
+    )
+
+
 def build_ci_specs_from_df(
     forecast_table: pl.DataFrame,
 ) -> dict[str, dict[str, str]]:
@@ -184,15 +200,7 @@ def build_ci_specs_from_df(
         Mapping from CI label (e.g. "95% CI") to its
         bounds and color.
     """
-    df_wide = (
-        forecast_table.filter(pl.col("output_type") == "quantile")
-        .pivot(
-            on="output_type_id",
-            index=cs.exclude("output_type_id", "value"),
-            values="value",
-        )
-        .rename({"0.5": "median"})
-    )
+    df_wide = wide_quantile_df(forecast_table)
     quant_vals = sorted(
         float(col) for col in df_wide.columns if col.startswith("0.")
     )
@@ -368,15 +376,7 @@ def quantile_forecast_chart(
     """
     if forecast_table.is_empty():
         return alt.layer()
-    df_wide = (
-        forecast_table.filter(pl.col("output_type") == "quantile")
-        .pivot(
-            on="output_type_id",
-            index=cs.exclude("output_type_id", "value"),
-            values="value",
-        )
-        .rename({"0.5": "median"})
-    )
+    df_wide = wide_quantile_df(forecast_table)
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "median:Q",
