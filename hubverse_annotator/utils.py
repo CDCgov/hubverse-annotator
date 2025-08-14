@@ -137,33 +137,6 @@ def get_initial_window_range(
     return (start_date, end_date)
 
 
-def build_ci_specs_from_levels(
-    levels: list[tuple[str, str, str]],
-) -> dict[str, dict[str, str]]:
-    """
-    Build CI_SPECS dict from a static list of levels.
-
-    Parameters
-    ----------
-    levels : list of tuples
-        Each tuple is (label, low_quantile, high_quantile)
-
-    Returns
-    -------
-    dict[str, dict[str, str]]
-        CI_SPECS dict.
-    """
-    palette = colorbrewer.Blues.get(
-        len(levels), colorbrewer.Blues[max(colorbrewer.Blues)]
-    )
-    colors = [to_hex([r / 255, g / 255, b / 255]) for r, g, b in palette]
-
-    return {
-        label: {"low": low_q, "high": low_q, "color": color}
-        for (label, low_q, low_q), color in zip(levels, colors, strict=False)
-    }
-
-
 def wide_quantile_df(forecast_table: pl.DataFrame) -> pl.DataFrame:
     """
     Converts long-format quantile forecast table into
