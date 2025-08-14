@@ -17,6 +17,7 @@ import polars as pl
 import streamlit as st
 from streamlit_shortcuts import add_shortcuts
 from utils import (
+    build_ci_specs_from_df,
     build_ci_specs_from_levels,
     get_available_locations,
     get_initial_window_range,
@@ -39,7 +40,6 @@ CI_LEVELS = [
     ("80% CI", "0.1", "0.9"),
     ("50% CI", "0.25", "0.75"),
 ]
-CI_SPECS = build_ci_specs_from_levels(CI_LEVELS)
 
 
 def annotation_export_ui() -> None:
@@ -426,12 +426,18 @@ def plotting_ui(
     has_obs = not data_to_plot.is_empty()
     has_fc = not forecasts_to_plot.is_empty()
 
+    ci_specs = (
+        build_ci_specs_from_df(forecasts_to_plot)
+        if not forecasts_to_plot.is_empty()
+        else build_ci_specs_from_levels(CI_LEVELS)
+    )
+
     legend_labels = (["Observations"] if has_obs else []) + (
-        list(CI_SPECS.keys()) if has_fc else []
+        list(ci_specs.keys()) if has_fc else []
     )
 
     color_range = (["limegreen"] if has_obs else []) + (
-        [spec["color"] for spec in CI_SPECS.values()] if has_fc else []
+        [spec["color"] for spec in ci_specs.values()] if has_fc else []
     )
 
     color_enc = alt.Color(
@@ -450,6 +456,7 @@ def plotting_ui(
     forecast_layer = quantile_forecast_chart(
         forecasts_to_plot,
         selected_target,
+        ci_specs,
         color_enc=color_enc,
         scale=scale,
         grid=show_grid,

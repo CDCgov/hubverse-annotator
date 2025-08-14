@@ -11,7 +11,7 @@ To run: uv run streamlit run ./hubverse_annotator/app.py
 import datetime
 import logging
 import pathlib
-import re
+from itertools import combinations
 from typing import Literal
 
 import altair as alt
@@ -26,6 +26,7 @@ from streamlit.runtime.uploaded_file_manager import UploadedFile
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
 MARKER_SIZE = 65
+MAX_NUM_CIS = 7
 
 
 type ScaleType = Literal["linear", "log"]
@@ -163,7 +164,9 @@ def build_ci_specs_from_levels(
     }
 
 
-def build_ci_specs_from_df(df_wide: pl.DataFrame) -> dict[str, dict[str, str]]:
+def build_ci_specs_from_df(
+    forecast_table: pl.DataFrame,
+) -> dict[str, dict[str, str]]:
     """
     Automatically constructs a CI_SPECS-style dict for
     altair legend creation by finding quantile columns in
@@ -171,8 +174,8 @@ def build_ci_specs_from_df(df_wide: pl.DataFrame) -> dict[str, dict[str, str]]:
 
     Parameters
     ----------
-    df_wide : pl.DataFrame
-        A Polars DataFrame of forecasts, with quantile
+    forecast_table : pl.DataFrame
+        A Polars DataFrame of forecasts, with a quantile
         forecast columns.
 
     Returns
@@ -181,40 +184,43 @@ def build_ci_specs_from_df(df_wide: pl.DataFrame) -> dict[str, dict[str, str]]:
         Mapping from CI label (e.g. "95% CI") to its
         bounds and color.
     """
-
-    # use regex to find quantile columns:
-    # 0 : the col must start with a literal zero
-    # \. : matches a literal period; the backslash escapes
-    # \d+ : one or more digits (0–9)
-    # re.fullmatch : ensures the entire string matches
-    # (no prefixes/suffixes)
-    quantile_cols = [
-        col
-        for col in df_wide.columns
-        if re.fullmatch(r"0\.\d+", col) and 0 < float(col) < 1
-    ]
-    quantiles = sorted(float(q) for q in quantile_cols)
-    pairs = [
-        (low_q, high_q)
-        for i, low_q in enumerate(quantiles)
-        for high_q in quantiles[i + 1 :]
-        if abs(low_q + high_q - 1.0) < 1e-6
-    ]
-    palette = colorbrewer.Blues.get(
-        len(pairs), colorbrewer.Blues[max(colorbrewer.Blues)]
+    df_wide = (
+        forecast_table.filter(pl.col("output_type") == "quantile")
+        .pivot(
+            on="output_type_id",
+            index=cs.exclude("output_type_id", "value"),
+            values="value",
+        )
+        .rename({"0.5": "median"})
     )
-    colors = [to_hex([r / 255, g / 255, b / 255]) for r, g, b in palette]
-    ci_specs = {}
-    for (low_q, high_q), color in zip(pairs, colors, strict=False):
-        ci_width = round((high_q - low_q) * 100)
-        label = f"{ci_width}% CI"
-        ci_specs[label] = {
-            "low": f"{low_q:.3f}".rstrip("0").rstrip("."),
-            "high": f"{high_q:.3f}".rstrip("0").rstrip("."),
-            "color": color,
-        }
+    quant_vals = sorted(
+        float(col) for col in df_wide.columns if col.startswith("0.")
+    )
+    ci_pairs = [
+        (low, high)
+        for low, high in combinations(quant_vals, 2)
+        if low < 0.5 < high and abs(low + high - 1.0) < 1e-6
+    ]
+    ci_pairs.sort(key=lambda p: p[1] - p[0], reverse=True)
 
-    return dict(sorted(ci_specs.items(), reverse=True))
+    labels = [f"{round((high - low) * 100)}% CI" for low, high in ci_pairs]
+
+    palette_rgb255 = list(
+        colorbrewer.Blues[max(3, min(MAX_NUM_CIS, len(labels)))]
+    )
+    palette = [(r / 255, g / 255, b / 255) for r, g, b in palette_rgb255]
+
+    specs = {
+        label: {
+            "low": f"{low:.3f}".rstrip("0").rstrip("."),
+            "high": f"{high:.3f}".rstrip("0").rstrip("."),
+            "color": to_hex(color),
+        }
+        for (low, high), label, color in zip(
+            ci_pairs, labels, palette, strict=False
+        )
+    }
+    return specs
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:
@@ -327,6 +333,7 @@ def target_data_chart(
 def quantile_forecast_chart(
     forecast_table: pl.DataFrame,
     selected_target: str,
+    ci_specs,
     color_enc: alt.Color,
     scale: ScaleType = "log",
     grid: bool = True,
@@ -370,7 +377,6 @@ def quantile_forecast_chart(
         )
         .rename({"0.5": "median"})
     )
-    ci_specs = build_ci_specs_from_df(df_wide)
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "median:Q",
