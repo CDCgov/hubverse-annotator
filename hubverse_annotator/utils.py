@@ -120,9 +120,7 @@ def get_initial_window_range(
     if first_fc_date is None:
         start_date = first_obs_date
     else:
-        candidate_start_date = first_fc_date - datetime.timedelta(
-            weeks=extra_weeks
-        )
+        candidate_start_date = first_fc_date - datetime.timedelta(weeks=extra_weeks)
         start_date = (
             max(first_obs_date, candidate_start_date)
             if first_obs_date is not None
@@ -152,9 +150,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
     spec = chart.to_dict()
     # unit chart: no data, no mark, no encoding
     if "layer" not in spec:
-        return not (
-            spec.get("data") or spec.get("mark") or spec.get("encoding")
-        )
+        return not (spec.get("data") or spec.get("mark") or spec.get("encoding"))
     # LayerChart: check each sub-layer recursively
     # check if the layer list is empty or all sub-layers
     # are empty
@@ -314,9 +310,7 @@ def quantile_forecast_chart(
         band("0.1", "0.9", 0.20),
         band("0.25", "0.75", 0.30),
     ]
-    median = base.mark_line(
-        strokeWidth=STROKE_WIDTH, interpolate="step", color="navy"
-    )
+    median = base.mark_line(strokeWidth=STROKE_WIDTH, interpolate="step", color="navy")
 
     return alt.layer(*bands, median)
 
@@ -466,9 +460,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(
-            lookup.select(["location_code", "short_name"]).iter_rows()
-        )
+        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
@@ -509,9 +501,7 @@ def load_observed_data(
     }
     if not observed_data_file:
         return pl.DataFrame(schema=observed_schema)
-    table = load_hubverse_table(observed_data_file).select(
-        observed_schema.keys()
-    )
+    table = load_hubverse_table(observed_data_file).select(observed_schema.keys())
     validate_schema(table, observed_schema, "Observed Data")
     table = table.filter(pl.col("as_of") == pl.col("as_of").max())
     return table

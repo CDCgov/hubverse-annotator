@@ -27,9 +27,7 @@ def main() -> None:
         observed_data_table, forecast_table = load_data_ui()
         # at least one of the tables must be non-empty
         if observed_data_table.is_empty() and forecast_table.is_empty():
-            st.info(
-                "Please upload Observed Data or Hubverse Forecasts to begin."
-            )
+            st.info("Please upload Observed Data or Hubverse Forecasts to begin.")
             return None
         selected_ref_date = reference_date_selection_ui(forecast_table)
         selected_models = model_selection_ui(forecast_table)
