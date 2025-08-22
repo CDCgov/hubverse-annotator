@@ -187,9 +187,7 @@ def target_selection_ui(
         .to_list()
     )
     if "targets" not in st.session_state:
-        st.session_state.targets = sorted(
-            set(forecast_targets + observed_data_targets)
-        )
+        st.session_state.targets = sorted(set(forecast_targets + observed_data_targets))
 
     def _go_to_prev_target():
         st.session_state.current_target_id -= 1
@@ -197,9 +195,7 @@ def target_selection_ui(
     def _go_to_next_target():
         st.session_state.current_target_id += 1
 
-    target_col, prev_col, next_col = st.columns(
-        [6, 1, 1], vertical_alignment="bottom"
-    )
+    target_col, prev_col, next_col = st.columns([6, 1, 1], vertical_alignment="bottom")
     with target_col:
         selected_target = st.selectbox(
             "Target",
@@ -218,8 +214,7 @@ def target_selection_ui(
         st.button(
             "⏭️",
             disabled=(
-                st.session_state.current_target_id
-                == len(st.session_state.targets) - 1
+                st.session_state.current_target_id == len(st.session_state.targets) - 1
             ),
             on_click=_go_to_next_target,
             key="next_target_button",
@@ -283,8 +278,7 @@ def location_selection_ui(
         st.button(
             "⏭️",
             disabled=(
-                st.session_state.current_loc_id
-                == len(st.session_state.locations) - 1
+                st.session_state.current_loc_id == len(st.session_state.locations) - 1
             ),
             on_click=_go_to_next_loc,
             key="next_loc_button",
@@ -342,9 +336,7 @@ def reference_date_selection_ui(
             "Reference Date",
             options=list(range(num_ref_dates)),
             key="current_ref_date_id",
-            format_func=lambda i: st.session_state.ref_dates[i].strftime(
-                "%Y-%m-%d"
-            ),
+            format_func=lambda i: st.session_state.ref_dates[i].strftime("%Y-%m-%d"),
         )
     with prev_col:
         st.button(
@@ -421,9 +413,7 @@ def plotting_ui(
         data_to_plot, selected_target, scale=scale, grid=show_grid
     )
     sub_layers = [
-        layer
-        for layer in [forecast_layer, observed_layer]
-        if not is_empty_chart(layer)
+        layer for layer in [forecast_layer, observed_layer] if not is_empty_chart(layer)
     ]
     if sub_layers:
         # for some reason alt.layer(*sub_layers) does not work
@@ -496,9 +486,7 @@ def load_data_ui() -> tuple[pl.DataFrame, pl.DataFrame]:
         forecast_table (pl.DataFrame), i.e. the loaded
         forecast table or an empty DataFrame.
     """
-    observed_file = st.file_uploader(
-        "Upload Hubverse Target Data", type=["parquet"]
-    )
+    observed_file = st.file_uploader("Upload Hubverse Target Data", type=["parquet"])
     forecast_file = st.file_uploader(
         "Upload Hubverse Forecasts", type=["csv", "parquet"]
     )
