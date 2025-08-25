@@ -19,8 +19,6 @@ import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from babel.numbers import format_percent
-from matplotlib import colormaps
-from matplotlib.colors import to_hex
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 PLOT_WIDTH = 625
@@ -184,17 +182,12 @@ def build_ci_specs_from_df(
         for low, high in ci_pairs
     ]
 
-    num_colors = max(3, min(MAX_NUM_CIS, len(labels)))
-    blues_map = colormaps["Blues"]
-    palette = [blues_map(i / (num_colors - 1)) for i in range(num_colors)]
-
     specs = {
         label: {
             "low": f"{low:.3f}".rstrip("0").rstrip("."),
             "high": f"{high:.3f}".rstrip("0").rstrip("."),
-            "color": to_hex(color),
         }
-        for (low, high), label, color in zip(ci_pairs, labels, palette, strict=False)
+        for (low, high), label in zip(ci_pairs, labels, strict=False)
     }
     return specs
 

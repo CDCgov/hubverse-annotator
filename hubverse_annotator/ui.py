@@ -418,12 +418,20 @@ def plotting_ui(
 
     if has_fc and ci_specs:
         legend_labels.extend(ci_specs.keys())
-        color_range.extend([spec["color"] for spec in ci_specs.values()])
-    color_enc = alt.Color(
-        "legend_label:N",
-        title=None,
-        scale=alt.Scale(domain=legend_labels, range=color_range),
-    )
+        color_range.extend(["blue"] * len(ci_specs))
+
+    if len(legend_labels) > 1:
+        color_enc = alt.Color(
+            "legend_label:N",
+            title=None,
+            scale=alt.Scale(domain=legend_labels, scheme="blues"),
+        )
+    else:
+        color_enc = alt.Color(
+            "legend_label:N",
+            title=None,
+            scale=alt.Scale(domain=legend_labels, range=color_range),
+        )
     observed_layer = target_data_chart(
         data_to_plot,
         selected_target,
