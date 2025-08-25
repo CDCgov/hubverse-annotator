@@ -14,12 +14,12 @@ import pathlib
 from typing import Literal
 
 import altair as alt
-import colorbrewer
 import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
 from babel.numbers import format_percent
+from matplotlib import colormaps
 from matplotlib.colors import to_hex
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
@@ -184,8 +184,9 @@ def build_ci_specs_from_df(
         for low, high in ci_pairs
     ]
 
-    palette_rgb255 = list(colorbrewer.Blues[max(3, min(MAX_NUM_CIS, len(labels)))])
-    palette = [(r / 255, g / 255, b / 255) for r, g, b in palette_rgb255]
+    num_colors = max(3, min(MAX_NUM_CIS, len(labels)))
+    blues_map = colormaps["Blues"]
+    palette = [blues_map(i / (num_colors - 1)) for i in range(num_colors)]
 
     specs = {
         label: {
