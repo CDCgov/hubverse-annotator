@@ -125,9 +125,7 @@ def get_initial_window_range(
     if first_fc_date is None:
         start_date = first_obs_date
     else:
-        candidate_start_date = first_fc_date - datetime.timedelta(
-            weeks=extra_weeks
-        )
+        candidate_start_date = first_fc_date - datetime.timedelta(weeks=extra_weeks)
         start_date = (
             max(first_obs_date, candidate_start_date)
             if first_obs_date is not None
@@ -174,9 +172,7 @@ def build_ci_specs_from_df(
         bounds and color.
     """
     df_wide = pivot_quantile_df(forecast_table)
-    quant_vals = sorted(
-        float(col) for col in df_wide.columns if col.startswith("0.")
-    )
+    quant_vals = sorted(float(col) for col in df_wide.columns if col.startswith("0."))
     ci_pairs = sorted(
         [(q, 1 - q) for q in quant_vals if q < 0.5 and (1 - q) in quant_vals],
         key=lambda p: p[1] - p[0],
@@ -188,9 +184,7 @@ def build_ci_specs_from_df(
         for low, high in ci_pairs
     ]
 
-    palette_rgb255 = list(
-        colorbrewer.Blues[max(3, min(MAX_NUM_CIS, len(labels)))]
-    )
+    palette_rgb255 = list(colorbrewer.Blues[max(3, min(MAX_NUM_CIS, len(labels)))])
     palette = [(r / 255, g / 255, b / 255) for r, g, b in palette_rgb255]
 
     specs = {
@@ -199,9 +193,7 @@ def build_ci_specs_from_df(
             "high": f"{high:.3f}".rstrip("0").rstrip("."),
             "color": to_hex(color),
         }
-        for (low, high), label, color in zip(
-            ci_pairs, labels, palette, strict=False
-        )
+        for (low, high), label, color in zip(ci_pairs, labels, palette, strict=False)
     }
     return specs
 
@@ -226,9 +218,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
     spec = chart.to_dict()
     # unit chart: no data, no mark, no encoding
     if "layer" not in spec:
-        return not (
-            spec.get("data") or spec.get("mark") or spec.get("encoding")
-        )
+        return not (spec.get("data") or spec.get("mark") or spec.get("encoding"))
     # LayerChart: check each sub-layer recursively
     # check if the layer list is empty or all sub-layers
     # are empty
@@ -409,9 +399,7 @@ def quantile_forecast_chart(
         if spec["low"] in df_wide.columns and spec["high"] in df_wide.columns
     ]
 
-    median = base.mark_line(
-        strokeWidth=STROKE_WIDTH, interpolate="step", color="navy"
-    )
+    median = base.mark_line(strokeWidth=STROKE_WIDTH, interpolate="step", color="navy")
 
     return alt.layer(*bands, median)
 
@@ -561,9 +549,7 @@ def load_hubverse_table(hub_file: UploadedFile | None):
         lookup = forecasttools.location_lookup(
             location_vector=codes, location_format="hubverse"
         )
-        code_to_abbr = dict(
-            lookup.select(["location_code", "short_name"]).iter_rows()
-        )
+        code_to_abbr = dict(lookup.select(["location_code", "short_name"]).iter_rows())
         hub_table = hub_table.with_columns(
             pl.col("location").replace(code_to_abbr).alias("loc_abbr")
         )
@@ -604,9 +590,7 @@ def load_observed_data(
     }
     if not observed_data_file:
         return pl.DataFrame(schema=observed_schema)
-    table = load_hubverse_table(observed_data_file).select(
-        observed_schema.keys()
-    )
+    table = load_hubverse_table(observed_data_file).select(observed_schema.keys())
     validate_schema(table, observed_schema, "Observed Data")
     table = table.filter(pl.col("as_of") == pl.col("as_of").max())
     return table
