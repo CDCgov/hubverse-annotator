@@ -18,7 +18,6 @@ dependencies = [
     "streamlit>=1.47.0",
     "polars>=0.19.37",
     "streamlit-shortcuts>=1.1.5",
-    "matplotlib>=3.10.3",
     "babel>=2.17.0",
 ]
 
