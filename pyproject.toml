@@ -26,3 +26,9 @@ dependencies = [
 
 [tool.ruff.lint.mccabe]
 max-complexity = 15
+
+[tool.ruff]
+fix = true
+
+[tool.ruff.lint]
+select = ["I", "E4", "E7", "E9", "F"]
