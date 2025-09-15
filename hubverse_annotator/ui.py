@@ -17,6 +17,7 @@ import polars as pl
 import streamlit as st
 from streamlit_shortcuts import add_shortcuts
 from utils import (
+    build_ci_specs_from_df,
     get_available_locations,
     get_initial_window_range,
     get_reference_dates,
@@ -31,6 +32,7 @@ Y_LABEL_FONT_SIZE = 15
 CHART_TITLE_FONT_SIZE = 18
 REF_DATE_STROKE_WIDTH = 2.5
 REF_DATE_STROKE_DASH = [6, 6]
+MARKER_SIZE = 65
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
@@ -406,11 +408,44 @@ def plotting_ui(
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
-    forecast_layer = quantile_forecast_chart(
-        forecasts_to_plot, selected_target, scale=scale, grid=show_grid
-    )
+
+    has_obs = not data_to_plot.is_empty()
+    has_fc = not forecasts_to_plot.is_empty()
+    ci_specs = build_ci_specs_from_df(forecasts_to_plot) if has_fc else {}
+
+    legend_labels = ["Observations"] if has_obs else []
+    color_range = ["limegreen"] if has_obs else []
+
+    if has_fc and ci_specs:
+        legend_labels.extend(ci_specs.keys())
+        color_range.extend(["blue"] * len(ci_specs))
+
+    if len(legend_labels) > 1:
+        color_enc = alt.Color(
+            "legend_label:N",
+            title=None,
+            scale=alt.Scale(domain=legend_labels, scheme="blues"),
+        )
+    else:
+        color_enc = alt.Color(
+            "legend_label:N",
+            title=None,
+            scale=alt.Scale(domain=legend_labels, range=color_range),
+        )
     observed_layer = target_data_chart(
-        data_to_plot, selected_target, scale=scale, grid=show_grid
+        data_to_plot,
+        selected_target,
+        color_enc=color_enc,
+        scale=scale,
+        grid=show_grid,
+    )
+    forecast_layer = quantile_forecast_chart(
+        forecasts_to_plot,
+        selected_target,
+        ci_specs,
+        color_enc=color_enc,
+        scale=scale,
+        grid=show_grid,
     )
     sub_layers = [
         layer for layer in [forecast_layer, observed_layer] if not is_empty_chart(layer)
@@ -462,6 +497,13 @@ def plotting_ui(
         .interactive()
         .resolve_scale(y="independent")
         .resolve_axis(x="independent")
+        .configure_legend(
+            orient="top",
+            direction="horizontal",
+            symbolType="circle",
+            symbolSize=MARKER_SIZE,
+            titleAnchor="middle",
+        )
     )
     base_chart.altair_chart(
         chart,

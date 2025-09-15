@@ -18,11 +18,14 @@ import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
+from babel.numbers import format_percent
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
-MARKER_SIZE = 55
+MARKER_SIZE = 65
+MAX_NUM_CIS = 7
+
 
 type ScaleType = Literal["linear", "log"]
 
@@ -130,6 +133,65 @@ def get_initial_window_range(
     return (start_date, end_date)
 
 
+def pivot_quantile_df(forecast_table: pl.DataFrame) -> pl.DataFrame:
+    """
+    Converts long-format quantile forecast table into
+    wide format where each quantile is a column.
+    """
+    return (
+        forecast_table.filter(pl.col("output_type") == "quantile")
+        .pivot(
+            on="output_type_id",
+            index=cs.exclude("output_type_id", "value"),
+            values="value",
+        )
+        .rename({"0.5": "median"})
+    )
+
+
+def build_ci_specs_from_df(
+    forecast_table: pl.DataFrame,
+) -> dict[str, dict[str, str]]:
+    """
+    Automatically constructs a CI_SPECS-style dict for
+    altair legend creation by finding quantile columns in
+    a wide forecast table.
+
+    Parameters
+    ----------
+    forecast_table : pl.DataFrame
+        A Polars DataFrame of forecasts, with a quantile
+        forecast columns.
+
+    Returns
+    -------
+    dict[str, dict[str, str]]
+        Mapping from CI label (e.g. "95% CI") to its
+        bounds and color.
+    """
+    df_wide = pivot_quantile_df(forecast_table)
+    quant_vals = sorted(float(col) for col in df_wide.columns if col.startswith("0."))
+    ci_pairs = sorted(
+        [(q, 1 - q) for q in quant_vals if q < 0.5 and (1 - q) in quant_vals],
+        key=lambda p: p[1] - p[0],
+        reverse=True,
+    )[:MAX_NUM_CIS]
+
+    labels = [
+        f"{format_percent(high - low, locale='en_US', format='#,##0%')} CI"
+        for low, high in ci_pairs
+    ]
+
+    specs = {
+        label: {
+            "low": f"{low:.3f}".rstrip("0").rstrip("."),
+            "high": f"{high:.3f}".rstrip("0").rstrip("."),
+        }
+        for (low, high), label in zip(ci_pairs, labels, strict=False)
+    }
+    return specs
+
+
 def is_empty_chart(chart: alt.LayerChart) -> bool:
     """
     Checks if an altair layer is empty. Primarily used for
@@ -168,6 +230,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
 def target_data_chart(
     observed_data_table: pl.DataFrame,
     selected_target: str,
+    color_enc: alt.Color,
     scale: ScaleType = "log",
     grid: bool = True,
 ) -> alt.Chart | alt.LayerChart:
@@ -182,6 +245,9 @@ def target_data_chart(
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    color_enc : alt.Color
+        An Altair color encoding used for plotting the
+        observations color and legend.
     scale : str
         The scale to use for the Y axis during plotting.
         Defaults to logarithmic.
@@ -199,7 +265,6 @@ def target_data_chart(
     x_enc = alt.X(
         "date:T",
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
-        scale=alt.Scale(type=scale),
     )
     y_enc = alt.Y(
         "observation:Q",
@@ -214,10 +279,15 @@ def target_data_chart(
     )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
-        .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
+        .transform_calculate(legend_label="'Observations'")
+        .mark_point(
+            filled=True,
+            size=MARKER_SIZE,
+        )
         .encode(
             x=x_enc,
             y=y_enc,
+            color=color_enc,
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("observation:Q", title="Value"),
@@ -230,6 +300,8 @@ def target_data_chart(
 def quantile_forecast_chart(
     forecast_table: pl.DataFrame,
     selected_target: str,
+    ci_specs,
+    color_enc: alt.Color,
     scale: ScaleType = "log",
     grid: bool = True,
 ) -> alt.LayerChart:
@@ -246,6 +318,9 @@ def quantile_forecast_chart(
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    color_enc : alt.Color
+        An Altair color encoding used for plotting the
+        quantile bands color and legend.
     scale : str
         The scale to use for the Y axis during plotting.
         Defaults to logarithmic.
@@ -260,24 +335,26 @@ def quantile_forecast_chart(
     """
     if forecast_table.is_empty():
         return alt.layer()
-    df_wide = (
-        forecast_table.filter(pl.col("output_type") == "quantile")
-        .pivot(
-            on="output_type_id",
-            index=cs.exclude("output_type_id", "value"),
-            values="value",
-        )
-        .rename({"0.5": "median"})
-    )
+    df_wide = pivot_quantile_df(forecast_table)
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "median:Q",
         axis=alt.Axis(grid=grid),
         scale=alt.Scale(type=scale),
     )
-    base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(x=x_enc, y=y_enc)
+    base = (
+        alt.Chart(df_wide, width=PLOT_WIDTH)
+        .transform_calculate(
+            date="toDate(datum.target_end_date)",
+            data_type="'Forecast'",
+        )
+        .encode(
+            x=x_enc,
+            y=y_enc,
+        )
+    )
 
-    def band(low: str, high: str, opacity: float) -> alt.Chart:
+    def band(low: str, high: str, label: str) -> alt.Chart:
         """
         Builds an errorband layer for a quantile.
 
@@ -289,9 +366,9 @@ def quantile_forecast_chart(
         high : str
             Upper-bound column name in the wide forecast
             table (e.g., "0.975").
-        opacity : float
-            Fill opacity for the band in the range
-            [0.0, 1.0].
+        label : str
+            The label in the legend for the confidence
+            interval (e.g. "97.5% CI").
 
         Returns
         -------
@@ -299,17 +376,23 @@ def quantile_forecast_chart(
             An Altair layer with the filled band from
             ``low`` to ``high``, with step interpolation.
         """
-        return base.mark_errorband(opacity=opacity, interpolate="step").encode(
-            y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
-            y2=f"{high}:Q",
-            fill=alt.value("steelblue"),
+        return (
+            base.transform_calculate(legend_label=f"'{label}'")
+            .mark_errorband(interpolate="step")
+            .encode(
+                y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
+                y2=f"{high}:Q",
+                color=color_enc,
+                opacity=alt.value(1.0),
+            )
         )
 
     bands = [
-        band("0.025", "0.975", 0.10),
-        band("0.1", "0.9", 0.20),
-        band("0.25", "0.75", 0.30),
+        band(spec["low"], spec["high"], label)
+        for label, spec in ci_specs.items()
+        if spec["low"] in df_wide.columns and spec["high"] in df_wide.columns
     ]
+
     median = base.mark_line(strokeWidth=STROKE_WIDTH, interpolate="step", color="navy")
 
     return alt.layer(*bands, median)
