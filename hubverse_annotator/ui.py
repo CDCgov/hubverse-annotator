@@ -413,34 +413,35 @@ def plotting_ui(
     has_fc = not forecasts_to_plot.is_empty()
     ci_specs = build_ci_specs_from_df(forecasts_to_plot) if has_fc else {}
 
-    legend_labels = ["Observations"] if has_obs else []
-    color_range = ["limegreen"] if has_obs else []
+    # build legend labels
+    legend_labels = []
+    color_range = []
+
+    if has_obs:
+        legend_labels.append("Observations")
+        color_range.append("limegreen")
 
     if has_fc and ci_specs:
         legend_labels.extend(ci_specs.keys())
+        # use scheme colors from Vega's blues palette
+        blues = [
+            "#c6dbef",
+            "#9ecae1",
+            "#6baed6",
+            "#4292c6",
+            "#2171b5",
+            "#08519c",
+            "#08306b",
+        ]
+        n_cis = len(ci_specs)
+        color_range.extend(blues[:n_cis])
 
-    if has_fc and ci_specs and has_obs:
-        color_enc = alt.condition(
-            alt.datum.legend_label == "Observations",
-            alt.value("limegreen"),
-            alt.Color(
-                "legend_label:N",
-                title=None,
-                scale=alt.Scale(domain=legend_labels, scheme="blues"),
-            ),
-        )
-    elif has_fc and ci_specs:
-        color_enc = alt.Color(
-            "legend_label:N",
-            title=None,
-            scale=alt.Scale(domain=legend_labels, scheme="blues"),
-        )
-    else:
-        color_enc = alt.Color(
-            "legend_label:N",
-            title=None,
-            scale=alt.Scale(domain=legend_labels, range=color_range),
-        )
+    # always use explicit range for consistency
+    color_enc = alt.Color(
+        "legend_label:N",
+        title=None,
+        scale=alt.Scale(domain=legend_labels, range=color_range),
+    )
     observed_layer = target_data_chart(
         data_to_plot,
         selected_target,
