@@ -413,7 +413,6 @@ def plotting_ui(
     has_fc = not forecasts_to_plot.is_empty()
     ci_specs = build_ci_specs_from_df(forecasts_to_plot) if has_fc else {}
 
-    # build legend labels
     legend_labels = []
     color_range = []
 
@@ -423,7 +422,7 @@ def plotting_ui(
 
     if has_fc and ci_specs:
         legend_labels.extend(ci_specs.keys())
-        # use scheme colors from Vega's blues palette
+        # colors from Vega's blues palette
         blues = [
             "#c6dbef",
             "#9ecae1",
@@ -436,12 +435,12 @@ def plotting_ui(
         n_cis = len(ci_specs)
         color_range.extend(blues[:n_cis])
 
-    # always use explicit range for consistency
     color_enc = alt.Color(
         "legend_label:N",
         title=None,
         scale=alt.Scale(domain=legend_labels, range=color_range),
     )
+
     observed_layer = target_data_chart(
         data_to_plot,
         selected_target,
@@ -449,6 +448,7 @@ def plotting_ui(
         scale=scale,
         grid=show_grid,
     )
+
     forecast_layer = quantile_forecast_chart(
         forecasts_to_plot,
         selected_target,
@@ -457,15 +457,18 @@ def plotting_ui(
         scale=scale,
         grid=show_grid,
     )
+
     sub_layers = [
         layer for layer in [forecast_layer, observed_layer] if not is_empty_chart(layer)
     ]
+
     if sub_layers:
         # for some reason alt.layer(*sub_layers) does not work
         layer = reduce(lambda x, y: x + y, sub_layers)
     else:
         st.info("No data to plot for that model/target/location.")
         return
+
     if show_ref_date_line and selected_ref_date is not None:
         rule_layer = alt.Chart(
             alt.Data(values=[{"date": str(selected_ref_date)}])
@@ -475,13 +478,16 @@ def plotting_ui(
             strokeWidth=REF_DATE_STROKE_WIDTH,
         )
         layer = layer + rule_layer
+
     domain = get_initial_window_range(data_to_plot, forecasts_to_plot)
+
     x_enc = alt.X(
         "date:T",
         scale=alt.Scale(domain=domain),
         axis=alt.Axis(format="%b %d", grid=show_grid),
         title="Date",
     )
+
     chart = (
         layer.encode(x=x_enc)
         .facet(
@@ -515,6 +521,7 @@ def plotting_ui(
             titleAnchor="middle",
         )
     )
+
     base_chart.altair_chart(
         chart,
         use_container_width=False,
