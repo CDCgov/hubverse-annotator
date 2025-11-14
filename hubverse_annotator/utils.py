@@ -149,8 +149,97 @@ def pivot_quantile_df(forecast_table: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+def get_available_ci(quantile_values: list[float]) -> list[tuple[float, float, float]]:
+    """
+    Detect all available confidence intervals from quantile values.
+
+    Parameters
+    ----------
+    quantile_values : list[float]
+        List of quantile values (e.g., [0.1, 0.25, 0.5, 0.75, 0.9])
+
+    Returns
+    -------
+    list[tuple[float, float, float]]
+        List of (lower_quantile, upper_quantile, width) tuples, sorted by width descending
+    """
+    available_cis = []
+    for q in quantile_values:
+        if q < 0.5:
+            upper_q = 1 - q
+            if upper_q in quantile_values:
+                width = upper_q - q
+                available_cis.append((q, upper_q, width))
+
+    return sorted(available_cis, key=lambda ci: ci[2], reverse=True)
+
+
+def subsample_ci(
+    available_cis: list[tuple[float, float, float]],
+    max_count: int | None = None,
+    desired_widths: list[float] | None = None,
+) -> list[tuple[float, float, float]]:
+    """
+    Subsample available confidence intervals by count or specific widths.
+
+    Parameters
+    ----------
+    available_cis : list[tuple[float, float, float]]
+        Available CIs from get_available_ci
+    max_count : int | None
+        Maximum number of CIs to return
+    desired_widths : list[float] | None
+        Specific CI widths to include (e.g., [0.5, 0.8, 0.95])
+
+    Returns
+    -------
+    list[tuple[float, float, float]]
+        Subsampled list of CIs
+    """
+    if desired_widths is not None:
+        return [ci for ci in available_cis if ci[2] in desired_widths]
+
+    if max_count is not None:
+        return available_cis[:max_count]
+
+    return available_cis
+
+
+def create_ci_labels_and_specs(
+    selected_cis: list[tuple[float, float, float]],
+) -> dict[str, dict[str, str]]:
+    """
+    Create CI labels and specification dict for plotting.
+
+    Parameters
+    ----------
+    selected_cis : list[tuple[float, float, float]]
+        Selected CIs as (lower, upper, width) tuples
+
+    Returns
+    -------
+    dict[str, dict[str, str]]
+        Mapping from CI label to low/high bounds for plotting
+    """
+    labels = [
+        f"{format_percent(width, locale='en_US', format='#,##0%')} CI"
+        for _, _, width in selected_cis
+    ]
+
+    specs = {
+        label: {
+            "low": f"{low:.3f}".rstrip("0").rstrip("."),
+            "high": f"{high:.3f}".rstrip("0").rstrip("."),
+        }
+        for (low, high, _), label in zip(selected_cis, labels, strict=False)
+    }
+    return specs
+
+
 def build_ci_specs_from_df(
     forecast_table: pl.DataFrame,
+    max_count: int | None = None,
+    desired_widths: list[float] | None = None,
 ) -> dict[str, dict[str, str]]:
     """
     Automatically constructs a CI_SPECS-style dict for
@@ -162,34 +251,29 @@ def build_ci_specs_from_df(
     forecast_table : pl.DataFrame
         A Polars DataFrame of forecasts, with a quantile
         forecast columns.
+    max_count : int | None
+        Maximum number of CIs to include (defaults to MAX_NUM_CIS)
+    desired_widths : list[float] | None
+        Specific CI widths to include (e.g., [0.5, 0.8, 0.95])
 
     Returns
     -------
     dict[str, dict[str, str]]
-        Mapping from CI label (e.g. "95% CI") to its
-        bounds and color.
+        Mapping from CI label (e.g. "95% CI") to its bounds.
     """
     df_wide = pivot_quantile_df(forecast_table)
     quant_vals = sorted(float(col) for col in df_wide.columns if col.startswith("0."))
-    ci_pairs = sorted(
-        [(q, 1 - q) for q in quant_vals if q < 0.5 and (1 - q) in quant_vals],
-        key=lambda p: p[1] - p[0],
-        reverse=True,
-    )[:MAX_NUM_CIS]
 
-    labels = [
-        f"{format_percent(high - low, locale='en_US', format='#,##0%')} CI"
-        for low, high in ci_pairs
-    ]
+    available_cis = get_available_ci(quant_vals)
 
-    specs = {
-        label: {
-            "low": f"{low:.3f}".rstrip("0").rstrip("."),
-            "high": f"{high:.3f}".rstrip("0").rstrip("."),
-        }
-        for (low, high), label in zip(ci_pairs, labels, strict=False)
-    }
-    return specs
+    if max_count is None:
+        max_count = MAX_NUM_CIS
+
+    selected_cis = subsample_ci(
+        available_cis, max_count=max_count, desired_widths=desired_widths
+    )
+
+    return create_ci_labels_and_specs(selected_cis)
 
 
 def is_empty_chart(chart: alt.LayerChart) -> bool:

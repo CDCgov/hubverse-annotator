@@ -418,9 +418,18 @@ def plotting_ui(
 
     if has_fc and ci_specs:
         legend_labels.extend(ci_specs.keys())
-        color_range.extend(["blue"] * len(ci_specs))
 
-    if len(legend_labels) > 1:
+    if has_fc and ci_specs and has_obs:
+        color_enc = alt.condition(
+            alt.datum.legend_label == "Observations",
+            alt.value("limegreen"),
+            alt.Color(
+                "legend_label:N",
+                title=None,
+                scale=alt.Scale(domain=legend_labels, scheme="blues"),
+            ),
+        )
+    elif has_fc and ci_specs:
         color_enc = alt.Color(
             "legend_label:N",
             title=None,
