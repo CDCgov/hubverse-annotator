@@ -122,7 +122,7 @@ repos:
     # SPELLING
     ###############################################################################
     - repo: https://github.com/crate-ci/typos
-      rev: v1
+      rev: v1.39.1
       hooks:
           - id: typos
             args: ["--force-exclude"]
