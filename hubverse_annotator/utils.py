@@ -18,11 +18,14 @@ import forecasttools
 import polars as pl
 import polars.selectors as cs
 import streamlit as st
+from babel.numbers import format_percent
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 
 PLOT_WIDTH = 625
 STROKE_WIDTH = 2
-MARKER_SIZE = 55
+MARKER_SIZE = 65
+MAX_NUM_CIS = 7
+
 
 type ScaleType = Literal["linear", "log"]
 
@@ -130,6 +133,149 @@ def get_initial_window_range(
     return (start_date, end_date)
 
 
+def pivot_quantile_df(forecast_table: pl.DataFrame) -> pl.DataFrame:
+    """
+    Converts long-format quantile forecast table into
+    wide format where each quantile is a column.
+    """
+    return (
+        forecast_table.filter(pl.col("output_type") == "quantile")
+        .pivot(
+            on="output_type_id",
+            index=cs.exclude("output_type_id", "value"),
+            values="value",
+        )
+        .rename({"0.5": "median"})
+    )
+
+
+def get_available_ci(quantile_values: list[float]) -> list[tuple[float, float, float]]:
+    """
+    Detect all available confidence intervals from quantile values.
+
+    Parameters
+    ----------
+    quantile_values : list[float]
+        List of quantile values (e.g., [0.1, 0.25, 0.5, 0.75, 0.9])
+
+    Returns
+    -------
+    list[tuple[float, float, float]]
+        List of (lower_quantile, upper_quantile, width) tuples, sorted by width descending
+    """
+    available_cis = []
+    for q in quantile_values:
+        if q < 0.5:
+            upper_q = 1 - q
+            if upper_q in quantile_values:
+                width = upper_q - q
+                available_cis.append((q, upper_q, width))
+
+    return sorted(available_cis, key=lambda ci: ci[2], reverse=True)
+
+
+def subsample_ci(
+    available_cis: list[tuple[float, float, float]],
+    max_count: int | None = None,
+    desired_widths: list[float] | None = None,
+) -> list[tuple[float, float, float]]:
+    """
+    Subsample available confidence intervals by count or specific widths.
+
+    Parameters
+    ----------
+    available_cis : list[tuple[float, float, float]]
+        Available CIs from get_available_ci
+    max_count : int | None
+        Maximum number of CIs to return
+    desired_widths : list[float] | None
+        Specific CI widths to include (e.g., [0.5, 0.8, 0.95])
+
+    Returns
+    -------
+    list[tuple[float, float, float]]
+        Subsampled list of CIs
+    """
+    if desired_widths is not None:
+        return [ci for ci in available_cis if ci[2] in desired_widths]
+
+    if max_count is not None:
+        return available_cis[:max_count]
+
+    return available_cis
+
+
+def create_ci_labels_and_specs(
+    selected_cis: list[tuple[float, float, float]],
+) -> dict[str, dict[str, str]]:
+    """
+    Create CI labels and specification dict for plotting.
+
+    Parameters
+    ----------
+    selected_cis : list[tuple[float, float, float]]
+        Selected CIs as (lower, upper, width) tuples
+
+    Returns
+    -------
+    dict[str, dict[str, str]]
+        Mapping from CI label to low/high bounds for plotting
+    """
+    labels = [
+        f"{format_percent(width, locale='en_US', format='#,##0%')} CI"
+        for _, _, width in selected_cis
+    ]
+
+    specs = {
+        label: {
+            "low": f"{low:.3f}".rstrip("0").rstrip("."),
+            "high": f"{high:.3f}".rstrip("0").rstrip("."),
+        }
+        for (low, high, _), label in zip(selected_cis, labels, strict=False)
+    }
+    return specs
+
+
+def build_ci_specs_from_df(
+    forecast_table: pl.DataFrame,
+    max_count: int | None = None,
+    desired_widths: list[float] | None = None,
+) -> dict[str, dict[str, str]]:
+    """
+    Automatically constructs a CI_SPECS-style dict for
+    altair legend creation by finding quantile columns in
+    a wide forecast table.
+
+    Parameters
+    ----------
+    forecast_table : pl.DataFrame
+        A Polars DataFrame of forecasts, with a quantile
+        forecast columns.
+    max_count : int | None
+        Maximum number of CIs to include (defaults to MAX_NUM_CIS)
+    desired_widths : list[float] | None
+        Specific CI widths to include (e.g., [0.5, 0.8, 0.95])
+
+    Returns
+    -------
+    dict[str, dict[str, str]]
+        Mapping from CI label (e.g. "95% CI") to its bounds.
+    """
+    df_wide = pivot_quantile_df(forecast_table)
+    quant_vals = sorted(float(col) for col in df_wide.columns if col.startswith("0."))
+
+    available_cis = get_available_ci(quant_vals)
+
+    if max_count is None:
+        max_count = MAX_NUM_CIS
+
+    selected_cis = subsample_ci(
+        available_cis, max_count=max_count, desired_widths=desired_widths
+    )
+
+    return create_ci_labels_and_specs(selected_cis)
+
+
 def is_empty_chart(chart: alt.LayerChart) -> bool:
     """
     Checks if an altair layer is empty. Primarily used for
@@ -168,6 +314,7 @@ def is_empty_chart(chart: alt.LayerChart) -> bool:
 def target_data_chart(
     observed_data_table: pl.DataFrame,
     selected_target: str,
+    color_enc: alt.Color,
     scale: ScaleType = "log",
     grid: bool = True,
 ) -> alt.Chart | alt.LayerChart:
@@ -182,6 +329,9 @@ def target_data_chart(
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    color_enc : alt.Color
+        An Altair color encoding used for plotting the
+        observations color and legend.
     scale : str
         The scale to use for the Y axis during plotting.
         Defaults to logarithmic.
@@ -199,7 +349,6 @@ def target_data_chart(
     x_enc = alt.X(
         "date:T",
         axis=alt.Axis(title="Date", grid=grid, ticks=True, labels=True),
-        scale=alt.Scale(type=scale),
     )
     y_enc = alt.Y(
         "observation:Q",
@@ -214,10 +363,15 @@ def target_data_chart(
     )
     obs_layer = (
         alt.Chart(observed_data_table, width=PLOT_WIDTH)
-        .mark_point(filled=True, size=MARKER_SIZE, color="limegreen")
+        .transform_calculate(legend_label="'Observations'")
+        .mark_point(
+            filled=True,
+            size=MARKER_SIZE,
+        )
         .encode(
             x=x_enc,
             y=y_enc,
+            color=color_enc,
             tooltip=[
                 alt.Tooltip("date:T", title="Date"),
                 alt.Tooltip("observation:Q", title="Value"),
@@ -230,6 +384,8 @@ def target_data_chart(
 def quantile_forecast_chart(
     forecast_table: pl.DataFrame,
     selected_target: str,
+    ci_specs,
+    color_enc: alt.Color,
     scale: ScaleType = "log",
     grid: bool = True,
 ) -> alt.LayerChart:
@@ -246,6 +402,9 @@ def quantile_forecast_chart(
     selected_target : str
         The target for filtering in the forecast and or
         observed hubverse tables.
+    color_enc : alt.Color
+        An Altair color encoding used for plotting the
+        quantile bands color and legend.
     scale : str
         The scale to use for the Y axis during plotting.
         Defaults to logarithmic.
@@ -260,24 +419,26 @@ def quantile_forecast_chart(
     """
     if forecast_table.is_empty():
         return alt.layer()
-    df_wide = (
-        forecast_table.filter(pl.col("output_type") == "quantile")
-        .pivot(
-            on="output_type_id",
-            index=cs.exclude("output_type_id", "value"),
-            values="value",
-        )
-        .rename({"0.5": "median"})
-    )
+    df_wide = pivot_quantile_df(forecast_table)
     x_enc = alt.X("target_end_date:T", title="Date", axis=alt.Axis(grid=grid))
     y_enc = alt.Y(
         "median:Q",
         axis=alt.Axis(grid=grid),
         scale=alt.Scale(type=scale),
     )
-    base = alt.Chart(df_wide, width=PLOT_WIDTH).encode(x=x_enc, y=y_enc)
+    base = (
+        alt.Chart(df_wide, width=PLOT_WIDTH)
+        .transform_calculate(
+            date="toDate(datum.target_end_date)",
+            data_type="'Forecast'",
+        )
+        .encode(
+            x=x_enc,
+            y=y_enc,
+        )
+    )
 
-    def band(low: str, high: str, opacity: float) -> alt.Chart:
+    def band(low: str, high: str, label: str) -> alt.Chart:
         """
         Builds an errorband layer for a quantile.
 
@@ -289,9 +450,9 @@ def quantile_forecast_chart(
         high : str
             Upper-bound column name in the wide forecast
             table (e.g., "0.975").
-        opacity : float
-            Fill opacity for the band in the range
-            [0.0, 1.0].
+        label : str
+            The label in the legend for the confidence
+            interval (e.g. "97.5% CI").
 
         Returns
         -------
@@ -299,17 +460,23 @@ def quantile_forecast_chart(
             An Altair layer with the filled band from
             ``low`` to ``high``, with step interpolation.
         """
-        return base.mark_errorband(opacity=opacity, interpolate="step").encode(
-            y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
-            y2=f"{high}:Q",
-            fill=alt.value("steelblue"),
+        return (
+            base.transform_calculate(legend_label=f"'{label}'")
+            .mark_errorband(interpolate="step")
+            .encode(
+                y=alt.Y(f"{low}:Q", title=f"{selected_target}"),
+                y2=f"{high}:Q",
+                color=color_enc,
+                opacity=alt.value(1.0),
+            )
         )
 
     bands = [
-        band("0.025", "0.975", 0.10),
-        band("0.1", "0.9", 0.20),
-        band("0.25", "0.75", 0.30),
+        band(spec["low"], spec["high"], label)
+        for label, spec in ci_specs.items()
+        if spec["low"] in df_wide.columns and spec["high"] in df_wide.columns
     ]
+
     median = base.mark_line(strokeWidth=STROKE_WIDTH, interpolate="step", color="navy")
 
     return alt.layer(*bands, median)
