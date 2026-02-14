@@ -503,7 +503,9 @@ def load_observed_data(
         return pl.DataFrame(schema=observed_schema)
     table = load_hubverse_table(observed_data_file).select(observed_schema.keys())
     validate_schema(table, observed_schema, "Observed Data")
-    table = table.filter(pl.col("as_of") == pl.col("as_of").max())
+    table = table.filter(
+        pl.col("as_of") == pl.col("as_of").max().over("target")
+    )
     return table
 
 
