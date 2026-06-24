@@ -17,6 +17,7 @@ import polars as pl
 import streamlit as st
 from streamlit_shortcuts import add_shortcuts
 from utils import (
+    build_ci_specs_from_df,
     get_available_locations,
     get_initial_window_range,
     get_reference_dates,
@@ -31,6 +32,7 @@ Y_LABEL_FONT_SIZE = 15
 CHART_TITLE_FONT_SIZE = 18
 REF_DATE_STROKE_WIDTH = 2.5
 REF_DATE_STROKE_DASH = [6, 6]
+MARKER_SIZE = 65
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
@@ -406,21 +408,67 @@ def plotting_ui(
     # empty streamlit object (DeltaGenerator) needed for
     # plots to reload successfully with new data.
     base_chart = st.empty()
-    forecast_layer = quantile_forecast_chart(
-        forecasts_to_plot, selected_target, scale=scale, grid=show_grid
+
+    has_obs = not data_to_plot.is_empty()
+    has_fc = not forecasts_to_plot.is_empty()
+    ci_specs = build_ci_specs_from_df(forecasts_to_plot) if has_fc else {}
+
+    legend_labels = []
+    color_range = []
+
+    if has_obs:
+        legend_labels.append("Observations")
+        color_range.append("limegreen")
+
+    if has_fc and ci_specs:
+        legend_labels.extend(ci_specs.keys())
+        # colors from Vega's blues palette
+        blues = [
+            "#c6dbef",
+            "#9ecae1",
+            "#6baed6",
+            "#4292c6",
+            "#2171b5",
+            "#08519c",
+            "#08306b",
+        ]
+        n_cis = len(ci_specs)
+        color_range.extend(blues[:n_cis])
+
+    color_enc = alt.Color(
+        "legend_label:N",
+        title=None,
+        scale=alt.Scale(domain=legend_labels, range=color_range),
     )
+
     observed_layer = target_data_chart(
-        data_to_plot, selected_target, scale=scale, grid=show_grid
+        data_to_plot,
+        selected_target,
+        color_enc=color_enc,
+        scale=scale,
+        grid=show_grid,
     )
+
+    forecast_layer = quantile_forecast_chart(
+        forecasts_to_plot,
+        selected_target,
+        ci_specs,
+        color_enc=color_enc,
+        scale=scale,
+        grid=show_grid,
+    )
+
     sub_layers = [
         layer for layer in [forecast_layer, observed_layer] if not is_empty_chart(layer)
     ]
+
     if sub_layers:
         # for some reason alt.layer(*sub_layers) does not work
         layer = reduce(lambda x, y: x + y, sub_layers)
     else:
         st.info("No data to plot for that model/target/location.")
         return
+
     if show_ref_date_line and selected_ref_date is not None:
         rule_layer = alt.Chart(
             alt.Data(values=[{"date": str(selected_ref_date)}])
@@ -430,13 +478,16 @@ def plotting_ui(
             strokeWidth=REF_DATE_STROKE_WIDTH,
         )
         layer = layer + rule_layer
+
     domain = get_initial_window_range(data_to_plot, forecasts_to_plot)
+
     x_enc = alt.X(
         "date:T",
         scale=alt.Scale(domain=domain),
         axis=alt.Axis(format="%b %d", grid=show_grid),
         title="Date",
     )
+
     chart = (
         layer.encode(x=x_enc)
         .facet(
@@ -462,7 +513,15 @@ def plotting_ui(
         .interactive()
         .resolve_scale(y="independent")
         .resolve_axis(x="independent")
+        .configure_legend(
+            orient="top",
+            direction="horizontal",
+            symbolType="circle",
+            symbolSize=MARKER_SIZE,
+            titleAnchor="middle",
+        )
     )
+
     base_chart.altair_chart(
         chart,
         use_container_width=False,
